@@ -1,0 +1,5 @@
+# 统一换行符：仓库内一律以 LF 存储
+# 原因：lotteryData.js 会被本地 dev 服务（Windows）与 GitHub Actions（Linux）分别追加写入，
+#       若不统一，跨平台提交会产生"整文件被改动"的伪差异，掩盖真实的开奖数据增量
+# text=auto 会自动识别文本文件，不影响任何二进制文件
+* text=auto eol=lf

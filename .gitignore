@@ -1,0 +1,15 @@
+# 依赖与构建产物（GitHub 上由 Actions 重新安装/构建，不入库）
+node_modules/
+dist/
+# CI 组装的 Pages 发布目录（.github/workflows/pages-deploy.yml 生成，不入库）
+pages/
+
+# 本地校验/截图产物（仅忽略仓库根目录的截图，不影响 src 下未来可能新增的图片资源）
+/*.png
+hsub_repeat_out.txt
+vout.txt
+v2.txt
+
+# 系统文件
+.DS_Store
+Thumbs.db

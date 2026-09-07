@@ -1,0 +1,69 @@
+name: pages-deploy
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # CI 只需 vite build，跳过 Electron 二进制下载（不影响本地 Electron 打包）
+      ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 两个应用均为纯前端 Vite 构建，vite.config.js 已设 base:'./'，可部署到任意子路径
+      - name: Build 福彩3D
+        run: |
+          cd lottery-app
+          npm ci
+          npm run build
+
+      - name: Build 排列三
+        run: |
+          cd pl3-app
+          npm ci
+          npm run build
+
+      - name: Assemble pages (3d + pl3 + launcher)
+        run: |
+          mkdir -p pages/3d pages/pl3
+          cp -r lottery-app/dist/. pages/3d/
+          cp -r pl3-app/dist/. pages/pl3/
+          cp pages-index.html pages/index.html
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
