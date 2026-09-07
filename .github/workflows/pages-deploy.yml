@@ -49,8 +49,13 @@ jobs:
           cp -r pl3-app/dist/. pages/pl3/
           cp pages-index.html pages/index.html
 
+      # enablement: true —— 若仓库尚未开启 Pages，本步骤用已有的 pages:write 权限自动开启，
+      # 并把构建源设为 GitHub Actions，免去手动到 Settings → Pages 里切换。
+      # 未加此参数时，首次部署会在本步报 "Get Pages site failed ... Not Found" 而失败
       - name: Configure Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
