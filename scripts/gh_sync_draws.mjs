@@ -22,11 +22,21 @@ const HEADERS = {
   'Pragma': 'no-cache',
 };
 
+// 【健康信号】GitHub Actions 的步骤级日志对未登录用户不可读（页面 404 / API 403），
+// 只看运行颜色无法区分“数据源不可达”与“确实没有新数据”。因此把异常直接反映到退出码：
+// 出现任一异常即把 process.exitCode 置为 1，让 workflow 显示红叉，不必读日志即可发现问题。
+// 这只影响 CI 的成败标记，不改变任何解析、过滤与写入逻辑。
+const problems = [];
+
 for (const app of APPS) {
   const filePath = path.join(ROOT, app.file);
   try {
     const res = await fetch(app.url, { headers: HEADERS });
-    if (!res.ok) { console.log(`[${app.name}] 数据源 HTTP ${res.status}，跳过（不写入）`); continue; }
+    if (!res.ok) {
+      console.log(`[${app.name}] 数据源 HTTP ${res.status}，跳过（不写入）`);
+      problems.push(`${app.name} 数据源返回 HTTP ${res.status}`);
+      continue;
+    }
     const text = await res.text();
     const lines = text.trim().split('\n').filter(l => l.trim());
     // 与 App.jsx 相同的行解析
@@ -42,10 +52,22 @@ for (const app of APPS) {
       // 不合法则丢弃，宁可当次不同步，也不写入脏数据（算法逻辑零改动）
       .filter(d => /^\d{5}$/.test(d.issue) && [d.d1, d.d2, d.d3].every(v => Number.isInteger(v) && v >= 0 && v <= 9));
 
+    // 解析不出任何有效行，说明数据源改版、被拦截或返回了非开奖内容（例如 HTML 错误页），
+    // 这种情况若不报错就会伪装成“无新数据”，是最危险的假绿灯
+    if (items.length === 0) {
+      console.log(`[${app.name}] 数据源返回内容解析不出任何有效开奖行（可能改版或被拦截），跳过`);
+      problems.push(`${app.name} 数据源返回内容无法解析（0 条有效开奖行）`);
+      continue;
+    }
+
     const content = fs.readFileSync(filePath, 'utf-8');
     // 与 saveDrawsPlugin 相同的数组定位
     const m = content.match(/(export const lotteryData = \[[\s\S]*?\n)(\];)/);
-    if (!m) { console.log(`[${app.name}] 文件格式错误，跳过`); continue; }
+    if (!m) {
+      console.log(`[${app.name}] 文件格式错误，跳过`);
+      problems.push(`${app.name} 数据文件未匹配到 lotteryData 数组，格式异常`);
+      continue;
+    }
     const existing = new Set();
     m[1].split('\n').forEach(line => {
       const mm = line.match(/issue:\s*'(\d+)'/);
@@ -65,6 +87,7 @@ for (const app of APPS) {
     const gap = fresh.filter((d, i) => Number(d.issue) !== Number(lastIssue) + i + 1);
     if (gap.length > 0) {
       console.log(`[${app.name}] 期号不连续（本地最新 ${lastIssue}，源给出 ${fresh.map(d => d.issue).join(',')}），为保护数据完整性放弃本次写入`);
+      problems.push(`${app.name} 期号不连续（本地最新 ${lastIssue}，源给出 ${fresh.map(d => d.issue).join(',')}）`);
       continue;
     }
 
@@ -75,5 +98,16 @@ for (const app of APPS) {
     console.log(`[${app.name}] 新增 ${fresh.length} 期：${fresh.map(d => `${d.issue}=${d.d1}${d.d2}${d.d3}`).join(' ')}`);
   } catch (err) {
     console.log(`[${app.name}] 同步失败：${err.message}`);
+    problems.push(`${app.name} 同步异常：${err.message}`);
   }
+}
+
+if (problems.length > 0) {
+  console.log(`\n[健康检查] 本次同步存在 ${problems.length} 项异常：`);
+  problems.forEach(p => console.log(`  - ${p}`));
+  console.log('[健康检查] 退出码置为 1，workflow 将显示红叉，便于在不读日志的情况下发现自动同步中断。');
+  console.log('[健康检查] 已成功写入的数据不会丢失：提交步骤带 if: !cancelled()，仍会把已同步部分推上去。');
+  process.exitCode = 1;
+} else {
+  console.log('\n[健康检查] 两个数据源均可正常访问并解析，本次同步健康。');
 }

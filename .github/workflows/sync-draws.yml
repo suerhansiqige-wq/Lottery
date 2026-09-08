@@ -2,10 +2,14 @@ name: sync-draws
 
 on:
   schedule:
-    # UTC 13:40 = 北京 21:40（福彩3D 21:15、排列三 21:25 开奖后）
-    - cron: '40 13 * * *'
-    # UTC 14:10 = 北京 22:10 兜底补同步
-    - cron: '10 14 * * *'
+    # 开奖时间：福彩3D 北京 21:15、排列三 北京 21:25（= UTC 13:15 / 13:25）
+    # 下面 5 个时间点每 30 分钟一次，既容忍数据源上线延迟，也在 GitHub 调度器漏跑时多重兜底
+    # 避开整点：GitHub 官方明确“整点属高负载时段，定时工作流会被延迟”，故错开到 :05 / :30 / :35
+    - cron: '30 13 * * *'   # 北京 21:30
+    - cron: '5 14 * * *'    # 北京 22:05
+    - cron: '35 14 * * *'   # 北京 22:35
+    - cron: '5 15 * * *'    # 北京 23:05
+    - cron: '35 15 * * *'   # 北京 23:35
   workflow_dispatch:
 
 # 允许工作流把新开奖数据提交回仓库（Pages 随之重新发布，延续性由仓库保证）
@@ -23,6 +27,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # 拉取完整历史：默认 fetch-depth:1 是浅克隆，后面的 git pull --rebase
+          # 在浅历史上可能因找不到共同祖先而失败，导致数据同步上了却推不上去
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -32,7 +40,15 @@ jobs:
       - name: Sync latest draw results into repo
         run: node scripts/gh_sync_draws.mjs
 
+      # if: !cancelled() —— 上一步只要发现异常就会以退出码 1 失败（健康信号），
+      # 但那时可能已有一个应用成功写入数据；本步仍需执行，把已同步部分推上去不丢数据。
+      # job 最终仍为 failure（因为同步步骤红了），健康信号不会被掩盖
       - name: Commit and push if data changed
+        if: ${{ !cancelled() }}
+        env:
+          # 直接用 github.ref_name 而不是 git rev-parse --abbrev-ref HEAD：
+          # 后者在分离头指针状态下会返回字面量 HEAD，使 git push origin HEAD:HEAD 失败
+          BRANCH: ${{ github.ref_name }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -41,7 +57,6 @@ jobs:
             echo "无新开奖数据，不提交"
           else
             git commit -m "chore(data): 自动同步最新开奖数据"
-            BRANCH="$(git rev-parse --abbrev-ref HEAD)"
             # 推送前先变基，避免与人工提交冲突导致推送失败
             git pull --rebase origin "$BRANCH"
             git push origin "HEAD:$BRANCH"
