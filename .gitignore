@@ -10,6 +10,9 @@ hsub_repeat_out.txt
 vout.txt
 v2.txt
 
+# 本机自动同步任务的运行日志（sync-push-silent.bat 每次追加写入，只增不改，无需入库）
+sync-push.log
+
 # 系统文件
 .DS_Store
 Thumbs.db
