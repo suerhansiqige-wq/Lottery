@@ -3,3 +3,9 @@
 #       若不统一，跨平台提交会产生"整文件被改动"的伪差异，掩盖真实的开奖数据增量
 # text=auto 会自动识别文本文件，不影响任何二进制文件
 * text=auto eol=lf
+
+# 例外：Windows 批处理必须以 CRLF 检出，不受上面 eol=lf 影响。
+# 原因：cmd.exe 解析多行括号块时是逐行拼接的，LF-only 换行会让 sync-push.bat 里的
+#       if "%RC%"=="0" ( ... ) else ( ... ) 结果提示段解析错乱。
+# 注：.gitattributes 遵循“后匹配覆盖先匹配”，故本规则必须写在 * 规则之后。
+*.bat text eol=crlf
