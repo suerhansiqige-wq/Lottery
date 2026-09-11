@@ -1,3 +1,6 @@
+import { useMemo } from 'react'
+import { parseDecompGroups, verifyDraw } from '../utils/decompRongCuo.js'
+
 // ============================================================
 // 【算法锁定】横加减 / 竖加减 4列（对齐 Excel「黄金三格」福表 G~R 列，每 3 列合并为 1 格）
 // 横相减：|百-十|、|十-个|、|百-个|              （Excel G/H/I = ABS(B-C)、ABS(C-D)、ABS(B-D)）
@@ -28,9 +31,90 @@ function renderHjsCells(src) {
   });
 }
 
-function FullDataTable({ data, showCount, setShowCount, trialDigits, onTrialChange }) {
+// ============================================================
+// 智取分解 / 博众分解 两列（表格最右侧，通杀码之后）
+// 【样式锁定】文本框宽 170px、高固定 40px（仅显示 2 行）、overflow:hidden 禁滚动条、
+//   resize:none 禁拖拽缩放；有数据白底，无数据灰底
+// 【交互锁定】已锁定期号 -> readOnly + 置灰 + 点击弹密码框；未锁定 -> 可编辑，
+//   onChange 即时写回 App.jsx 并触发容错重算
+// ============================================================
+const DECOMP_COLS = [
+  { kind: 'decomp', th: '智取分解', title: '智取分解：每期 20 组 5-5 分解，格式 XXXXX,XXXXX，组间换行' },
+  { kind: 'bozhong', th: '博众分解', title: '博众分解：每期 20 组 5-5 分解，格式 XXXXX,XXXXX，组间换行' },
+];
+
+function FullDataTable({
+  data, showCount, setShowCount, trialDigits, onTrialChange,
+  decompTexts = {}, bozhongTexts = {},
+  setDecompText, setBozhongText,
+  lockedDecomp, lockedBozhong,
+  onRequestUnlock,
+  // App.jsx 基于 baseData 算出的下期待开奖期号；分解录入框必须用它，
+  // 不能用本文件预留行内部的 nextIssue——后者基于 enrichedData，
+  // 存在测试行时会多算一期，导致分解条件对错期号
+  nextIssue: appNextIssue,
+}) {
   const displayData = data.slice(-showCount)
   const isTrialRow = (item) => trialDigits && trialDigits.every(d => d !== null) && data.length > 0 && item.issue === data[data.length - 1].issue
+
+  // 往期各期「最小容错等级」徽章数据源：仅对已开奖行（d1/d2/d3 有值）且该期分解非空时计算；
+  //   下期预留行尚无开奖号 → 不产出徽章，等开奖数据更新、该行转为正常已开奖行后才显示
+  const verifyMaps = useMemo(() => {
+    const dm = new Map();
+    const bz = new Map();
+    for (const item of displayData) {
+      if (item.d1 === undefined || item.d2 === undefined || item.d3 === undefined) continue;
+      const gd = parseDecompGroups((decompTexts && decompTexts[item.issue]) || '');
+      if (gd.length > 0) { const v = verifyDraw(item, gd); if (v) dm.set(item.issue, v); }
+      const gb = parseDecompGroups((bozhongTexts && bozhongTexts[item.issue]) || '');
+      if (gb.length > 0) { const v = verifyDraw(item, gb); if (v) bz.set(item.issue, v); }
+    }
+    return { dm, bz };
+  }, [displayData, decompTexts, bozhongTexts]);
+
+  // 渲染一个分解文本框单元格；hasData 决定白底/灰底，locked 决定只读与点击解锁
+  const renderDecompCell = (kind, issue, title) => {
+    const texts = kind === 'decomp' ? decompTexts : bozhongTexts;
+    const setText = kind === 'decomp' ? setDecompText : setBozhongText;
+    const lockedSet = kind === 'decomp' ? lockedDecomp : lockedBozhong;
+    const value = (texts && texts[issue]) || '';
+    const hasData = value.trim().length > 0;
+    const locked = !!(lockedSet && lockedSet.has(issue));
+    const v = (kind === 'decomp' ? verifyMaps.dm : verifyMaps.bz).get(issue);
+    return (
+      <td key={'dc_' + kind} style={{ padding: 2, background: locked ? '#eceff1' : (hasData ? '#fff' : '#e0e0e0') }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <textarea
+          readOnly={locked}
+          value={value}
+          title={locked ? `${title}（已锁定，点击输入密码解锁）` : title}
+          placeholder={locked ? '已锁定' : ''}
+          onChange={e => { if (setText) setText(issue, e.target.value); }}
+          onClick={locked && onRequestUnlock ? () => onRequestUnlock(kind, issue) : undefined}
+          style={{
+            width: 170, height: 40, resize: 'none', overflow: 'hidden', display: 'block',
+            fontSize: 11, lineHeight: '19px', fontFamily: 'Consolas,Menlo,monospace',
+            padding: '0 3px', boxSizing: 'border-box', borderRadius: 3,
+            border: `1px solid ${locked ? '#cfd8dc' : (hasData ? '#90caf9' : '#bdbdbd')}`,
+            background: locked ? '#eceff1' : (hasData ? '#fff' : '#eee'),
+            color: locked ? '#78909c' : '#222',
+            cursor: locked ? 'pointer' : 'text',
+          }}
+        />
+        {v && (
+          <span style={{
+            fontSize: 11, padding: '1px 5px', borderRadius: 3, border: '1px solid #e0e0e0',
+            background: '#fff', whiteSpace: 'nowrap',
+            color: v.type === '组三' ? '#c62828' : '#000',
+            fontWeight: v.type === '组三' ? 700 : 600,
+          }} title={`${issue} 期开奖最小容错等级（${v.type}）`}>
+            {v.type}（容错{v.level}）
+          </span>
+        )}
+        </div>
+      </td>
+    );
+  }
 
   return (
     <div>
@@ -67,6 +151,13 @@ function FullDataTable({ data, showCount, setShowCount, trialDigits, onTrialChan
                 <th>连号</th>
                 <th>必出号</th>
                 <th>通杀码</th>
+                {/* 智取分解 / 博众分解 两列 */}
+                {DECOMP_COLS.map(c => (
+                  <th key={'dcTh_' + c.kind} title={c.title}
+                    style={{ borderBottom: `3px solid ${c.kind === 'decomp' ? '#f9a825' : '#43a047'}` }}>
+                    {c.th}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -159,6 +250,8 @@ function FullDataTable({ data, showCount, setShowCount, trialDigits, onTrialChan
                       );
                     })()}
                   </td>
+                  {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数 */}
+                  {DECOMP_COLS.map(c => renderDecompCell(c.kind, item.issue, c.title))}
                   {/* 杀百十合、杀百个合、杀十个合三列已彻底删除 - 用户要求 */}
                 </tr>
                 );
@@ -204,6 +297,8 @@ function FullDataTable({ data, showCount, setShowCount, trialDigits, onTrialChan
                       );
                     })()}
                   </td>
+                  {/* 智取分解 / 博众分解 - 预留行：下期分解条件录入框（点按钮后锁定，密码解锁再编辑） */}
+                  {DECOMP_COLS.map(c => renderDecompCell(c.kind, appNextIssue || nextIssue, c.title))}
                   {/* 杀百十合、杀百个合、杀十个合三列预留行已彻底删除 - 用户要求 */}
                 </tr>
                 );

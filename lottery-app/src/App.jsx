@@ -1,7 +1,46 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { lotteryData as staticLotteryData } from './data/lotteryData.js'
 import { enrichData } from './data/enrichDataOptimized.js'
+import decompositionData from './data/decompositionData.json'
+import bozhongData from './data/bozhongData.json'
+import { parseDecompGroups, computeRongCuo } from './utils/decompRongCuo.js'
 import FullDataTable from './components/FullDataTable.jsx'
+import DecompRongCuoPanel from './components/DecompRongCuoPanel.jsx'
+
+// ============================================================
+// 分解 JSON 基线归一化
+// decompositionData.json / bozhongData.json 中每期的值是「20 个字符串组成的数组」
+// （形如 ["72390,18546", "52167,98430", ...]），而 textarea 需要的是换行拼接的单一字符串。
+// 必须在模块加载时归一化一次：
+//   1）避免对数组调 .trim() 导致 App 崩溃白屏
+//   2）下方 makeTextSetter 用 baseline 比对区分「用户改动」与「JSON 原始值」，
+//      两边必须同为字符串，否则每期都会被当成改动全量写进 localStorage
+// ============================================================
+function normalizeTexts(obj) {
+  const out = {};
+  for (const k of Object.keys(obj)) {
+    const v = obj[k];
+    out[k] = Array.isArray(v) ? v.join('\n') : (typeof v === 'string' ? v : '');
+  }
+  return out;
+}
+const DECOMP_BASE = normalizeTexts(decompositionData);
+const BOZHONG_BASE = normalizeTexts(bozhongData);
+
+// ============================================================
+// 【数据开关】DECOMP_BLANK = true 时，智取/博众两列不加载 JSON 基线数据，
+//   表格中所有往期行的分解文本框均为空白（灰底），容错模块显示「暂无分解条件」。
+//   用户要求表格保持空白状态（2026-09-10）。
+// 【无损】src/data/decompositionData.json 与 bozhongData.json 在磁盘上未做任何删改，
+//   544 期数据完整保留；需要恢复预载时把本开关改为 false 即可。
+// 注意：开关为 true 时，即使重跑 export_decomp.cjs / export_bozhong.cjs 刷新了 JSON，
+//   页面也不会加载（因为基线被本开关屏蔽），需同时改回 false。
+// ============================================================
+const DECOMP_BLANK = true;
+
+// 实际生效的基线：开关为 true 时为空对象（两列空白），为 false 时为归一化后的 JSON 数据
+const DECOMP_BASELINE = DECOMP_BLANK ? {} : DECOMP_BASE;
+const BOZHONG_BASELINE = DECOMP_BLANK ? {} : BOZHONG_BASE;
 
 function App() {
   const [extraData, setExtraData] = useState([])
@@ -56,6 +95,89 @@ function App() {
     const next = typeof val === 'function' ? val(lockedMissKillZx) : val;
     setLockedMissKillZxState(next);
     localStorage.setItem('3d_lockedMissKillZx', String(next));
+  };
+
+  // ============================================================
+  // 智取分解 / 博众分解：编辑框内容 + 锁定状态 + 密码解锁
+  // 【持久化锁定】localStorage 只存用户手工改动（与 JSON 基线不同的期号），启动时
+  //   覆盖在 JSON 基线之上。这样重跑 export_decomp.cjs / export_bozhong.cjs 导出新数据后
+  //   新期号仍能生效，用户已录入的编辑内容也不丢，且不会把 21 万字节基线写进 localStorage
+  // 键名沿用历史：3d_decompTexts / 3d_bozhongTexts / 3d_lockedDecomp / 3d_lockedBozhong
+  // 交互循环：编辑 -> 点「智取、博众分解」自动锁定（置灰只读）-> 点击弹密码框 -> 解锁再编辑
+  // ============================================================
+  const DECOMP_PWD = '000000';
+  const safeSetItem = (key, value) => { try { localStorage.setItem(key, value); } catch { /* 配额超限时静默 */ } };
+  const loadOverrides = (key) => {
+    try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : {}; } catch { return {}; }
+  };
+  const loadLockSet = (key) => {
+    try { const s = localStorage.getItem(key); return new Set(s ? JSON.parse(s) : []); } catch { return new Set(); }
+  };
+
+  const [decompTexts, setDecompTextsState] = useState(() => normalizeTexts({ ...DECOMP_BASELINE, ...loadOverrides('3d_decompTexts') }));
+  const [bozhongTexts, setBozhongTextsState] = useState(() => normalizeTexts({ ...BOZHONG_BASELINE, ...loadOverrides('3d_bozhongTexts') }));
+  const [lockedDecomp, setLockedDecompState] = useState(() => loadLockSet('3d_lockedDecomp'));
+  const [lockedBozhong, setLockedBozhongState] = useState(() => loadLockSet('3d_lockedBozhong'));
+  // 密码弹窗：decomp / bozhong 共用一个，由 pwdTarget.kind 区分
+  const [pwdDialog, setPwdDialog] = useState(false);
+  const [pwdTarget, setPwdTarget] = useState(null); // { kind: 'decomp'|'bozhong', issue }
+  const [pwdInput, setPwdInput] = useState('');
+  const [pwdError, setPwdError] = useState('');
+
+  // 写入某期分解文本：只持久化与 JSON 基线不同的期号
+  const makeTextSetter = (setState, baseline, storageKey) => (issue, val) => {
+    setState(prev => {
+      const next = { ...prev, [issue]: val };
+      const overrides = {};
+      for (const k of Object.keys(next)) if (next[k] !== baseline[k]) overrides[k] = next[k];
+      safeSetItem(storageKey, JSON.stringify(overrides));
+      return next;
+    });
+  };
+  const setDecompText = makeTextSetter(setDecompTextsState, DECOMP_BASELINE, '3d_decompTexts');
+  const setBozhongText = makeTextSetter(setBozhongTextsState, BOZHONG_BASELINE, '3d_bozhongTexts');
+
+  // 自选号码：按「最新未开奖期」存储用户手填号码，localStorage 键 3d_selfPick（仅存非空期）
+  const [selfPickTexts, setSelfPickTextsState] = useState(() => loadOverrides('3d_selfPick'));
+  const setSelfPickText = (issue, val) => {
+    if (!issue) return;
+    setSelfPickTextsState(prev => {
+      const next = { ...prev };
+      if (val && val.trim()) next[issue] = val; else delete next[issue];
+      safeSetItem('3d_selfPick', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // 锁定集合写入：接收新 Set，同步落盘
+  const makeLockSetter = (setState, storageKey) => (val) => {
+    setState(prev => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      safeSetItem(storageKey, JSON.stringify([...next]));
+      return next;
+    });
+  };
+  const setLockedDecomp = makeLockSetter(setLockedDecompState, '3d_lockedDecomp');
+  const setLockedBozhong = makeLockSetter(setLockedBozhongState, '3d_lockedBozhong');
+
+  // 点击已锁定的文本框 -> 弹密码框
+  const requestUnlock = (kind, issue) => {
+    setPwdTarget({ kind, issue });
+    setPwdInput('');
+    setPwdError('');
+    setPwdDialog(true);
+  };
+  // 密码校验通过 -> 从对应 Lock Set 移除该期号，恢复可编辑（支持无限次循环）
+  const submitPwd = () => {
+    if (!pwdTarget) return;
+    if (pwdInput.trim() !== DECOMP_PWD) { setPwdError('密码错误'); return; }
+    const { kind, issue } = pwdTarget;
+    const remover = (prev) => { const n = new Set(prev); n.delete(issue); return n; };
+    if (kind === 'decomp') setLockedDecomp(remover); else setLockedBozhong(remover);
+    setPwdDialog(false);
+    setPwdTarget(null);
+    setPwdInput('');
+    setPwdError('');
   };
 
   // 组选转直选排列：生成所有不重复的排列
@@ -152,6 +274,69 @@ function App() {
       localStorage.setItem('3d_missKillZxText', newText);
     }
   }, [lastIssueNum]);
+
+  // ============================================================
+  // 【算法锁定】分解容错计算目标期
+  // 优先取「下期预留行」（用户手工录入的最新分解条件）；该行为空时回退到 JSON 中
+  // 有数据的最新一期。原因：分解数据由桌面 xls 手工导出，常滞后于开奖数据。
+  // ============================================================
+  const nextIssue = baseData.length > 0 ? String(Number(baseData[baseData.length - 1].issue) + 1) : '';
+
+  const pickTargetIssue = (texts) => {
+    if (nextIssue && (texts[nextIssue] || '').trim()) return nextIssue;
+    let best = '';
+    for (const k of Object.keys(texts)) {
+      if (!(texts[k] || '').trim()) continue;
+      if (!best || Number(k) > Number(best)) best = k;
+    }
+    return best || nextIssue;
+  };
+
+  const decompIssue = useMemo(() => pickTargetIssue(decompTexts), [decompTexts, nextIssue]);
+  const bozhongIssue = useMemo(() => pickTargetIssue(bozhongTexts), [bozhongTexts, nextIssue]);
+
+  // ============================================================
+  // 【算法锁定】分解容错计算（候选集 = 《自选号码》的组六号码，见下）
+  // ============================================================
+  // 【候选集】《自选号码》模块提供的号码中，仅取组六（三位互不相同）作为
+  // 智取/博众分解容错的候选集；组三不参与分解。自选为空时候选集为空数组，
+  // 容错模块会显示空候选提示而非回退到全部 1000 注
+  // ============================================================
+  const selfPickZuLiu = useMemo(() => {
+    const tokens = (selfPickTexts[nextIssue] || '').split(/[\s,，;；]+/).filter(t => /^\d{3}$/.test(t));
+    const seen = new Set();
+    const out = [];
+    for (const t of tokens) {
+      if (seen.has(t)) continue;
+      seen.add(t);
+      if (new Set(t.split('')).size === 3) out.push(t);   // 仅组六
+    }
+    return out;
+  }, [selfPickTexts, nextIssue]);
+
+  // 依赖数组必须包含 decompTexts / bozhongTexts —— 历史踩坑：漏依赖会导致
+  // textarea 编辑后容错结果不重算（编辑框看起来“失效”）
+  // 同时必须包含 selfPickZuLiu —— 自选号码变化时容错结果需重算
+  // ============================================================
+  const decompResult = useMemo(
+    () => computeRongCuo(parseDecompGroups(decompTexts[decompIssue] || ''), selfPickZuLiu),
+    [decompTexts, decompIssue, selfPickZuLiu]
+  );
+  const bozhongResult = useMemo(
+    () => computeRongCuo(parseDecompGroups(bozhongTexts[bozhongIssue] || ''), selfPickZuLiu),
+    [bozhongTexts, bozhongIssue, selfPickZuLiu]
+  );
+
+
+  // 「智取、博众分解」按钮：只锁定「下期预留行」（最新期号）的两个编辑框
+  // 【锁定范围锁定】禁止把 decompIssue / bozhongIssue 也加进来——分解数据滞后时它们会
+  // 回退到某个历史期（如 26193），连带锁定会让用户没编辑过的往期行变只读，必须密码才能改
+  // 容错结果由 useMemo 自动重算，按钮职责仅为锁定，防止误改已提交的下期分解条件
+  const onDecompSubmit = () => {
+    if (!nextIssue) return;
+    setLockedDecomp(prev => new Set(prev).add(nextIssue));
+    setLockedBozhong(prev => new Set(prev).add(nextIssue));
+  };
 
   // 将API返回的7位期号(2026193)转为5位格式(26193)
   const convertIssue = (code) => {
@@ -315,12 +500,92 @@ function App() {
         </div>
       </header>
 
-      <div style={{ display: 'flex', gap: 0, alignItems: 'stretch', marginTop: 25 }}>
+      <div style={{ display: 'flex', gap: 0, alignItems: 'stretch', marginTop: 20 }}>
         <main className="main-content" style={{ flex: 1, minWidth: 0 }}>
-          <FullDataTable data={enrichedData} showCount={showCount} setShowCount={setShowCount} trialDigits={trialDigits} onTrialChange={setTrialDigits} />
+          <FullDataTable
+            data={enrichedData}
+            showCount={showCount}
+            setShowCount={setShowCount}
+            trialDigits={trialDigits}
+            onTrialChange={setTrialDigits}
+            decompTexts={decompTexts}
+            bozhongTexts={bozhongTexts}
+            setDecompText={setDecompText}
+            setBozhongText={setBozhongText}
+            lockedDecomp={lockedDecomp}
+            lockedBozhong={lockedBozhong}
+            onRequestUnlock={requestUnlock}
+            nextIssue={nextIssue}
+          />
         </main>
       </div>
 
+      {/* 分解容错结果：智取（黄）/ 博众（绿）并排等高 + 本期容错（交集） */}
+      <div style={{ marginTop: 16 }}>
+        <DecompRongCuoPanel
+          decompIssue={decompIssue}
+          decompResult={decompResult}
+          bozhongIssue={bozhongIssue}
+          bozhongResult={bozhongResult}
+          selfPickIssue={nextIssue}
+          selfPickValue={selfPickTexts[nextIssue] || ''}
+          onSelfPickChange={(v) => setSelfPickText(nextIssue, v)}
+          onDecompSubmit={onDecompSubmit}
+        />
+      </div>
+
+      {/* 密码解锁弹窗：点击已锁定的分解文本框弹出，默认密码 000000 */}
+      {pwdDialog && (
+        <div
+          onClick={() => { setPwdDialog(false); setPwdTarget(null); setPwdError(''); }}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#fff', borderRadius: 8, padding: '20px 24px', width: 300,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            }}
+          >
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#333', marginBottom: 4 }}>
+              解锁{pwdTarget && pwdTarget.kind === 'decomp' ? '智取' : '博众'}分解编辑框
+            </div>
+            <div style={{ fontSize: 12, color: '#888', marginBottom: 12 }}>
+              期号 {pwdTarget ? pwdTarget.issue : '—'}，请输入密码
+            </div>
+            <input
+              type="password"
+              autoFocus
+              value={pwdInput}
+              onChange={e => { setPwdInput(e.target.value); setPwdError(''); }}
+              onKeyDown={e => { if (e.key === 'Enter') submitPwd(); }}
+              placeholder="密码"
+              style={{
+                width: '100%', boxSizing: 'border-box', padding: '8px 10px', fontSize: 15,
+                border: `1px solid ${pwdError ? '#e53935' : '#ccc'}`, borderRadius: 4,
+              }}
+            />
+            {pwdError && <div style={{ fontSize: 12, color: '#e53935', marginTop: 6 }}>{pwdError}</div>}
+            <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => { setPwdDialog(false); setPwdTarget(null); setPwdError(''); }}
+                style={{ padding: '6px 16px', fontSize: 14, cursor: 'pointer', border: '1px solid #ccc', borderRadius: 4, background: '#fff', color: '#555' }}
+              >
+                取消
+              </button>
+              <button
+                onClick={submitPwd}
+                style={{ padding: '6px 16px', fontSize: 14, fontWeight: 700, cursor: 'pointer', border: '1px solid #f57f17', borderRadius: 4, background: '#f9a825', color: '#fff' }}
+              >
+                解锁
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )
