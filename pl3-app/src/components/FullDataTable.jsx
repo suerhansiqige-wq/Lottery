@@ -77,7 +77,7 @@ function generateZuSan(digits) {
 // 竖相减：|本期-上期|同位差（百/十/个）
 // 竖相加：(本期+上期)同位取尾（百/十/个）
 // 数值口径由 lotteryData.js 的 enrichData 产出的 hSub/hAdd/vSub/vAdd 提供，禁止在此重复计算
-// 显示规则：与生号/连号/必出号/参考一/参考二/胆码一致，统一下移一行（首行显示自身值）
+// 显示规则：与生号/连号/必出号一致，统一下移一行（首行显示自身值）；参考一/参考二/胆码三列已彻底删除 - 用户要求
 // 合并规则：每组 3 个一位数连写为一个单元格（如 7,1,6 → 716），与生号/连号显示风格一致
 // ============================================================
 const HJS_COLS = [
@@ -101,7 +101,7 @@ function renderHjsCells(src) {
 }
 
 // ============================================================
-// 智取分解 / 博众分解 两列（表格最右侧，胆码列之后）——与福彩3D 同一套样式与交互
+// 智取分解 / 博众分解 两列（表格最右侧，必出号列之后）——与福彩3D 同一套样式与交互
 // 格宽随内容自适应（见 calcDecompBoxWidth）：数据右缘贴住框右缘、徽章贴住格右缘，
 //   不留死白死灰；overflow:hidden 禁滚动、resize:none 禁缩放；
 //   已锁定期号 readOnly+置灰+点击弹密码框；未锁定可编辑，onChange 即时写回 App.jsx 触发容错重算
@@ -385,9 +385,7 @@ function FullDataTable({
                 <th>生号</th>
                 <th>连号</th>
                 <th>必出号</th>
-                <th>参考一</th>
-                <th>参考二</th>
-                <th>胆码</th>
+                {/* 参考一/参考二/胆码三列表头已彻底删除 - 用户要求 */}
                 {/* 智取分解 / 博众分解 两列（表格最右侧，与福彩3D 同位置逻辑） */}
                 {DECOMP_COLS.map(c => (
                   <th key={'dcTh_' + c.kind} title={c.title}
@@ -446,8 +444,6 @@ function FullDataTable({
                 // 预测数据源统一为 prevData（第一行取自身），与福彩3D 一致
                 const mustOutDigits = prevData.mustOutNums.filter(v => v !== -1);
                 const mustOutStyle = getHitStyle(mustOutDigits, '#1e8449', '#fff');
-                const canKaoYiStyle = getHitStyle(prevData.canKaoYi, '#fff176');
-                const canKaoErStyle = getHitStyle(prevData.canKaoEr, '#fff176');
                 return (
                 <tr key={item.issue} style={isTrialRow(item) ? { background: '#fffde7' } : {}}>
                   <td className="issue" style={{ color: '#000', fontWeight: isTrialRow(item) ? 700 : 400 }}>{'20' + item.issue}{isTrialRow(item) ? ' (测试)' : ''}</td>
@@ -480,18 +476,7 @@ function FullDataTable({
                   <td style={mustOutStyle}>
                     {mustOutDigits.length > 0 ? mustOutDigits.join('') : '-'}
                   </td>
-                  {/* 参考一 - 下移一行 */}
-                  <td style={canKaoYiStyle}>
-                    {prevData.canKaoYi.length > 0 ? prevData.canKaoYi.join('') : '-'}
-                  </td>
-                  {/* 参考二 - 下移一行 */}
-                  <td style={canKaoErStyle}>
-                    {prevData.canKaoEr.length > 0 ? prevData.canKaoEr.join('') : '-'}
-                  </td>
-                  {/* 胆码 - 下移一行 */}
-                  <td style={{ color: '#fff', fontWeight: 700, background: '#2980b9' }}>
-                    {prevData.danMa.length > 0 ? prevData.danMa.join('') : '-'}
-                  </td>
+                  {/* 参考一/参考二/胆码三列单元格已彻底删除 - 用户要求 */}
                   {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数（与福彩3D 一致） */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, item.issue, c.title))}
                   {/* 出现次1 - 隐藏列 下移一行 */}
@@ -556,18 +541,7 @@ function FullDataTable({
                   <td style={{ color: '#fff', fontWeight: 600, background: '#1e8449' }}>
                     {predMustOut.length > 0 ? predMustOut.join('') : '-'}
                   </td>
-                  {/* 参考一 */}
-                  <td style={{ color: '#000', fontWeight: 600, background: '#fff176' }}>
-                    {predLast && predLast.canKaoYi.length > 0 ? predLast.canKaoYi.join('') : '-'}
-                  </td>
-                  {/* 参考二 */}
-                  <td style={{ color: '#000', fontWeight: 600, background: '#fff176' }}>
-                    {predLast && predLast.canKaoEr.length > 0 ? predLast.canKaoEr.join('') : '-'}
-                  </td>
-                  {/* 胆码 */}
-                  <td style={{ color: '#fff', fontWeight: 700, background: '#2980b9' }}>
-                    {predLast && predLast.danMa.length > 0 ? predLast.danMa.join('') : '-'}
-                  </td>
+                  {/* 参考一/参考二/胆码三列预留行占位已彻底删除 - 用户要求 */}
                   {/* 智取分解 / 博众分解 - 预留行：下期分解条件录入框（点按钮后锁定，密码解锁再编辑） */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, appNextIssue || nextIssue, c.title))}
                   {/* 隐藏列占位：出现次1、出现次2、号码组一~五 共 7 个，与表头隐藏列数量一致（原为9个，多出2个已修正） */}
