@@ -102,13 +102,32 @@ function renderHjsCells(src) {
 
 // ============================================================
 // 智取分解 / 博众分解 两列（表格最右侧，胆码列之后）——与福彩3D 同一套样式与交互
-// 文本框 170×40、overflow:hidden 禁滚动、resize:none 禁缩放；有数据白底、无数据灰底；
+// 格宽随内容自适应（见 calcDecompBoxWidth）：数据右缘贴住框右缘、徽章贴住格右缘，
+//   不留死白死灰；overflow:hidden 禁滚动、resize:none 禁缩放；
 //   已锁定期号 readOnly+置灰+点击弹密码框；未锁定可编辑，onChange 即时写回 App.jsx 触发容错重算
 // ============================================================
 const DECOMP_COLS = [
   { kind: 'decomp', th: '智取分解', title: '智取分解：每期 20 组 5-5 分解，格式 XXXXX,XXXXX，组间换行' },
   { kind: 'bozhong', th: '博众分解', title: '博众分解：每期 20 组 5-5 分解，格式 XXXXX,XXXXX，组间换行' },
 ];
+
+// 【格宽随内容自适应】用户要求“每一个格宽度要与数据参数紧挨着”：
+//   文本框宽 = 该列最长一行字符数 × 等宽字体单字宽 + 边框内边距，
+//   列宽由「文本框 + 4px 间隙 + 徽章」的 max-content 自然决定，
+//   数据右缘贴住框右缘、徽章贴住格右缘，格内不留死白、列内不留死灰。
+//   注意：不能依赖 textarea 默认 cols=20 的固有宽（约 129px），那会把列撑出死白。
+const DECOMP_CHAR_W = 6.1;    // Consolas/Menlo 11px 的单个等宽字符宽
+const DECOMP_BOX_CHROME = 8;  // 文本框 padding 3×2 + border 1×2
+const DECOMP_MIN_W = 76;      // 空白态下限：刚好容下一行 XXXXX,XXXXX
+const DECOMP_MAX_W = 240;     // 上限：防止手输超长行把表格撑爆
+const calcDecompBoxWidth = (texts, issues) => {
+  let maxLen = 0;
+  for (const issue of issues) {
+    const t = (texts && texts[issue]) || '';
+    for (const line of t.split('\n')) if (line.length > maxLen) maxLen = line.length;
+  }
+  return Math.min(Math.max(maxLen * DECOMP_CHAR_W + DECOMP_BOX_CHROME, DECOMP_MIN_W), DECOMP_MAX_W);
+};
 
 function FullDataTable({
   data, showCount, setShowCount, trialDigits, onTrialChange,
@@ -138,6 +157,16 @@ function FullDataTable({
     return { dm, bz };
   }, [displayData, decompTexts, bozhongTexts]);
 
+  // 参与列宽计算的期号：所有展示行 + 下期预留行（预留行也可能已录入分解）
+  const decompIssues = useMemo(() => {
+    const arr = displayData.map(i => i.issue);
+    const nx = appNextIssue || (data.length ? String(Number(data[data.length - 1].issue) + 1) : null);
+    if (nx && !arr.includes(nx)) arr.push(nx);
+    return arr;
+  }, [displayData, data, appNextIssue]);
+  const decompBoxW = useMemo(() => calcDecompBoxWidth(decompTexts, decompIssues), [decompTexts, decompIssues]);
+  const bozhongBoxW = useMemo(() => calcDecompBoxWidth(bozhongTexts, decompIssues), [bozhongTexts, decompIssues]);
+
   // 渲染一个分解文本框单元格；hasData 决定白底/灰底，locked 决定只读与点击解锁（与福彩3D 完全一致）
   const renderDecompCell = (kind, issue, title) => {
     const texts = kind === 'decomp' ? decompTexts : bozhongTexts;
@@ -147,6 +176,7 @@ function FullDataTable({
     const hasData = value.trim().length > 0;
     const locked = !!(lockedSet && lockedSet.has(issue));
     const v = (kind === 'decomp' ? verifyMaps.dm : verifyMaps.bz).get(issue);
+    const boxW = kind === 'decomp' ? decompBoxW : bozhongBoxW;
     return (
       <td key={'dc_' + kind} style={{ padding: 2, background: locked ? '#eceff1' : (hasData ? '#fff' : '#e0e0e0') }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -158,7 +188,9 @@ function FullDataTable({
           onChange={e => { if (setText) setText(issue, e.target.value); }}
           onClick={locked && onRequestUnlock ? () => onRequestUnlock(kind, issue) : undefined}
           style={{
-            width: 170, height: 40, resize: 'none', overflow: 'hidden', display: 'block',
+            // 宽 = 本列最长行内容宽：数据右缘贴住框右缘；flex-grow 仅在无徽章行把框撑满整格（消灰带），
+            //   flex-shrink 0 + minWidth 保证窗口变窄时不压缩数据（表格横向滚动代替）
+            width: boxW, minWidth: boxW, flex: '1 0 auto', height: 40, resize: 'none', overflow: 'hidden', display: 'block',
             fontSize: 11, lineHeight: '19px', fontFamily: 'Consolas,Menlo,monospace',
             padding: '0 3px', boxSizing: 'border-box', borderRadius: 3,
             border: `1px solid ${locked ? '#cfd8dc' : (hasData ? '#90caf9' : '#bdbdbd')}`,
