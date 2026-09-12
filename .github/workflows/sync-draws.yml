@@ -42,11 +42,22 @@ on:
       - 'lottery-app/src/data/lotteryData.js'
       - 'pl3-app/src/data/lotteryData.js'
 
-# 允许工作流把新开奖数据提交回仓库（Pages 随之重新发布，延续性由仓库保证）
+# contents: write      —— 允许把新开奖数据提交回仓库
+# pages: write + id-token: write —— 允许在**同一次运行内**直接构建并发布 Pages。
+#   为什么必须自己发布：用仓库默认 GITHUB_TOKEN 推送产生的事件不会触发任何其他工作流
+#   （GitHub 为防递归而设的硬规则，workflow_dispatch / repository_dispatch 除外）。
+#   实测后果：bot 的三次数据提交 5e1058a（09-10 21:34）、09212f4（09-11 21:32）、
+#   fb9b731（09-11 21:49）全都没有触发 pages-deploy —— 该工作流历史 8 次运行的 head_sha
+#   无一例外都是人工提交。数据进了仓库，线上站点却从 09-09 23:42 起一直停在 26242 期，
+#   直到 09-11 22:23 一次人工代码推送才顺带把两期数据带上线。
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
-# 同一时间只跑一个同步任务，避免两次 cron 重叠写入
+# 同一时间只跑一个同步任务，避免两次 cron 重叠写入。
+# 注意：下面 deploy 作业另用 group「pages-deploy」，与 pages-deploy.yml 的 workflow 级
+#   concurrency 同名，从而让人工推送触发的发布与本工作流的发布互相排队、不会同时部署。
 concurrency:
   group: sync-draws
   cancel-in-progress: false
@@ -54,6 +65,9 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    # 把「本次是否真的有新数据」交给 deploy 作业判断，无新数据就不必白构建一次
+    outputs:
+      data_changed: ${{ steps.commit.outputs.data_changed }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -71,9 +85,10 @@ jobs:
         run: node scripts/gh_sync_draws.mjs
 
       # if: !cancelled() —— 上一步只要发现异常就会以退出码 1 失败（健康信号），
-      # 但那时可能已有一个应用成功写入数据；本步仍需执行，把已同步部分推上去不丢数据。
+      #   但那时可能已有一个应用成功写入数据；本步仍需执行，把已同步部分推上去不丢数据。
       # job 最终仍为 failure（因为同步步骤红了），健康信号不会被掩盖
       - name: Commit and push if data changed
+        id: commit
         if: ${{ !cancelled() }}
         env:
           # 直接用 github.ref_name 而不是 git rev-parse --abbrev-ref HEAD：
@@ -85,9 +100,74 @@ jobs:
           git add lottery-app/src/data/lotteryData.js pl3-app/src/data/lotteryData.js
           if git diff --cached --quiet; then
             echo "无新开奖数据，不提交"
+            echo "data_changed=false" >> "$GITHUB_OUTPUT"
           else
             git commit -m "chore(data): 自动同步最新开奖数据"
             # 推送前先变基，避免与人工提交冲突导致推送失败
             git pull --rebase origin "$BRANCH"
             git push origin "HEAD:$BRANCH"
+            echo "data_changed=true" >> "$GITHUB_OUTPUT"
           fi
+
+  # ==================== 发布作业 ====================
+  # 数据一变就在本运行内把 Pages 构建发布掉，彻底不依赖 push 事件（bot 推送触发不了别的工作流）。
+  deploy:
+    needs: sync
+    # !cancelled() —— sync 作业可能因健康信号（数据源异常）被判定为 failure，
+    #   但那时数据往往已经提交成功，仍必须发布，否则线上会一直落后一期。
+    if: ${{ !cancelled() && needs.sync.outputs.data_changed == 'true' }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      # 只需 vite build，跳过 Electron 二进制下载
+      ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # 必须显式取分支最新提交：schedule 事件下 github.sha 是排队时的默认分支 HEAD，
+          #   **不包含** sync 作业刚推上去的那条数据提交，照它构建等于把旧数据又发一遍。
+          ref: ${{ github.ref_name }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build 福彩3D
+        run: |
+          cd lottery-app
+          npm ci
+          npm run build
+
+      - name: Build 排列三
+        run: |
+          cd pl3-app
+          npm ci
+          npm run build
+
+      - name: Assemble pages (3d + pl3 + launcher)
+        run: |
+          mkdir -p pages/3d pages/pl3
+          cp -r lottery-app/dist/. pages/3d/
+          cp -r pl3-app/dist/. pages/pl3/
+          cp pages-index.html pages/index.html
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
