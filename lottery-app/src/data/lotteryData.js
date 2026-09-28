@@ -8704,6 +8704,7 @@ export const lotteryData = [
   { issue: '26258', d1: 6, d2: 3, d3: 5 },
   { issue: '26259', d1: 7, d2: 3, d3: 1 },
   { issue: '26260', d1: 6, d2: 1, d3: 9 },
+  { issue: '26261', d1: 5, d2: 1, d3: 1 },
 ];
 
 export function enrichData(data) {
