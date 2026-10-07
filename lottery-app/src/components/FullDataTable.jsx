@@ -346,11 +346,10 @@ function FullDataTable({
               福彩3D开奖直播
             </div>
             <iframe
-              src="https://lottery.sina.com.cn/video/fcopen/"
+              src="/fc3d-player.html"
               title="福彩3D开奖直播"
               style={{ width: 360, height: 240, border: 'none', display: 'block' }}
               allowFullScreen
-              sandbox="allow-scripts allow-same-origin allow-popups"
             />
           </div>
         </div>

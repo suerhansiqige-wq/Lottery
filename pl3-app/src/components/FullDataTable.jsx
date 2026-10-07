@@ -567,11 +567,10 @@ function FullDataTable({
               排列三开奖直播
             </div>
             <iframe
-              src="https://sports.sina.com.cn/lottery/video/tcopen/"
+              src="/pl3-player.html"
               title="排列三开奖直播"
               style={{ width: 360, height: 240, border: 'none', display: 'block' }}
               allowFullScreen
-              sandbox="allow-scripts allow-same-origin allow-popups"
             />
           </div>
         </div>
