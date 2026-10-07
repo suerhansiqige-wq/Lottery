@@ -1,9 +1,33 @@
 // GitHub Gist 跨设备数据同步（免费方案）
-// 配置：public/gist-config.json（需用户填入 GitHub Token 和 Gist ID）
+// Token 存储在 localStorage（键：gist_githubToken / gist_gistId）
+
+const TOKEN_KEY = 'gist_githubToken';
+const GIST_ID_KEY = 'gist_gistId';
+
+function getConfig() {
+  try {
+    return {
+      githubToken: localStorage.getItem(TOKEN_KEY) || '',
+      gistId: localStorage.getItem(GIST_ID_KEY) || ''
+    };
+  } catch { return { githubToken: '', gistId: '' }; }
+}
+
+function saveGistId(id) {
+  try { localStorage.setItem(GIST_ID_KEY, id); } catch {}
+}
+
+export function setGistToken(token) {
+  try { localStorage.setItem(TOKEN_KEY, token); } catch {}
+}
+
+export function getGistToken() {
+  return getConfig().githubToken;
+}
 
 export async function loadFromGist() {
   try {
-    const cfg = await fetch('./gist-config.json').then(r => r.json());
+    const cfg = getConfig();
     if (!cfg.githubToken || !cfg.gistId) return null;
     const res = await fetch(`https://api.github.com/gists/${cfg.gistId}`, {
       headers: { Authorization: `token ${cfg.githubToken}` }
@@ -20,7 +44,7 @@ export async function loadFromGist() {
 
 export async function saveToGist(obj) {
   try {
-    const cfg = await fetch('./gist-config.json').then(r => r.json());
+    const cfg = getConfig();
     if (!cfg.githubToken) return false;
     const files = {};
     for (const [k, v] of Object.entries(obj)) {
@@ -51,16 +75,7 @@ export async function saveToGist(obj) {
       });
       if (res.ok) {
         const data = await res.json();
-        const cfgRes = await fetch('./gist-config.json');
-        const cfgText = await cfgRes.text();
-        const newCfg = cfgText.replace('"gistId": ""', `"gistId": "${data.id}"`);
-        try {
-          await fetch('/api/save-gist-config', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ gistId: data.id })
-          });
-        } catch {}
+        saveGistId(data.id);
       }
     }
     return res.ok;

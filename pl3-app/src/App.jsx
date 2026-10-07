@@ -5,7 +5,7 @@ import bozhongData from './data/bozhongData.json'
 import { parseDecompGroups, computeRongCuo } from './utils/decompRongCuo.js'
 import FullDataTable from './components/FullDataTable.jsx'
 import DecompRongCuoPanel from './components/DecompRongCuoPanel.jsx'
-import { loadFromGist, saveToGist } from './utils/gistSync.js'
+import { loadFromGist, saveToGist, setGistToken, getGistToken } from './utils/gistSync.js'
 
 // ============================================================
 // 分解 JSON 基线归一化（与福彩3D 同一套逻辑）
@@ -60,6 +60,8 @@ function App() {
   const [pwdTarget, setPwdTarget] = useState(null); // { kind: 'decomp'|'bozhong', issue }
   const [pwdInput, setPwdInput] = useState('');
   const [pwdError, setPwdError] = useState('');
+  const [gistDialog, setGistDialog] = useState(false);
+  const [gistTokenInput, setGistTokenInput] = useState(getGistToken());
 
   const makeTextSetter = (setState, storageKey) => (issue, val) => {
     setState(prev => {
@@ -389,6 +391,13 @@ function App() {
           >
             同步最新
           </button>
+          <button
+            onClick={() => setGistDialog(true)}
+            style={{ padding: '4px 10px', fontSize: 14, fontWeight: 600, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 4, background: 'transparent', color: '#fff' }}
+            title="设置 GitHub Token 以启用跨设备同步"
+          >
+            ☁ Gist同步
+          </button>
           {syncStatus && (
             <span style={{ fontSize: 15, color: '#fff', fontWeight: 600 }}>
               {syncStatus}
@@ -489,6 +498,84 @@ function App() {
                 style={{ padding: '6px 16px', fontSize: 14, fontWeight: 700, cursor: 'pointer', border: '1px solid #f57f17', borderRadius: 4, background: '#f9a825', color: '#fff' }}
               >
                 解锁
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Gist Token 设置弹窗 */}
+      {gistDialog && (
+        <div
+          onClick={() => setGistDialog(false)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#fff', borderRadius: 8, padding: '20px 24px', width: 380,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            }}
+          >
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#333', marginBottom: 4 }}>
+              GitHub Gist 跨设备同步
+            </div>
+            <div style={{ fontSize: 12, color: '#888', marginBottom: 12 }}>
+              填入 GitHub Personal Access Token（需勾选 gist 权限），保存后即可跨浏览器/电脑同步分解数据。
+              {getGistToken() ? ' ✅ 已配置 Token' : ' ⚠️ 未配置'}
+            </div>
+            <input
+              type="password"
+              autoFocus
+              value={gistTokenInput}
+              onChange={e => setGistTokenInput(e.target.value)}
+              placeholder="ghp_xxxxxxxxxxxx"
+              style={{
+                width: '100%', boxSizing: 'border-box', padding: '8px 10px', fontSize: 15,
+                border: '1px solid #ccc', borderRadius: 4,
+              }}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setGistDialog(false)}
+                style={{ padding: '6px 16px', fontSize: 14, cursor: 'pointer', border: '1px solid #ccc', borderRadius: 4, background: '#fff', color: '#555' }}
+              >
+                取消
+              </button>
+              {getGistToken() && (
+                <button
+                  onClick={() => {
+                    setGistToken('');
+                    setGistTokenInput('');
+                    setGistDialog(false);
+                  }}
+                  style={{ padding: '6px 16px', fontSize: 14, cursor: 'pointer', border: '1px solid #e53935', borderRadius: 4, background: '#fff', color: '#e53935' }}
+                >
+                  清除 Token
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setGistToken(gistTokenInput.trim());
+                  setGistDialog(false);
+                  if (gistTokenInput.trim()) {
+                    loadFromGist().then(data => {
+                      if (!data) return;
+                      if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
+                        setDecompTextsState(prev => { const m = { ...prev, ...data.decompTexts }; safeSetItem('pl3_decompTexts', JSON.stringify(m)); return m; });
+                      }
+                      if (data.bozhongTexts && Object.keys(data.bozhongTexts).length > 0) {
+                        setBozhongTextsState(prev => { const m = { ...prev, ...data.bozhongTexts }; safeSetItem('pl3_bozhongTexts', JSON.stringify(m)); return m; });
+                      }
+                    });
+                  }
+                }}
+                style={{ padding: '6px 16px', fontSize: 14, fontWeight: 700, cursor: 'pointer', border: '1px solid #1976d2', borderRadius: 4, background: '#1976d2', color: '#fff' }}
+              >
+                保存并同步
               </button>
             </div>
           </div>
