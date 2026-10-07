@@ -414,7 +414,7 @@ export default function DecompRongCuoPanel({
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <button
           onClick={onDecompSubmit}
-          title="锁定智取/博众下期分解编辑框（密码 000000 解锁），容错结果自动重算"
+          title="保存智取/博众下期分解数据，容错结果自动重算"
           style={{
             padding: '8px 22px', fontSize: 16, fontWeight: 800, cursor: 'pointer',
             border: '2px solid #f57f17', borderRadius: 6, background: '#f9a825', color: '#fff',

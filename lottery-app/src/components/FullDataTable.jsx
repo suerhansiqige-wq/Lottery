@@ -116,8 +116,8 @@ function FullDataTable({
         <textarea
           readOnly={locked}
           value={value}
-          title={locked ? `${title}（已锁定，点击输入密码解锁）` : title}
-          placeholder={locked ? '已锁定' : ''}
+          title={title}
+          placeholder=""
           onChange={e => { if (setText) setText(issue, e.target.value); }}
           onClick={locked && onRequestUnlock ? () => onRequestUnlock(kind, issue) : undefined}
           style={{
