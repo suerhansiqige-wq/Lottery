@@ -5,7 +5,6 @@ import bozhongData from './data/bozhongData.json'
 import { parseDecompGroups, computeRongCuo } from './utils/decompRongCuo.js'
 import FullDataTable from './components/FullDataTable.jsx'
 import DecompRongCuoPanel from './components/DecompRongCuoPanel.jsx'
-import LiveStream from './components/LiveStream.jsx'
 
 // ============================================================
 // 分解 JSON 基线归一化（与福彩3D 同一套逻辑）
@@ -388,9 +387,6 @@ function App() {
           onDecompSubmit={onDecompSubmit}
         />
       </div>
-
-      {/* 排列三开奖直播 */}
-      <LiveStream type="pl3" />
 
       {/* 密码解锁弹窗：点击已锁定的分解文本框弹出，默认密码 000000（与福彩3D 一致） */}
       {pwdDialog && (

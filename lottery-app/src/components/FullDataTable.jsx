@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { parseDecompGroups, verifyDraw } from '../utils/decompRongCuo.js'
+import LiveStream from './LiveStream.jsx'
 
 // ============================================================
 // 【算法锁定】横加减 / 竖加减 4列（对齐 Excel「黄金三格」福表 G~R 列，每 3 列合并为 1 格）
@@ -134,7 +135,8 @@ function FullDataTable({
         />
         {v && (
           <span style={{
-            fontSize: 11, padding: '1px 5px', borderRadius: 3, border: '1px solid #e0e0e0',
+            // 徽章文字放大（用户要求）：11px → 15px；列宽为 max-content 自适应，会随之自动加宽
+            fontSize: 15, padding: '2px 6px', borderRadius: 3, border: '1px solid #e0e0e0',
             background: '#fff', whiteSpace: 'nowrap',
             color: v.type === '组三' ? '#c62828' : '#000',
             fontWeight: v.type === '组三' ? 700 : 600,
@@ -189,6 +191,8 @@ function FullDataTable({
                     {c.th}
                   </th>
                 ))}
+                {/* 开奖直播列 */}
+                <th style={{ borderBottom: '3px solid #e91e63' }}>开奖直播</th>
               </tr>
             </thead>
             <tbody>
@@ -283,6 +287,16 @@ function FullDataTable({
                   </td>
                   {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数 */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, item.issue, c.title))}
+                  {/* 开奖直播：每行嵌入直播 iframe */}
+                  <td style={{ padding: 0, width: 320 }}>
+                    <iframe
+                      src="https://lottery.sina.com.cn/video/fcopen/"
+                      title="福彩3D开奖直播"
+                      style={{ width: 320, height: 180, border: 'none' }}
+                      allowFullScreen
+                      sandbox="allow-scripts allow-same-origin allow-popups"
+                    />
+                  </td>
                   {/* 杀百十合、杀百个合、杀十个合三列已彻底删除 - 用户要求 */}
                 </tr>
                 );
@@ -330,6 +344,16 @@ function FullDataTable({
                   </td>
                   {/* 智取分解 / 博众分解 - 预留行：下期分解条件录入框（点按钮后锁定，密码解锁再编辑） */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, appNextIssue || nextIssue, c.title))}
+                  {/* 开奖直播 - 预留行 */}
+                  <td style={{ padding: 0, width: 320 }}>
+                    <iframe
+                      src="https://lottery.sina.com.cn/video/fcopen/"
+                      title="福彩3D开奖直播"
+                      style={{ width: 320, height: 180, border: 'none' }}
+                      allowFullScreen
+                      sandbox="allow-scripts allow-same-origin allow-popups"
+                    />
+                  </td>
                   {/* 杀百十合、杀百个合、杀十个合三列预留行已彻底删除 - 用户要求 */}
                 </tr>
                 );

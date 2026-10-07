@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from 'react'
 import { parseDecompGroups, verifyDraw } from '../utils/decompRongCuo.js'
+import LiveStream from './LiveStream.jsx'
 
 // 从数组中选k个元素的所有组合
 function combinations(arr, k) {
@@ -201,7 +202,8 @@ function FullDataTable({
         />
         {v && (
           <span style={{
-            fontSize: 11, padding: '1px 5px', borderRadius: 3, border: '1px solid #e0e0e0',
+            // 徽章文字放大（用户要求）：11px → 15px；列宽为 max-content 自适应，会随之自动加宽
+            fontSize: 15, padding: '2px 6px', borderRadius: 3, border: '1px solid #e0e0e0',
             background: '#fff', whiteSpace: 'nowrap',
             color: v.type === '组三' ? '#c62828' : '#000',
             fontWeight: v.type === '组三' ? 700 : 600,
@@ -393,6 +395,8 @@ function FullDataTable({
                     {c.th}
                   </th>
                 ))}
+                {/* 开奖直播列 */}
+                <th style={{ borderBottom: '3px solid #e91e63' }}>开奖直播</th>
                 <th style={{ display: 'none' }}>出现次1</th>
                 <th style={{ display: 'none' }}>出现次2</th>
                 <th style={{ display: 'none' }}>号码组一</th>
@@ -479,6 +483,16 @@ function FullDataTable({
                   {/* 参考一/参考二/胆码三列单元格已彻底删除 - 用户要求 */}
                   {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数（与福彩3D 一致） */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, item.issue, c.title))}
+                  {/* 开奖直播：每行嵌入直播 iframe */}
+                  <td style={{ padding: 0, width: 320 }}>
+                    <iframe
+                      src="https://sports.sina.com.cn/lottery/video/tcopen/"
+                      title="排列三开奖直播"
+                      style={{ width: 320, height: 180, border: 'none' }}
+                      allowFullScreen
+                      sandbox="allow-scripts allow-same-origin allow-popups"
+                    />
+                  </td>
                   {/* 出现次1 - 隐藏列 下移一行 */}
                   <td style={{ display: 'none' }}>
                     {prevData.chuXianCi1.length > 0 ? prevData.chuXianCi1.join('') : '-'}
@@ -544,6 +558,16 @@ function FullDataTable({
                   {/* 参考一/参考二/胆码三列预留行占位已彻底删除 - 用户要求 */}
                   {/* 智取分解 / 博众分解 - 预留行：下期分解条件录入框（点按钮后锁定，密码解锁再编辑） */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, appNextIssue || nextIssue, c.title))}
+                  {/* 开奖直播 - 预留行 */}
+                  <td style={{ padding: 0, width: 320 }}>
+                    <iframe
+                      src="https://sports.sina.com.cn/lottery/video/tcopen/"
+                      title="排列三开奖直播"
+                      style={{ width: 320, height: 180, border: 'none' }}
+                      allowFullScreen
+                      sandbox="allow-scripts allow-same-origin allow-popups"
+                    />
+                  </td>
                   {/* 隐藏列占位：出现次1、出现次2、号码组一~五 共 7 个，与表头隐藏列数量一致（原为9个，多出2个已修正） */}
                   <td style={{ display: 'none' }}>-</td>
                   <td style={{ display: 'none' }}>-</td>
