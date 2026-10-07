@@ -62,6 +62,7 @@ function App() {
   const [pwdError, setPwdError] = useState('');
   const [gistDialog, setGistDialog] = useState(false);
   const [gistTokenInput, setGistTokenInput] = useState(getGistToken());
+  const [gistSyncStatus, setGistSyncStatus] = useState('');
 
   const makeTextSetter = (setState, storageKey) => (issue, val) => {
     setState(prev => {
@@ -237,7 +238,7 @@ function App() {
   }, [baseData]);
 
   // 「智取、博众分解」按钮：锁定下期 + 保存分解数据到后端 + Gist
-  const onDecompSubmit = () => {
+  const onDecompSubmit = async () => {
     if (!nextIssue) return;
     setLockedDecomp(prev => { const n = new Set(prev).add(nextIssue); safeSetItem('pl3_lockedDecomp', JSON.stringify([...n])); return n; });
     setLockedBozhong(prev => { const n = new Set(prev).add(nextIssue); safeSetItem('pl3_lockedBozhong', JSON.stringify([...n])); return n; });
@@ -246,7 +247,12 @@ function App() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ decompTexts, bozhongTexts })
     }).catch(() => {});
-    saveToGist({ decompTexts, bozhongTexts });
+    
+    const ok = await saveToGist({ decompTexts, bozhongTexts });
+    if (getGistToken()) {
+      setGistSyncStatus(ok ? '✅ Gist 同步成功' : '❌ Gist 同步失败');
+      setTimeout(() => setGistSyncStatus(''), 3000);
+    }
   };
 
   // 将API返回的7位期号(2026193)转为5位格式(26193)
@@ -398,6 +404,11 @@ function App() {
           >
             ☁ Gist同步
           </button>
+          {gistSyncStatus && (
+            <span style={{ fontSize: 14, color: '#fff', fontWeight: 600 }}>
+              {gistSyncStatus}
+            </span>
+          )}
           {syncStatus && (
             <span style={{ fontSize: 15, color: '#fff', fontWeight: 600 }}>
               {syncStatus}
