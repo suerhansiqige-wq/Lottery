@@ -326,14 +326,34 @@ function App() {
   );
 
 
-  // 「智取、博众分解」按钮：只锁定「下期预留行」（最新期号）的两个编辑框
-  // 【锁定范围锁定】禁止把 decompIssue / bozhongIssue 也加进来——分解数据滞后时它们会
-  // 回退到某个历史期（如 26193），连带锁定会让用户没编辑过的往期行变只读，必须密码才能改
-  // 容错结果由 useMemo 自动重算，按钮职责仅为锁定，防止误改已提交的下期分解条件
+  // 启动时从后端加载分解数据（跨浏览器/电脑同步）
+  useEffect(() => {
+    fetch('/api/load-decomp').then(r => r.json()).then(data => {
+      if (!data.success) return;
+      const merge = (base, remote) => normalizeTexts({ ...base, ...remote });
+      if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
+        const merged = merge(DECOMP_BASELINE, data.decompTexts);
+        setDecompTextsState(merged);
+        safeSetItem('3d_decompTexts', JSON.stringify(merged));
+      }
+      if (data.bozhongTexts && Object.keys(data.bozhongTexts).length > 0) {
+        const merged = merge(BOZHONG_BASELINE, data.bozhongTexts);
+        setBozhongTextsState(merged);
+        safeSetItem('3d_bozhongTexts', JSON.stringify(merged));
+      }
+    }).catch(() => {});
+  }, []);
+
+  // 「智取、博众分解」按钮：锁定下期 + 保存分解数据到后端
   const onDecompSubmit = () => {
     if (!nextIssue) return;
     setLockedDecomp(prev => new Set(prev).add(nextIssue));
     setLockedBozhong(prev => new Set(prev).add(nextIssue));
+    fetch('/api/save-decomp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decompTexts, bozhongTexts })
+    }).catch(() => {});
   };
 
   // 将API返回的7位期号(2026193)转为5位格式(26193)

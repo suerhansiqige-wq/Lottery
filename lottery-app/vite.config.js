@@ -60,6 +60,44 @@ function saveDrawsPlugin() {
               res.end(JSON.stringify({ success: false, message: err.message }))
             }
           })
+        } else if (req.method === 'POST' && req.url === '/api/save-decomp') {
+          let body = ''
+          req.on('data', chunk => { body += chunk })
+          req.on('end', () => {
+            try {
+              const { decompTexts, bozhongTexts } = JSON.parse(body)
+              const dataDir = path.join(process.cwd(), 'src', 'data')
+              if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true })
+              // 保存智取分解数据
+              if (decompTexts !== undefined) {
+                const decompPath = path.join(dataDir, 'decompTexts.json')
+                fs.writeFileSync(decompPath, JSON.stringify(decompTexts, null, 2), 'utf-8')
+              }
+              // 保存博众分解数据
+              if (bozhongTexts !== undefined) {
+                const bozhongPath = path.join(dataDir, 'bozhongTexts.json')
+                fs.writeFileSync(bozhongPath, JSON.stringify(bozhongTexts, null, 2), 'utf-8')
+              }
+              res.writeHead(200, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ success: true, message: '分解数据已保存' }))
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ success: false, message: err.message }))
+            }
+          })
+        } else if (req.method === 'GET' && req.url === '/api/load-decomp') {
+          try {
+            const dataDir = path.join(process.cwd(), 'src', 'data')
+            const decompPath = path.join(dataDir, 'decompTexts.json')
+            const bozhongPath = path.join(dataDir, 'bozhongTexts.json')
+            const decompTexts = fs.existsSync(decompPath) ? JSON.parse(fs.readFileSync(decompPath, 'utf-8')) : {}
+            const bozhongTexts = fs.existsSync(bozhongPath) ? JSON.parse(fs.readFileSync(bozhongPath, 'utf-8')) : {}
+            res.writeHead(200, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ success: true, decompTexts, bozhongTexts }))
+          } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ success: false, message: err.message }))
+          }
         } else {
           next()
         }

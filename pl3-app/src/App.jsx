@@ -186,11 +186,34 @@ function App() {
   );
 
 
-  // 「智取、博众分解」按钮：只锁定下期预留行
+  // 启动时从后端加载分解数据（跨浏览器/电脑同步）
+  useEffect(() => {
+    fetch('/api/load-decomp').then(r => r.json()).then(data => {
+      if (!data.success) return;
+      const merge = (base, remote) => normalizeTexts({ ...base, ...remote });
+      if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
+        const merged = merge(DECOMP_BASELINE, data.decompTexts);
+        setDecompTextsState(merged);
+        safeSetItem('pl3_decompTexts', JSON.stringify(merged));
+      }
+      if (data.bozhongTexts && Object.keys(data.bozhongTexts).length > 0) {
+        const merged = merge(BOZHONG_BASELINE, data.bozhongTexts);
+        setBozhongTextsState(merged);
+        safeSetItem('pl3_bozhongTexts', JSON.stringify(merged));
+      }
+    }).catch(() => {});
+  }, []);
+
+  // 「智取、博众分解」按钮：锁定下期 + 保存分解数据到后端
   const onDecompSubmit = () => {
     if (!nextIssue) return;
     setLockedDecomp(prev => new Set(prev).add(nextIssue));
     setLockedBozhong(prev => new Set(prev).add(nextIssue));
+    fetch('/api/save-decomp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decompTexts, bozhongTexts })
+    }).catch(() => {});
   };
 
   // 将API返回的7位期号(2026193)转为5位格式(26193)
