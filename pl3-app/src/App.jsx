@@ -5,6 +5,7 @@ import bozhongData from './data/bozhongData.json'
 import { parseDecompGroups, computeRongCuo } from './utils/decompRongCuo.js'
 import FullDataTable from './components/FullDataTable.jsx'
 import DecompRongCuoPanel from './components/DecompRongCuoPanel.jsx'
+import LiveStream from './components/LiveStream.jsx'
 
 // ============================================================
 // 分解 JSON 基线归一化（与福彩3D 同一套逻辑）
@@ -374,7 +375,7 @@ function App() {
       </div>
 
       {/* 分解容错面板（与福彩3D 同一组件与模块顺序）：
-          ①自选号码 → ②橙色锁定按钮行 → ③容错1-5合并频次 → ④智取/博众并排 → ⑤本期容错交集 */}
+          ①自选号码 → 橙色锁定按钮行 → ③容错1-5合并频次 → ④智取/博众并排 → ⑤本期容错交集 */}
       <div style={{ marginTop: 16 }}>
         <DecompRongCuoPanel
           decompIssue={decompIssue}
@@ -387,6 +388,9 @@ function App() {
           onDecompSubmit={onDecompSubmit}
         />
       </div>
+
+      {/* 排列三开奖直播 */}
+      <LiveStream type="pl3" />
 
       {/* 密码解锁弹窗：点击已锁定的分解文本框弹出，默认密码 000000（与福彩3D 一致） */}
       {pwdDialog && (
