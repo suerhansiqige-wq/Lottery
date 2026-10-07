@@ -197,6 +197,7 @@ function FullDataTable({
             background: locked ? '#eceff1' : (hasData ? '#fff' : '#eee'),
             color: locked ? '#78909c' : '#222',
             cursor: locked ? 'pointer' : 'text',
+            whiteSpace: 'nowrap',
           }}
         />
         {v && (
