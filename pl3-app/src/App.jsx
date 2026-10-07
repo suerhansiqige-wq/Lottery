@@ -5,6 +5,7 @@ import bozhongData from './data/bozhongData.json'
 import { parseDecompGroups, computeRongCuo } from './utils/decompRongCuo.js'
 import FullDataTable from './components/FullDataTable.jsx'
 import DecompRongCuoPanel from './components/DecompRongCuoPanel.jsx'
+import { loadFromGist, saveToGist } from './utils/gistSync.js'
 
 // ============================================================
 // 分解 JSON 基线归一化（与福彩3D 同一套逻辑）
@@ -188,6 +189,7 @@ function App() {
 
   // 启动时从后端加载分解数据（跨浏览器/电脑同步）
   useEffect(() => {
+    // 本地开发服务器
     fetch('/api/load-decomp').then(r => r.json()).then(data => {
       if (!data.success) return;
       const merge = (base, remote) => normalizeTexts({ ...base, ...remote });
@@ -202,9 +204,19 @@ function App() {
         safeSetItem('pl3_bozhongTexts', JSON.stringify(merged));
       }
     }).catch(() => {});
+    // GitHub Gist（跨设备，静态托管也可用）
+    loadFromGist().then(data => {
+      if (!data) return;
+      if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
+        setDecompTextsState(prev => { const m = { ...prev, ...data.decompTexts }; safeSetItem('pl3_decompTexts', JSON.stringify(m)); return m; });
+      }
+      if (data.bozhongTexts && Object.keys(data.bozhongTexts).length > 0) {
+        setBozhongTextsState(prev => { const m = { ...prev, ...data.bozhongTexts }; safeSetItem('pl3_bozhongTexts', JSON.stringify(m)); return m; });
+      }
+    });
   }, []);
 
-  // 「智取、博众分解」按钮：锁定下期 + 保存分解数据到后端
+  // 「智取、博众分解」按钮：锁定下期 + 保存分解数据到后端 + Gist
   const onDecompSubmit = () => {
     if (!nextIssue) return;
     setLockedDecomp(prev => new Set(prev).add(nextIssue));
@@ -214,6 +226,7 @@ function App() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ decompTexts, bozhongTexts })
     }).catch(() => {});
+    saveToGist({ decompTexts, bozhongTexts });
   };
 
   // 将API返回的7位期号(2026193)转为5位格式(26193)
