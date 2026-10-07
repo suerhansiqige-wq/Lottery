@@ -354,6 +354,7 @@ function FullDataTable({
             />
           </div>
         </div>
+        </div>
       </div>
     </div>
   )
