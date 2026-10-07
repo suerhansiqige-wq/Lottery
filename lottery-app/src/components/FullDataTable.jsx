@@ -346,7 +346,7 @@ function FullDataTable({
               福彩3D开奖直播
             </div>
             <iframe
-              src="/fc3d-player.html"
+              src={import.meta.env.BASE_URL + 'fc3d-player.html'}
               title="福彩3D开奖直播"
               style={{ width: 360, height: 240, border: 'none', display: 'block' }}
               allowFullScreen

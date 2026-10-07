@@ -567,7 +567,7 @@ function FullDataTable({
               排列三开奖直播
             </div>
             <iframe
-              src="/pl3-player.html"
+              src={import.meta.env.BASE_URL + 'pl3-player.html'}
               title="排列三开奖直播"
               style={{ width: 360, height: 240, border: 'none', display: 'block' }}
               allowFullScreen
