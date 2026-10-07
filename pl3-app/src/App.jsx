@@ -216,11 +216,29 @@ function App() {
     });
   }, []);
 
+  // 锁定所有往期数据行（需要密码才能编辑）
+  useEffect(() => {
+    if (baseData.length === 0) return;
+    const allIssues = baseData.map(d => d.issue);
+    setLockedDecomp(prev => {
+      const next = new Set(prev);
+      allIssues.forEach(i => next.add(i));
+      safeSetItem('pl3_lockedDecomp', JSON.stringify([...next]));
+      return next;
+    });
+    setLockedBozhong(prev => {
+      const next = new Set(prev);
+      allIssues.forEach(i => next.add(i));
+      safeSetItem('pl3_lockedBozhong', JSON.stringify([...next]));
+      return next;
+    });
+  }, [baseData]);
+
   // 「智取、博众分解」按钮：锁定下期 + 保存分解数据到后端 + Gist
   const onDecompSubmit = () => {
     if (!nextIssue) return;
-    setLockedDecomp(prev => new Set(prev).add(nextIssue));
-    setLockedBozhong(prev => new Set(prev).add(nextIssue));
+    setLockedDecomp(prev => { const n = new Set(prev).add(nextIssue); safeSetItem('pl3_lockedDecomp', JSON.stringify([...n])); return n; });
+    setLockedBozhong(prev => { const n = new Set(prev).add(nextIssue); safeSetItem('pl3_lockedBozhong', JSON.stringify([...n])); return n; });
     fetch('/api/save-decomp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
