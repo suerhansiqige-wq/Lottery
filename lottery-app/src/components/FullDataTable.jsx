@@ -165,8 +165,9 @@ function FullDataTable({
           </select>
         </div>
         <style>{`input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; } input[type=number] { -moz-appearance: textfield; }`}</style>
-        <div className="table-container" style={{ maxHeight: '700px' }}>
-          <table className="data-table" style={{ fontSize: 17 }}>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+          <div className="table-container" style={{ maxHeight: '700px', flex: 1 }}>
+            <table className="data-table" style={{ fontSize: 17 }}>
             <thead>
               <tr>
                 <th>期数</th>
@@ -190,8 +191,6 @@ function FullDataTable({
                     {c.th}
                   </th>
                 ))}
-                {/* 开奖直播列 */}
-                <th style={{ borderBottom: '3px solid #e91e63' }}>开奖直播</th>
               </tr>
             </thead>
             <tbody>
@@ -286,16 +285,6 @@ function FullDataTable({
                   </td>
                   {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数 */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, item.issue, c.title))}
-                  {/* 开奖直播：每行嵌入直播 iframe */}
-                  <td style={{ padding: 0, width: 320 }}>
-                    <iframe
-                      src="https://lottery.sina.com.cn/video/fcopen/"
-                      title="福彩3D开奖直播"
-                      style={{ width: 320, height: 180, border: 'none' }}
-                      allowFullScreen
-                      sandbox="allow-scripts allow-same-origin allow-popups"
-                    />
-                  </td>
                   {/* 杀百十合、杀百个合、杀十个合三列已彻底删除 - 用户要求 */}
                 </tr>
                 );
@@ -343,16 +332,6 @@ function FullDataTable({
                   </td>
                   {/* 智取分解 / 博众分解 - 预留行：下期分解条件录入框（点按钮后锁定，密码解锁再编辑） */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, appNextIssue || nextIssue, c.title))}
-                  {/* 开奖直播 - 预留行 */}
-                  <td style={{ padding: 0, width: 320 }}>
-                    <iframe
-                      src="https://lottery.sina.com.cn/video/fcopen/"
-                      title="福彩3D开奖直播"
-                      style={{ width: 320, height: 180, border: 'none' }}
-                      allowFullScreen
-                      sandbox="allow-scripts allow-same-origin allow-popups"
-                    />
-                  </td>
                   {/* 杀百十合、杀百个合、杀十个合三列预留行已彻底删除 - 用户要求 */}
                 </tr>
                 );
@@ -360,8 +339,22 @@ function FullDataTable({
             </tbody>
           </table>
         </div>
+        {/* 开奖直播模块 */}
+        <div style={{ flexShrink: 0, width: 360 }}>
+          <div style={{ background: '#fff', border: '2px solid #e91e63', borderRadius: 8, overflow: 'hidden' }}>
+            <div style={{ background: '#e91e63', color: '#fff', padding: '8px 12px', fontWeight: 700, fontSize: 15 }}>
+              福彩3D开奖直播
+            </div>
+            <iframe
+              src="https://lottery.sina.com.cn/video/fcopen/"
+              title="福彩3D开奖直播"
+              style={{ width: 360, height: 240, border: 'none', display: 'block' }}
+              allowFullScreen
+              sandbox="allow-scripts allow-same-origin allow-popups"
+            />
+          </div>
+        </div>
       </div>
-
     </div>
   )
 }
