@@ -28,8 +28,28 @@ export function getGistToken() {
 export async function loadFromGist() {
   try {
     const cfg = getConfig();
-    if (!cfg.githubToken || !cfg.gistId) return null;
-    const res = await fetch(`https://api.github.com/gists/${cfg.gistId}`, {
+    if (!cfg.githubToken) return null;
+    
+    let gistId = cfg.gistId;
+    
+    // 如果没有 gistId，尝试查找已有的 Gist
+    if (!gistId) {
+      const res = await fetch('https://api.github.com/gists', {
+        headers: { Authorization: `token ${cfg.githubToken}` }
+      });
+      if (res.ok) {
+        const gists = await res.json();
+        const found = gists.find(g => g.description === '彩票分解数据同步');
+        if (found) {
+          gistId = found.id;
+          saveGistId(gistId);
+        }
+      }
+    }
+    
+    if (!gistId) return null;
+    
+    const res = await fetch(`https://api.github.com/gists/${gistId}`, {
       headers: { Authorization: `token ${cfg.githubToken}` }
     });
     if (!res.ok) return null;
