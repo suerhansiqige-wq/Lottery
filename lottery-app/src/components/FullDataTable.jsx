@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import { parseDecompGroups, verifyDraw } from '../utils/decompRongCuo.js'
-import LiveStream from './LiveStream.jsx'
 
 // ============================================================
 // 【算法锁定】横加减 / 竖加减 4列（对齐 Excel「黄金三格」福表 G~R 列，每 3 列合并为 1 格）

@@ -1,6 +1,5 @@
 import { useState, useMemo, useRef } from 'react'
 import { parseDecompGroups, verifyDraw } from '../utils/decompRongCuo.js'
-import LiveStream from './LiveStream.jsx'
 
 // 从数组中选k个元素的所有组合
 function combinations(arr, k) {
