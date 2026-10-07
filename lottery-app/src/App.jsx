@@ -124,18 +124,16 @@ function App() {
   const [pwdInput, setPwdInput] = useState('');
   const [pwdError, setPwdError] = useState('');
 
-  // 写入某期分解文本：只持久化与 JSON 基线不同的期号
-  const makeTextSetter = (setState, baseline, storageKey) => (issue, val) => {
+  // 写入某期分解文本：立即持久化到 localStorage
+  const makeTextSetter = (setState, storageKey) => (issue, val) => {
     setState(prev => {
       const next = { ...prev, [issue]: val };
-      const overrides = {};
-      for (const k of Object.keys(next)) if (next[k] !== baseline[k]) overrides[k] = next[k];
-      safeSetItem(storageKey, JSON.stringify(overrides));
+      safeSetItem(storageKey, JSON.stringify(next));
       return next;
     });
   };
-  const setDecompText = makeTextSetter(setDecompTextsState, DECOMP_BASELINE, '3d_decompTexts');
-  const setBozhongText = makeTextSetter(setBozhongTextsState, BOZHONG_BASELINE, '3d_bozhongTexts');
+  const setDecompText = makeTextSetter(setDecompTextsState, '3d_decompTexts');
+  const setBozhongText = makeTextSetter(setBozhongTextsState, '3d_bozhongTexts');
 
   // 自选号码：按「最新未开奖期」存储用户手填号码，localStorage 键 3d_selfPick（仅存非空期）
   const [selfPickTexts, setSelfPickTextsState] = useState(() => loadOverrides('3d_selfPick'));

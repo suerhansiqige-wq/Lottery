@@ -60,17 +60,15 @@ function App() {
   const [pwdInput, setPwdInput] = useState('');
   const [pwdError, setPwdError] = useState('');
 
-  const makeTextSetter = (setState, baseline, storageKey) => (issue, val) => {
+  const makeTextSetter = (setState, storageKey) => (issue, val) => {
     setState(prev => {
       const next = { ...prev, [issue]: val };
-      const overrides = {};
-      for (const k of Object.keys(next)) if (next[k] !== baseline[k]) overrides[k] = next[k];
-      safeSetItem(storageKey, JSON.stringify(overrides));
+      safeSetItem(storageKey, JSON.stringify(next));
       return next;
     });
   };
-  const setDecompText = makeTextSetter(setDecompTextsState, DECOMP_BASELINE, 'pl3_decompTexts');
-  const setBozhongText = makeTextSetter(setBozhongTextsState, BOZHONG_BASELINE, 'pl3_bozhongTexts');
+  const setDecompText = makeTextSetter(setDecompTextsState, 'pl3_decompTexts');
+  const setBozhongText = makeTextSetter(setBozhongTextsState, 'pl3_bozhongTexts');
 
   // 自选号码：按「最新未开奖期」存储，键 pl3_selfPick（仅存非空期）
   const [selfPickTexts, setSelfPickTextsState] = useState(() => loadOverrides('pl3_selfPick'));
