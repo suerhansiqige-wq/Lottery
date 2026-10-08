@@ -381,6 +381,7 @@ function FullDataTable({
                 <th>生号</th>
                 <th>连号</th>
                 <th>必出号</th>
+                <th>通杀码</th>
                 {/* 参考一/参考二/胆码三列表头已彻底删除 - 用户要求 */}
                 {/* 智取分解 / 博众分解 两列（表格最右侧，与福彩3D 同位置逻辑） */}
                 {DECOMP_COLS.map(c => (
@@ -472,6 +473,25 @@ function FullDataTable({
                   <td style={mustOutStyle}>
                     {mustOutDigits.length > 0 ? mustOutDigits.join('') : '-'}
                   </td>
+                  {/* 通杀码 - 往期行：上期十位对应通杀码，下期开奖号不含该数字=✓，含=✗ */}
+                  <td style={{ fontWeight: 600, fontSize: 13, textAlign: 'center' }}>
+                    {(() => {
+                      const TONGSHA_MAP = { 0: 0, 1: 8, 2: 6, 3: 4, 4: 7, 5: 9, 6: 1, 7: 2, 8: 4, 9: 6 };
+                      const prevItem = data[data.indexOf(item) - 1];
+                      if (!prevItem || prevItem.d2 === undefined) return <span style={{ color: '#999' }}>-</span>;
+                      const tongsha = TONGSHA_MAP[prevItem.d2];
+                      const hasTongsha = item.d1 === tongsha || item.d2 === tongsha || item.d3 === tongsha;
+                      const verified = !hasTongsha;
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                          <span style={{ fontWeight: 700, color: '#333' }}>{tongsha}</span>
+                          {verified
+                            ? <span style={{ color: 'green', fontWeight: 700, fontSize: 14 }} title={`通杀码${tongsha}：下期${item.d1}${item.d2}${item.d3}不含该数字`}>✓</span>
+                            : <span style={{ color: 'red', fontWeight: 700, fontSize: 14 }} title={`通杀码${tongsha}：下期${item.d1}${item.d2}${item.d3}包含该数字`}>✗</span>}
+                        </div>
+                      );
+                    })()}
+                  </td>
                   {/* 参考一/参考二/胆码三列单元格已彻底删除 - 用户要求 */}
                   {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数（与福彩3D 一致） */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, item.issue, c.title))}
@@ -536,6 +556,20 @@ function FullDataTable({
                   {/* 必出号 */}
                   <td style={{ color: '#fff', fontWeight: 600, background: '#1e8449' }}>
                     {predMustOut.length > 0 ? predMustOut.join('') : '-'}
+                  </td>
+                  {/* 通杀码 - 预留行：最新已开奖期十位对应通杀码，供参考 */}
+                  <td style={{ fontWeight: 600, fontSize: 13, textAlign: 'center' }}>
+                    {(() => {
+                      const TONGSHA_MAP = { 0: 0, 1: 8, 2: 6, 3: 4, 4: 7, 5: 9, 6: 1, 7: 2, 8: 4, 9: 6 };
+                      if (!lastItem || lastItem.d2 === undefined) return <span style={{ color: '#999' }}>-</span>;
+                      const tongsha = TONGSHA_MAP[lastItem.d2];
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                          <span style={{ fontWeight: 700, color: '#333' }}>{tongsha}</span>
+                          <span style={{ color: '#999', fontSize: 12 }}>(待验证)</span>
+                        </div>
+                      );
+                    })()}
                   </td>
                   {/* 参考一/参考二/胆码三列预留行占位已彻底删除 - 用户要求 */}
                   {/* 智取分解 / 博众分解 - 预留行：下期分解条件录入框（点按钮后锁定，密码解锁再编辑） */}
