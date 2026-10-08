@@ -365,12 +365,26 @@ function App() {
       if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
         setDecompTextsState(data.decompTexts);
         safeSetItem('3d_decompTexts', JSON.stringify(data.decompTexts));
-        console.log('[Gist] ✓ 智取分解数据已同步到本地');
+        // 锁定云端同步过来的数据行
+        setLockedDecomp(prev => {
+          const next = new Set(prev);
+          Object.keys(data.decompTexts).forEach(i => next.add(i));
+          safeSetItem('3d_lockedDecomp', JSON.stringify([...next]));
+          return next;
+        });
+        console.log('[Gist] ✓ 智取分解数据已同步到本地并锁定');
       }
       if (data.bozhongTexts && Object.keys(data.bozhongTexts).length > 0) {
         setBozhongTextsState(data.bozhongTexts);
         safeSetItem('3d_bozhongTexts', JSON.stringify(data.bozhongTexts));
-        console.log('[Gist] ✓ 博众分解数据已同步到本地');
+        // 锁定云端同步过来的数据行
+        setLockedBozhong(prev => {
+          const next = new Set(prev);
+          Object.keys(data.bozhongTexts).forEach(i => next.add(i));
+          safeSetItem('3d_lockedBozhong', JSON.stringify([...next]));
+          return next;
+        });
+        console.log('[Gist] ✓ 博众分解数据已同步到本地并锁定');
       }
     }).catch(err => {
       console.error('[Gist] 同步出错:', err);
