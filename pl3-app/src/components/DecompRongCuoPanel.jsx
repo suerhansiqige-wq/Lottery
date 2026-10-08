@@ -24,7 +24,7 @@ function CopyBtn({ text, disabled }) {
       onClick={(e) => {
         e.stopPropagation();
         if (!text) return;
-        const finish = () => { setDone(true); setTimeout(() => setDone(false), 1500); };
+        const finish = () => { setDone(true); };
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(text).then(finish).catch(() => {
             const ta = document.createElement('textarea');
