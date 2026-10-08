@@ -364,7 +364,7 @@ function FullDataTable({
         </div>
         <style>{`input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; } input[type=number] { -moz-appearance: textfield; }`}</style>
         <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-          <div className="table-container" style={{ maxHeight: '700px', flex: 1 }}>
+          <div className="table-container" style={{ maxHeight: '700px', display: 'inline-block' }}>
             <table className="data-table" style={{ fontSize: 17 }}>
             <thead>
               <tr>
