@@ -364,7 +364,7 @@ function App() {
         safeSetItem('3d_bozhongTexts', JSON.stringify(merged));
       }
     }).catch(() => {});
-    // GitHub Gist（跨设备，静态托管也可用）—— 云端数据为准，直接覆盖本地
+    // GitHub Gist（跨设备，静态托管也可用）—— 本地数据优先，云端数据补充
     console.log('[Gist] 初始化同步，检查 token...');
     console.log('[Gist] Token:', getGistToken() ? '✓ 已配置' : '✗ 未配置');
     loadFromGist().then(data => {
@@ -374,29 +374,40 @@ function App() {
         decompTexts: data.decompTexts ? Object.keys(data.decompTexts).length + ' 期' : '无',
         bozhongTexts: data.bozhongTexts ? Object.keys(data.bozhongTexts).length + ' 期' : '无'
       });
+      // 本地数据优先，云端数据只补充本地没有的期号
       if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
-        setDecompTextsState(data.decompTexts);
-        safeSetItem('3d_decompTexts', JSON.stringify(data.decompTexts));
-        // 锁定云端同步过来的数据行
+        setDecompTextsState(prev => {
+          const merged = { ...data.decompTexts, ...prev }; // 本地数据覆盖云端
+          safeSetItem('3d_decompTexts', JSON.stringify(merged));
+          console.log('[Gist] ✓ 智取分解数据已合并（本地优先）');
+          return merged;
+        });
+        // 锁定云端同步过来的数据行（但本地已编辑的除外）
         setLockedDecomp(prev => {
           const next = new Set(prev);
-          Object.keys(data.decompTexts).forEach(i => next.add(i));
+          Object.keys(data.decompTexts).forEach(i => {
+            // 只锁定本地没有编辑过的期号
+            if (!prev.has(i)) next.add(i);
+          });
           safeSetItem('3d_lockedDecomp', JSON.stringify([...next]));
           return next;
         });
-        console.log('[Gist] ✓ 智取分解数据已同步到本地并锁定');
       }
       if (data.bozhongTexts && Object.keys(data.bozhongTexts).length > 0) {
-        setBozhongTextsState(data.bozhongTexts);
-        safeSetItem('3d_bozhongTexts', JSON.stringify(data.bozhongTexts));
-        // 锁定云端同步过来的数据行
+        setBozhongTextsState(prev => {
+          const merged = { ...data.bozhongTexts, ...prev }; // 本地数据覆盖云端
+          safeSetItem('3d_bozhongTexts', JSON.stringify(merged));
+          console.log('[Gist] ✓ 博众分解数据已合并（本地优先）');
+          return merged;
+        });
         setLockedBozhong(prev => {
           const next = new Set(prev);
-          Object.keys(data.bozhongTexts).forEach(i => next.add(i));
+          Object.keys(data.bozhongTexts).forEach(i => {
+            if (!prev.has(i)) next.add(i);
+          });
           safeSetItem('3d_lockedBozhong', JSON.stringify([...next]));
           return next;
         });
-        console.log('[Gist] ✓ 博众分解数据已同步到本地并锁定');
       }
     }).catch(err => {
       console.error('[Gist] 同步出错:', err);
