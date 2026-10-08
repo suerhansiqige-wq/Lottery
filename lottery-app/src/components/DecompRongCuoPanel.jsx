@@ -405,6 +405,7 @@ export default function DecompRongCuoPanel({
   bozhongIssue, bozhongResult,
   selfPickIssue, selfPickValue, onSelfPickChange,
   onDecompSubmit,
+  submitFlash,
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -418,6 +419,9 @@ export default function DecompRongCuoPanel({
           style={{
             padding: '8px 22px', fontSize: 16, fontWeight: 800, cursor: 'pointer',
             border: '2px solid #f57f17', borderRadius: 6, background: '#f9a825', color: '#fff',
+            transform: submitFlash ? 'scale(1.08)' : 'scale(1)',
+            boxShadow: submitFlash ? '0 0 20px rgba(249,168,37,0.8)' : 'none',
+            transition: 'transform 0.15s, box-shadow 0.15s',
           }}
         >
           智取、博众分解

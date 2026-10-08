@@ -129,6 +129,7 @@ function App() {
   const [gistDialog, setGistDialog] = useState(false);
   const [gistTokenInput, setGistTokenInput] = useState(getGistToken());
   const [gistSyncStatus, setGistSyncStatus] = useState('');
+  const [submitFlash, setSubmitFlash] = useState(false);
 
   // 写入某期分解文本：立即持久化到 localStorage
   const makeTextSetter = (setState, storageKey) => (issue, val) => {
@@ -390,9 +391,13 @@ function App() {
       body: JSON.stringify({ decompTexts, bozhongTexts })
     }).catch(() => {});
     
+    // 明显的操作反馈动画
+    setSubmitFlash(true);
+    setTimeout(() => setSubmitFlash(false), 600);
+    
     const ok = await saveToGist({ decompTexts, bozhongTexts });
     if (getGistToken()) {
-      setGistSyncStatus(ok ? '✅ Gist 同步成功' : '❌ Gist 同步失败');
+      setGistSyncStatus(ok ? '✅ Gist 同步成功' : ' Gist 同步失败');
       setTimeout(() => setGistSyncStatus(''), 3000);
     }
   };
@@ -611,6 +616,7 @@ function App() {
           selfPickValue={selfPickTexts[nextIssue] || ''}
           onSelfPickChange={(v) => setSelfPickText(nextIssue, v)}
           onDecompSubmit={onDecompSubmit}
+          submitFlash={submitFlash}
         />
       </div>
 

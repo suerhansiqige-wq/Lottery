@@ -63,6 +63,7 @@ function App() {
   const [gistDialog, setGistDialog] = useState(false);
   const [gistTokenInput, setGistTokenInput] = useState(getGistToken());
   const [gistSyncStatus, setGistSyncStatus] = useState('');
+  const [submitFlash, setSubmitFlash] = useState(false);
 
   const makeTextSetter = (setState, storageKey) => (issue, val) => {
     setState(prev => {
@@ -247,6 +248,10 @@ function App() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ decompTexts, bozhongTexts })
     }).catch(() => {});
+    
+    // 明显的操作反馈动画
+    setSubmitFlash(true);
+    setTimeout(() => setSubmitFlash(false), 600);
     
     const ok = await saveToGist({ decompTexts, bozhongTexts });
     if (getGistToken()) {
@@ -459,6 +464,7 @@ function App() {
           selfPickValue={selfPickTexts[nextIssue] || ''}
           onSelfPickChange={(v) => setSelfPickText(nextIssue, v)}
           onDecompSubmit={onDecompSubmit}
+          submitFlash={submitFlash}
         />
       </div>
 
