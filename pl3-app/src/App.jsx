@@ -211,16 +211,27 @@ function App() {
       }
     }).catch(() => {});
     // GitHub Gist（跨设备，静态托管也可用）—— 云端数据为准，直接覆盖本地
+    console.log('[Gist] 初始化同步，检查 token...');
+    console.log('[Gist] Token:', getGistToken() ? '✓ 已配置' : '✗ 未配置');
     loadFromGist().then(data => {
+      console.log('[Gist] 加载结果:', data ? '✓ 成功' : '✗ 失败或无数据');
       if (!data) return;
+      console.log('[Gist] 云端数据:', {
+        decompTexts: data.decompTexts ? Object.keys(data.decompTexts).length + ' 期' : '无',
+        bozhongTexts: data.bozhongTexts ? Object.keys(data.bozhongTexts).length + ' 期' : '无'
+      });
       if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
         setDecompTextsState(data.decompTexts);
         safeSetItem('pl3_decompTexts', JSON.stringify(data.decompTexts));
+        console.log('[Gist] ✓ 智取分解数据已同步到本地');
       }
       if (data.bozhongTexts && Object.keys(data.bozhongTexts).length > 0) {
         setBozhongTextsState(data.bozhongTexts);
         safeSetItem('pl3_bozhongTexts', JSON.stringify(data.bozhongTexts));
+        console.log('[Gist] ✓ 博众分解数据已同步到本地');
       }
+    }).catch(err => {
+      console.error('[Gist] 同步出错:', err);
     });
   }, []);
 
@@ -416,10 +427,12 @@ function App() {
           <button
             onClick={async () => {
               const token = getGistToken();
+              console.log('[Gist 按钮] 点击同步，Token:', token ? '✓' : '✗');
               if (token) {
                 setGistTesting(true);
                 setGistSyncStatus('正在同步...');
                 const test = await testGistToken(token);
+                console.log('[Gist 按钮] Token 验证:', test.ok ? '✓' : '✗', test.error || '');
                 if (!test.ok) {
                   setGistSyncStatus(' Token 无效');
                   setGistTesting(false);
@@ -427,20 +440,25 @@ function App() {
                   return;
                 }
                 const data = await loadFromGist();
+                console.log('[Gist 按钮] 云端数据:', data ? '✓' : '✗');
                 let mergedD = { ...decompTexts };
                 let mergedB = { ...bozhongTexts };
                 if (data) {
                   if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
                     mergedD = { ...mergedD, ...data.decompTexts };
+                    console.log('[Gist 按钮] 合并智取分解:', Object.keys(data.decompTexts).length, '期');
                     setDecompTextsState(prev => { const m = { ...prev, ...data.decompTexts }; safeSetItem('pl3_decompTexts', JSON.stringify(m)); return m; });
                   }
                   if (data.bozhongTexts && Object.keys(data.bozhongTexts).length > 0) {
                     mergedB = { ...mergedB, ...data.bozhongTexts };
+                    console.log('[Gist 按钮] 合并博众分解:', Object.keys(data.bozhongTexts).length, '期');
                     setBozhongTextsState(prev => { const m = { ...prev, ...data.bozhongTexts }; safeSetItem('pl3_bozhongTexts', JSON.stringify(m)); return m; });
                   }
                 }
-                await saveToGist({ decompTexts: mergedD, bozhongTexts: mergedB });
-                setGistSyncStatus('✅ 同步完成');
+                console.log('[Gist 按钮] 准备上传到云端，智取:', Object.keys(mergedD).length, '期，博众:', Object.keys(mergedB).length, '期');
+                const ok = await saveToGist({ decompTexts: mergedD, bozhongTexts: mergedB });
+                console.log('[Gist 按钮] 上传结果:', ok ? '✓ 成功' : '✗ 失败');
+                setGistSyncStatus(ok ? '✅ 同步完成' : '❌ 同步失败');
                 setGistTesting(false);
                 setTimeout(() => setGistSyncStatus(''), 3000);
               } else {
