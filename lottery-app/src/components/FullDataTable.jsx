@@ -116,14 +116,14 @@ function FullDataTable({
           style={{
             // 宽 = 本列最长行内容宽：数据右缘贴住框右缘；flex-grow 仅在无徽章行把框撑满整格（消灰带），
             //   flex-shrink 0 + minWidth 保证窗口变窄时不压缩数据（表格横向滚动代替）
-            width: boxW, minWidth: boxW, flex: '1 0 auto', height: 40, resize: 'none', overflow: 'hidden', display: 'block',
+            width: boxW, minWidth: boxW, flex: '1 0 auto', height: 40, resize: 'none', overflow: 'auto', display: 'block',
             fontSize: 11, lineHeight: '19px', fontFamily: 'Consolas,Menlo,monospace',
             padding: '0 3px', boxSizing: 'border-box', borderRadius: 3,
             border: `1px solid ${locked ? '#cfd8dc' : (hasData ? '#90caf9' : '#bdbdbd')}`,
             background: locked ? '#eceff1' : (hasData ? '#fff' : '#eee'),
             color: locked ? '#78909c' : '#222',
             cursor: locked ? 'pointer' : 'text',
-            whiteSpace: 'nowrap',
+            whiteSpace: 'pre',
           }}
         />
         {v && (
