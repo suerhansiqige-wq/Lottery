@@ -134,15 +134,27 @@ function App() {
   const [gistTestResult, setGistTestResult] = useState('');
 
   // 写入某期分解文本：立即持久化到 localStorage
-  const makeTextSetter = (setState, storageKey) => (issue, val) => {
+  const makeTextSetter = (setState, storageKey, gistKey) => (issue, val) => {
     setState(prev => {
       const next = { ...prev, [issue]: val };
       safeSetItem(storageKey, JSON.stringify(next));
+      // 编辑后立即同步到 Gist，确保云端数据是最新的
+      if (getGistToken() && gistKey) {
+        const gistData = gistKey === 'decomp'
+          ? { decompTexts: next, bozhongTexts: bozhongTexts }
+          : { decompTexts: decompTexts, bozhongTexts: next };
+        saveToGist(gistData).then(ok => {
+          if (ok) {
+            setGistSyncStatus('✅ 已同步到云端');
+            setTimeout(() => setGistSyncStatus(''), 2000);
+          }
+        });
+      }
       return next;
     });
   };
-  const setDecompText = makeTextSetter(setDecompTextsState, '3d_decompTexts');
-  const setBozhongText = makeTextSetter(setBozhongTextsState, '3d_bozhongTexts');
+  const setDecompText = makeTextSetter(setDecompTextsState, '3d_decompTexts', 'decomp');
+  const setBozhongText = makeTextSetter(setBozhongTextsState, '3d_bozhongTexts', 'bozhong');
 
   // 自选号码：按「最新未开奖期」存储用户手填号码，localStorage 键 3d_selfPick（仅存非空期）
   const [selfPickTexts, setSelfPickTextsState] = useState(() => loadOverrides('3d_selfPick'));
