@@ -595,8 +595,10 @@ function App() {
                     setGistTesting(false);
                     return;
                   }
-                  setGistTestResult('✅ 验证通过（用户: ' + test.login + '），正在同步...');
+                  setGistTestResult('✅ 验证通过（用户: ' + test.login + '），正在上传...');
                   setGistToken(token);
+                  await saveToGist({ decompTexts, bozhongTexts });
+                  setGistTestResult('正在下载...');
                   const data = await loadFromGist();
                   if (data) {
                     if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
