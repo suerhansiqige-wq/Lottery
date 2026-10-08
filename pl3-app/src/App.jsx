@@ -416,6 +416,8 @@ function App() {
 
   // 清空分解数据（智取 + 博众）
   const clearDecompData = () => {
+    const pwd = prompt('请输入密码：');
+    if (pwd !== '265047') { alert('密码错误'); return; }
     if (!confirm('确定要清空所有智取分解和博众分解数据吗？此操作不可恢复。')) return;
     setDecompTextsState({});
     setBozhongTextsState({});
