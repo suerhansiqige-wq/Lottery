@@ -234,7 +234,7 @@ function App() {
       });
       if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
         setDecompTextsState(prev => {
-          const merged = { ...data.decompTexts, ...prev };
+          const merged = { ...prev, ...data.decompTexts };
           safeSetItem('pl3_decompTexts', JSON.stringify(merged));
           return merged;
         });
@@ -249,7 +249,7 @@ function App() {
       }
       if (data.bozhongTexts && Object.keys(data.bozhongTexts).length > 0) {
         setBozhongTextsState(prev => {
-          const merged = { ...data.bozhongTexts, ...prev };
+          const merged = { ...prev, ...data.bozhongTexts };
           safeSetItem('pl3_bozhongTexts', JSON.stringify(merged));
           return merged;
         });
@@ -513,14 +513,14 @@ function App() {
                 let mergedB = { ...bozhongTexts };
                 if (data) {
                   if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
-                    mergedD = { ...data.decompTexts, ...mergedD };
+                    mergedD = { ...mergedD, ...data.decompTexts };
                     console.log('[Gist 按钮] 合并智取分解:', Object.keys(data.decompTexts).length, '期');
-                    setDecompTextsState(prev => { const m = { ...data.decompTexts, ...prev }; safeSetItem('pl3_decompTexts', JSON.stringify(m)); return m; });
+                    setDecompTextsState(prev => { const m = { ...prev, ...data.decompTexts }; safeSetItem('pl3_decompTexts', JSON.stringify(m)); return m; });
                   }
                   if (data.bozhongTexts && Object.keys(data.bozhongTexts).length > 0) {
-                    mergedB = { ...data.bozhongTexts, ...mergedB };
+                    mergedB = { ...mergedB, ...data.bozhongTexts };
                     console.log('[Gist 按钮] 合并博众分解:', Object.keys(data.bozhongTexts).length, '期');
-                    setBozhongTextsState(prev => { const m = { ...data.bozhongTexts, ...prev }; safeSetItem('pl3_bozhongTexts', JSON.stringify(m)); return m; });
+                    setBozhongTextsState(prev => { const m = { ...prev, ...data.bozhongTexts }; safeSetItem('pl3_bozhongTexts', JSON.stringify(m)); return m; });
                   }
                 }
                 console.log('[Gist 按钮] 准备上传到云端，智取:', Object.keys(mergedD).length, '期，博众:', Object.keys(mergedB).length, '期');
@@ -730,12 +730,12 @@ function App() {
                   let mergedB = { ...bozhongTexts };
                   if (data) {
                     if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
-                      mergedD = { ...data.decompTexts, ...mergedD };
-                      setDecompTextsState(prev => { const m = { ...data.decompTexts, ...prev }; safeSetItem('pl3_decompTexts', JSON.stringify(m)); return m; });
+                      mergedD = { ...mergedD, ...data.decompTexts };
+                      setDecompTextsState(prev => { const m = { ...prev, ...data.decompTexts }; safeSetItem('pl3_decompTexts', JSON.stringify(m)); return m; });
                     }
                     if (data.bozhongTexts && Object.keys(data.bozhongTexts).length > 0) {
-                      mergedB = { ...data.bozhongTexts, ...mergedB };
-                      setBozhongTextsState(prev => { const m = { ...data.bozhongTexts, ...prev }; safeSetItem('pl3_bozhongTexts', JSON.stringify(m)); return m; });
+                      mergedB = { ...mergedB, ...data.bozhongTexts };
+                      setBozhongTextsState(prev => { const m = { ...prev, ...data.bozhongTexts }; safeSetItem('pl3_bozhongTexts', JSON.stringify(m)); return m; });
                     }
                   }
                   await saveToGist({ decompTexts: mergedD, bozhongTexts: mergedB });

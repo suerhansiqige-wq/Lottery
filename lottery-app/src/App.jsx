@@ -377,7 +377,7 @@ function App() {
       // 本地数据优先，云端数据只补充本地没有的期号
       if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
         setDecompTextsState(prev => {
-          const merged = { ...data.decompTexts, ...prev }; // 本地数据覆盖云端
+          const merged = { ...prev, ...data.decompTexts }; // 云端数据覆盖本地
           safeSetItem('3d_decompTexts', JSON.stringify(merged));
           console.log('[Gist] ✓ 智取分解数据已合并（本地优先）');
           return merged;
@@ -395,7 +395,7 @@ function App() {
       }
       if (data.bozhongTexts && Object.keys(data.bozhongTexts).length > 0) {
         setBozhongTextsState(prev => {
-          const merged = { ...data.bozhongTexts, ...prev }; // 本地数据覆盖云端
+          const merged = { ...prev, ...data.bozhongTexts }; // 云端数据覆盖本地
           safeSetItem('3d_bozhongTexts', JSON.stringify(merged));
           console.log('[Gist] ✓ 博众分解数据已合并（本地优先）');
           return merged;
