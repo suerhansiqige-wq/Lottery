@@ -64,6 +64,9 @@ function FullDataTable({
   // 不能用本文件预留行内部的 nextIssue——后者基于 enrichedData，
   // 存在测试行时会多算一期，导致分解条件对错期号
   nextIssue: appNextIssue,
+  // 智取、博众分解按钮（从 DecompRongCuoPanel 移入）
+  onDecompSubmit,
+  submitFlash,
 }) {
   const displayData = data.slice(-showCount)
   const isTrialRow = (item) => trialDigits && trialDigits.every(d => d !== null) && data.length > 0 && item.issue === data[data.length - 1].issue
@@ -340,6 +343,22 @@ function FullDataTable({
               allowFullScreen
             />
           </div>
+        </div>
+        {/* 智取、博众分解按钮：置于直播模块下方，宽度与直播模块一致 */}
+        <div style={{ flexShrink: 0, width: 360, marginTop: 12 }}>
+          <button
+            onClick={onDecompSubmit}
+            title="保存智取/博众下期分解数据，容错结果自动重算"
+            style={{
+              width: '100%', padding: '10px 22px', fontSize: 16, fontWeight: 800, cursor: 'pointer',
+              border: '2px solid #f57f17', borderRadius: 6, background: '#f9a825', color: '#fff',
+              transform: submitFlash ? 'scale(1.02)' : 'scale(1)',
+              boxShadow: submitFlash ? '0 0 20px rgba(249,168,37,0.8)' : 'none',
+              transition: 'transform 0.15s, box-shadow 0.15s',
+            }}
+          >
+            智取、博众分解
+          </button>
         </div>
         </div>
       </div>

@@ -578,6 +578,8 @@ function App() {
             lockedBozhong={lockedBozhong}
             onRequestUnlock={requestUnlock}
             nextIssue={nextIssue}
+            onDecompSubmit={onDecompSubmit}
+            submitFlash={submitFlash}
           />
         </main>
       </div>
