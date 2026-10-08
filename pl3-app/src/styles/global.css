@@ -42,7 +42,7 @@ body {
   padding: 16px 32px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   position: relative;
   border-bottom: 2px solid #c0392b;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
