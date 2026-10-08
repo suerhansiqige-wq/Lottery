@@ -584,6 +584,22 @@ function App() {
             同步最新
           </button>
           <button
+            onClick={clearDecompData}
+            style={{
+              padding: '6px 12px',
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+              border: '1px solid rgba(255,255,255,0.5)',
+              borderRadius: 4,
+              background: 'transparent',
+              color: '#fff'
+            }}
+            title="清空所有智取分解和博众分解数据"
+          >
+            清空分解数据
+          </button>
+          <button
             onClick={async () => {
               const token = getGistToken();
               console.log('[Gist 按钮] 点击同步，Token:', token ? '✓' : '✗');

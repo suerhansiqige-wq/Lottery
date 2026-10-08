@@ -52,14 +52,14 @@ export async function loadFromGist() {
     const cfg = getConfig();
     if (!cfg.githubToken) return null;
 
-    // 始终搜索描述为"彩票分解数据同步"的 Gist，使用最早创建的那个（确保所有设备统一）
+    // 排列三使用独立的 Gist，与福彩 3D 数据隔离
     const res = await fetch('https://api.github.com/gists', {
       headers: { Authorization: `token ${cfg.githubToken}` }
     });
     let gistId = null;
     if (res.ok) {
       const gists = await res.json();
-      const found = gists.filter(g => g.description === '彩票分解数据同步');
+      const found = gists.filter(g => g.description === '排列三分解数据同步');
       if (found.length > 0) {
         // 按创建时间排序，使用最早的那个
         found.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
@@ -100,14 +100,14 @@ export async function saveToGist(obj) {
       files[`${k}.json`] = { content: JSON.stringify(v, null, 2) };
     }
 
-    // 始终查找描述为"彩票分解数据同步"的最早 Gist
+    // 排列三使用独立的 Gist，与福彩 3D 数据隔离
     const res = await fetch('https://api.github.com/gists', {
       headers: { Authorization: `token ${cfg.githubToken}` }
     });
     let gistId = null;
     if (res.ok) {
       const gists = await res.json();
-      const found = gists.filter(g => g.description === '彩票分解数据同步');
+      const found = gists.filter(g => g.description === '排列三分解数据同步');
       if (found.length > 0) {
         found.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
         gistId = found[0].id;
@@ -136,7 +136,7 @@ export async function saveToGist(obj) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          description: '彩票分解数据同步',
+          description: '排列三分解数据同步',
           public: false,
           files
         })

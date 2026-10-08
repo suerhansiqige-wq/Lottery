@@ -414,6 +414,24 @@ function App() {
     return () => clearInterval(timer)
   }, [])
 
+  // 清空分解数据（智取 + 博众）
+  const clearDecompData = () => {
+    if (!confirm('确定要清空所有智取分解和博众分解数据吗？此操作不可恢复。')) return;
+    setDecompTextsState({});
+    setBozhongTextsState({});
+    setLockedDecomp(new Set());
+    setLockedBozhong(new Set());
+    safeSetItem('pl3_decompTexts', '{}');
+    safeSetItem('pl3_bozhongTexts', '{}');
+    safeSetItem('pl3_lockedDecomp', '[]');
+    safeSetItem('pl3_lockedBozhong', '[]');
+    if (getGistToken()) {
+      saveToGist({ decompTexts: {}, bozhongTexts: {} }).then(ok => {
+        setGistSyncStatus(ok ? '✅ 已清空并同步到云端' : ' 清空失败');
+        setTimeout(() => setGistSyncStatus(''), 3000);
+      });
+    }
+  };
 
   return (
     <div className="app">
@@ -437,6 +455,22 @@ function App() {
             }}
           >
             同步最新
+          </button>
+          <button
+            onClick={clearDecompData}
+            style={{
+              padding: '6px 12px',
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+              border: '1px solid rgba(255,255,255,0.5)',
+              borderRadius: 4,
+              background: 'transparent',
+              color: '#fff'
+            }}
+            title="清空所有智取分解和博众分解数据"
+          >
+            清空分解数据
           </button>
           <button
             onClick={async () => {
