@@ -19,16 +19,9 @@ const HJS_COLS = [
 ];
 
 // 渲染横加减/竖加减4个合并单元格；src 为空或该组无上期数据（全 null）时显示 -
+// 【已隐藏】用户要求隐藏横相减/横相加/竖相减/竖相加四列
 function renderHjsCells(src) {
-  return HJS_COLS.map((c, i) => {
-    const arr = src ? src[c.field] : null;
-    const has = arr && arr.some(v => v !== null && v !== undefined);
-    return (
-      <td key={'hjs' + i} title={c.title} style={{ fontWeight: 700, color: '#000' }}>
-        {has ? arr.join('') : '-'}
-      </td>
-    );
-  });
+  return null;
 }
 
 // ============================================================
