@@ -550,7 +550,36 @@ function App() {
             同步最新
           </button>
           <button
-            onClick={() => { setGistTokenInput(getGistToken()); setGistDialog(true); }}
+            onClick={async () => {
+              const token = getGistToken();
+              if (token) {
+                setGistTesting(true);
+                setGistSyncStatus('正在同步...');
+                const test = await testGistToken(token);
+                if (!test.ok) {
+                  setGistSyncStatus('❌ Token 无效');
+                  setGistTesting(false);
+                  setTimeout(() => setGistSyncStatus(''), 3000);
+                  return;
+                }
+                await saveToGist({ decompTexts, bozhongTexts });
+                const data = await loadFromGist();
+                if (data) {
+                  if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
+                    setDecompTextsState(prev => { const m = { ...prev, ...data.decompTexts }; safeSetItem('3d_decompTexts', JSON.stringify(m)); return m; });
+                  }
+                  if (data.bozhongTexts && Object.keys(data.bozhongTexts).length > 0) {
+                    setBozhongTextsState(prev => { const m = { ...prev, ...data.bozhongTexts }; safeSetItem('3d_bozhongTexts', JSON.stringify(m)); return m; });
+                  }
+                }
+                setGistSyncStatus('✅ 同步完成');
+                setGistTesting(false);
+                setTimeout(() => setGistSyncStatus(''), 3000);
+              } else {
+                setGistTokenInput('');
+                setGistDialog(true);
+              }
+            }}
             style={{
               padding: '6px 12px',
               fontSize: 14,
@@ -561,7 +590,7 @@ function App() {
               background: 'transparent',
               color: '#fff'
             }}
-            title="设置 GitHub Token 以启用跨设备同步"
+            title={getGistToken() ? '点击同步数据' : '设置 GitHub Token 以启用跨设备同步'}
           >
             ☁ Gist同步
           </button>
