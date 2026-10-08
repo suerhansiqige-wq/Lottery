@@ -5,7 +5,7 @@ import bozhongData from './data/bozhongData.json'
 import { parseDecompGroups, computeRongCuo } from './utils/decompRongCuo.js'
 import FullDataTable from './components/FullDataTable.jsx'
 import DecompRongCuoPanel from './components/DecompRongCuoPanel.jsx'
-import { loadFromGist, saveToGist, setGistToken, getGistToken } from './utils/gistSync.js'
+import { loadFromGist, saveToGist, setGistToken, getGistToken, clearGistToken, testGistToken } from './utils/gistSync.js'
 
 // ============================================================
 // 分解 JSON 基线归一化（与福彩3D 同一套逻辑）
@@ -64,6 +64,8 @@ function App() {
   const [gistTokenInput, setGistTokenInput] = useState(getGistToken());
   const [gistSyncStatus, setGistSyncStatus] = useState('');
   const [submitFlash, setSubmitFlash] = useState(false);
+  const [gistTesting, setGistTesting] = useState(false);
+  const [gistTestResult, setGistTestResult] = useState('');
 
   const makeTextSetter = (setState, storageKey) => (issue, val) => {
     setState(prev => {
@@ -548,13 +550,18 @@ function App() {
               type="password"
               autoFocus
               value={gistTokenInput}
-              onChange={e => setGistTokenInput(e.target.value)}
+              onChange={e => { setGistTokenInput(e.target.value); setGistTestResult(''); }}
               placeholder="ghp_xxxxxxxxxxxx"
               style={{
                 width: '100%', boxSizing: 'border-box', padding: '8px 10px', fontSize: 15,
                 border: '1px solid #ccc', borderRadius: 4,
               }}
             />
+            {gistTestResult && (
+              <div style={{ fontSize: 13, marginTop: 8, color: gistTestResult.startsWith('✅') ? '#2e7d32' : '#e53935' }}>
+                {gistTestResult}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setGistDialog(false)}
@@ -565,8 +572,9 @@ function App() {
               {getGistToken() && (
                 <button
                   onClick={() => {
-                    setGistToken('');
+                    clearGistToken();
                     setGistTokenInput('');
+                    setGistTestResult('');
                     setGistDialog(false);
                   }}
                   style={{ padding: '6px 16px', fontSize: 14, cursor: 'pointer', border: '1px solid #e53935', borderRadius: 4, background: '#fff', color: '#e53935' }}
@@ -575,24 +583,36 @@ function App() {
                 </button>
               )}
               <button
-                onClick={() => {
-                  setGistToken(gistTokenInput.trim());
-                  setGistDialog(false);
-                  if (gistTokenInput.trim()) {
-                    loadFromGist().then(data => {
-                      if (!data) return;
-                      if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
-                        setDecompTextsState(prev => { const m = { ...prev, ...data.decompTexts }; safeSetItem('pl3_decompTexts', JSON.stringify(m)); return m; });
-                      }
-                      if (data.bozhongTexts && Object.keys(data.bozhongTexts).length > 0) {
-                        setBozhongTextsState(prev => { const m = { ...prev, ...data.bozhongTexts }; safeSetItem('pl3_bozhongTexts', JSON.stringify(m)); return m; });
-                      }
-                    });
+                disabled={gistTesting}
+                onClick={async () => {
+                  const token = gistTokenInput.trim();
+                  if (!token) return;
+                  setGistTesting(true);
+                  setGistTestResult('正在验证 Token...');
+                  const test = await testGistToken(token);
+                  if (!test.ok) {
+                    setGistTestResult('❌ Token 无效: ' + test.error);
+                    setGistTesting(false);
+                    return;
                   }
+                  setGistTestResult('✅ 验证通过（用户: ' + test.login + '），正在同步...');
+                  setGistToken(token);
+                  const data = await loadFromGist();
+                  if (data) {
+                    if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
+                      setDecompTextsState(prev => { const m = { ...prev, ...data.decompTexts }; safeSetItem('pl3_decompTexts', JSON.stringify(m)); return m; });
+                    }
+                    if (data.bozhongTexts && Object.keys(data.bozhongTexts).length > 0) {
+                      setBozhongTextsState(prev => { const m = { ...prev, ...data.bozhongTexts }; safeSetItem('pl3_bozhongTexts', JSON.stringify(m)); return m; });
+                    }
+                  }
+                  setGistTestResult('✅ 同步完成');
+                  setGistTesting(false);
+                  setTimeout(() => setGistDialog(false), 800);
                 }}
-                style={{ padding: '6px 16px', fontSize: 14, fontWeight: 700, cursor: 'pointer', border: '1px solid #1976d2', borderRadius: 4, background: '#1976d2', color: '#fff' }}
+                style={{ padding: '6px 16px', fontSize: 14, fontWeight: 700, cursor: gistTesting ? 'wait' : 'pointer', border: '1px solid #1976d2', borderRadius: 4, background: gistTesting ? '#90caf9' : '#1976d2', color: '#fff' }}
               >
-                保存并同步
+                {gistTesting ? '验证中...' : '保存并同步'}
               </button>
             </div>
           </div>
