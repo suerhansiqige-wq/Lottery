@@ -560,7 +560,27 @@ function App() {
   // 禁止：用当期自身开奖号计算当期位杀；未开奖期必须用最后一期开奖号
   // 【性能锁定】只计算末尾窗口（showCount+3）+未开奖期：每期组号仅依赖上一期开奖号，
   // 窗口内结果与全量计算完全一致（全量8651期约5秒，窗口约7ms）
-  return (
+  
+  // 清空分解数据（智取 + 博众）
+  const clearDecompData = () => {
+    if (!confirm('确定要清空所有智取分解和博众分解数据吗？此操作不可恢复。')) return;
+    setDecompTextsState({});
+    setBozhongTextsState({});
+    setLockedDecomp(new Set());
+    setLockedBozhong(new Set());
+    safeSetItem('3d_decompTexts', '{}');
+    safeSetItem('3d_bozhongTexts', '{}');
+    safeSetItem('3d_lockedDecomp', '[]');
+    safeSetItem('3d_lockedBozhong', '[]');
+    if (getGistToken()) {
+      saveToGist({ decompTexts: {}, bozhongTexts: {} }).then(ok => {
+        setGistSyncStatus(ok ? '✅ 已清空并同步到云端' : ' 清空失败');
+        setTimeout(() => setGistSyncStatus(''), 3000);
+      });
+    }
+  };
+
+return (
     <div className="app">
       <header className="header">
         <h1>福彩3D分析系统</h1>
