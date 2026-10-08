@@ -170,10 +170,7 @@ function FullDataTable({
                 <th style={{ borderBottom: '3px solid #a8d8ea' }}>个</th>
                 <th>和值</th>
                 <th>跨度</th>
-                {/* 横加减/竖加减4列（Excel G~R 每3列合并为1格） */}
-                {HJS_COLS.map((c, i) => (
-                  <th key={'hjsTh' + i} title={c.title}>{c.th}</th>
-                ))}
+                {/* 横加减/竖加减4列已隐藏 - 用户要求 */}
                 <th>生号</th>
                 <th>连号</th>
                 <th>必出号</th>
