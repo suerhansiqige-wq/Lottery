@@ -12,13 +12,16 @@
 </style>
 </head>
 <body>
-<video id="video" autoplay muted playsinline></video>
+<video id="video" autoplay playsinline></video>
 <div class="msg" id="msg">正在获取直播流...</div>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <script>
   var PROGRAM_ID = '50052837';
   var video = document.getElementById('video');
   var msg = document.getElementById('msg');
+
+  // 浏览器可能阻止自动播放带声音的视频，点击时取消静音
+  video.addEventListener('click', function() { video.muted = false; });
 
   fetch('https://api.ivideo.sina.com.cn/public/live/play?appname=sinaplayer_pc&appver=1&applt=web&program_token=' + PROGRAM_ID + '&ran=' + Date.now())
     .then(function(r) { return r.json(); })
@@ -41,13 +44,18 @@
         var hls = new Hls();
         hls.loadSource(hlsStream);
         hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, function() { video.play(); });
+        hls.on(Hls.Events.MANIFEST_PARSED, function() {
+          video.muted = false;
+          video.play().catch(function() { video.muted = true; video.play(); });
+        });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = hlsStream || flvStream;
-        video.play();
+        video.muted = false;
+        video.play().catch(function() { video.muted = true; video.play(); });
       } else if (flvStream) {
         video.src = flvStream;
-        video.play();
+        video.muted = false;
+        video.play().catch(function() { video.muted = true; video.play(); });
       }
     })
     .catch(function() { msg.textContent = '获取直播流失败'; });
