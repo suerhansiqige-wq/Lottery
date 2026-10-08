@@ -210,14 +210,16 @@ function App() {
         safeSetItem('pl3_bozhongTexts', JSON.stringify(merged));
       }
     }).catch(() => {});
-    // GitHub Gist（跨设备，静态托管也可用）
+    // GitHub Gist（跨设备，静态托管也可用）—— 云端数据为准，直接覆盖本地
     loadFromGist().then(data => {
       if (!data) return;
       if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
-        setDecompTextsState(prev => { const m = { ...prev, ...data.decompTexts }; safeSetItem('pl3_decompTexts', JSON.stringify(m)); return m; });
+        setDecompTextsState(data.decompTexts);
+        safeSetItem('pl3_decompTexts', JSON.stringify(data.decompTexts));
       }
       if (data.bozhongTexts && Object.keys(data.bozhongTexts).length > 0) {
-        setBozhongTextsState(prev => { const m = { ...prev, ...data.bozhongTexts }; safeSetItem('pl3_bozhongTexts', JSON.stringify(m)); return m; });
+        setBozhongTextsState(data.bozhongTexts);
+        safeSetItem('pl3_bozhongTexts', JSON.stringify(data.bozhongTexts));
       }
     });
   }, []);
@@ -255,8 +257,15 @@ function App() {
     setSubmitFlash(true);
     setTimeout(() => setSubmitFlash(false), 600);
     
-    const ok = await saveToGist({ decompTexts, bozhongTexts });
     if (getGistToken()) {
+      const cloudData = await loadFromGist();
+      let mergedD = { ...decompTexts };
+      let mergedB = { ...bozhongTexts };
+      if (cloudData) {
+        if (cloudData.decompTexts) mergedD = { ...mergedD, ...cloudData.decompTexts };
+        if (cloudData.bozhongTexts) mergedB = { ...mergedB, ...cloudData.bozhongTexts };
+      }
+      const ok = await saveToGist({ decompTexts: mergedD, bozhongTexts: mergedB });
       setGistSyncStatus(ok ? '✅ Gist 同步成功' : '❌ Gist 同步失败');
       setTimeout(() => setGistSyncStatus(''), 3000);
     }
@@ -417,16 +426,20 @@ function App() {
                   setTimeout(() => setGistSyncStatus(''), 3000);
                   return;
                 }
-                await saveToGist({ decompTexts, bozhongTexts });
                 const data = await loadFromGist();
+                let mergedD = { ...decompTexts };
+                let mergedB = { ...bozhongTexts };
                 if (data) {
                   if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
+                    mergedD = { ...mergedD, ...data.decompTexts };
                     setDecompTextsState(prev => { const m = { ...prev, ...data.decompTexts }; safeSetItem('pl3_decompTexts', JSON.stringify(m)); return m; });
                   }
                   if (data.bozhongTexts && Object.keys(data.bozhongTexts).length > 0) {
+                    mergedB = { ...mergedB, ...data.bozhongTexts };
                     setBozhongTextsState(prev => { const m = { ...prev, ...data.bozhongTexts }; safeSetItem('pl3_bozhongTexts', JSON.stringify(m)); return m; });
                   }
                 }
+                await saveToGist({ decompTexts: mergedD, bozhongTexts: mergedB });
                 setGistSyncStatus('✅ 同步完成');
                 setGistTesting(false);
                 setTimeout(() => setGistSyncStatus(''), 3000);
@@ -624,19 +637,22 @@ function App() {
                     setGistTesting(false);
                     return;
                   }
-                  setGistTestResult('✅ 验证通过（用户: ' + test.login + '），正在上传...');
+                  setGistTestResult('✅ 验证通过（用户: ' + test.login + '），正在同步...');
                   setGistToken(token);
-                  await saveToGist({ decompTexts, bozhongTexts });
-                  setGistTestResult('正在下载...');
                   const data = await loadFromGist();
+                  let mergedD = { ...decompTexts };
+                  let mergedB = { ...bozhongTexts };
                   if (data) {
                     if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
+                      mergedD = { ...mergedD, ...data.decompTexts };
                       setDecompTextsState(prev => { const m = { ...prev, ...data.decompTexts }; safeSetItem('pl3_decompTexts', JSON.stringify(m)); return m; });
                     }
                     if (data.bozhongTexts && Object.keys(data.bozhongTexts).length > 0) {
+                      mergedB = { ...mergedB, ...data.bozhongTexts };
                       setBozhongTextsState(prev => { const m = { ...prev, ...data.bozhongTexts }; safeSetItem('pl3_bozhongTexts', JSON.stringify(m)); return m; });
                     }
                   }
+                  await saveToGist({ decompTexts: mergedD, bozhongTexts: mergedB });
                   setGistTestResult('✅ 同步完成');
                   setGistTesting(false);
                   setTimeout(() => setGistDialog(false), 800);
