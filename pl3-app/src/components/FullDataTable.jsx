@@ -181,9 +181,7 @@ function FullDataTable({
           onChange={e => { if (setText) setText(issue, e.target.value); }}
           onClick={locked && onRequestUnlock ? () => onRequestUnlock(kind, issue) : undefined}
           style={{
-            // 宽 = 本列最长行内容宽：数据右缘贴住框右缘；flex-grow 仅在无徽章行把框撑满整格（消灰带），
-            //   flex-shrink 0 + minWidth 保证窗口变窄时不压缩数据（表格横向滚动代替）
-            width: boxW, minWidth: boxW, flex: '1 0 auto', height: 40, resize: 'none', overflow: 'auto', display: 'block',
+            width: boxW, minWidth: boxW, flex: '1 1 auto', height: 40, resize: 'none', overflow: 'hidden', display: 'block',
             fontSize: 11, lineHeight: '19px', fontFamily: 'Consolas,Menlo,monospace',
             padding: '0 3px', boxSizing: 'border-box', borderRadius: 3,
             border: `1px solid ${locked ? '#cfd8dc' : (hasData ? '#90caf9' : '#bdbdbd')}`,
@@ -195,9 +193,8 @@ function FullDataTable({
         />
         {v && (
           <span style={{
-            // 徽章文字放大（用户要求）：11px → 15px；列宽为 max-content 自适应，会随之自动加宽
             fontSize: 15, padding: '2px 6px', borderRadius: 3, border: '1px solid #e0e0e0',
-            background: '#fff', whiteSpace: 'nowrap',
+            background: '#fff', whiteSpace: 'nowrap', minWidth: 70, textAlign: 'left',
             color: v.type === '组三' ? '#c62828' : '#000',
             fontWeight: v.type === '组三' ? 700 : 600,
           }} title={`${issue} 期开奖最小容错等级（${v.type}）`}>
@@ -362,7 +359,7 @@ function FullDataTable({
             <option value={data.length}>全部</option>
           </select>
         </div>
-        <style>{`input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; } input[type=number] { -moz-appearance: textfield; }`}</style>
+        <style>{`input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; } input[type=number] { -moz-appearance: textfield; } textarea::-webkit-scrollbar { width: 0; height: 0; } textarea { scrollbar-width: none; -ms-overflow-style: none; }`}</style>
         <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
           <div className="table-container" style={{ maxHeight: '700px', display: 'inline-block' }}>
             <table className="data-table" style={{ fontSize: 17 }}>
