@@ -52,35 +52,41 @@ export async function loadFromGist() {
     const cfg = getConfig();
     if (!cfg.githubToken) return null;
 
-    let gistId = cfg.gistId;
-
-    if (!gistId) {
-      const res = await fetch('https://api.github.com/gists', {
-        headers: { Authorization: `token ${cfg.githubToken}` }
-      });
-      if (res.ok) {
-        const gists = await res.json();
-        const found = gists.find(g => g.description === '彩票分解数据同步');
-        if (found) {
-          gistId = found.id;
-          saveGistId(gistId);
-        }
+    // 始终搜索描述为"彩票分解数据同步"的 Gist，使用最早创建的那个（确保所有设备统一）
+    const res = await fetch('https://api.github.com/gists', {
+      headers: { Authorization: `token ${cfg.githubToken}` }
+    });
+    let gistId = null;
+    if (res.ok) {
+      const gists = await res.json();
+      const found = gists.filter(g => g.description === '彩票分解数据同步');
+      if (found.length > 0) {
+        // 按创建时间排序，使用最早的那个
+        found.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        gistId = found[0].id;
+        saveGistId(gistId);
+        console.log('[Gist] 使用 Gist ID:', gistId, '(共找到', found.length, '个匹配的 Gist)');
       }
     }
 
-    if (!gistId) return null;
+    if (!gistId) {
+      console.log('[Gist] 未找到匹配的 Gist');
+      return null;
+    }
 
-    const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+    const res2 = await fetch(`https://api.github.com/gists/${gistId}`, {
       headers: { Authorization: `token ${cfg.githubToken}` }
     });
-    if (!res.ok) return null;
-    const data = await res.json();
+    if (!res2.ok) return null;
+    const data = await res2.json();
     const out = {};
     for (const [k, v] of Object.entries(data.files || {})) {
       try { out[k.replace('.json', '')] = JSON.parse(v.content); } catch {}
     }
+    console.log('[Gist] 加载成功，文件:', Object.keys(out).join(', '));
     return out;
-  } catch {
+  } catch (e) {
+    console.error('[Gist] 加载失败:', e.message);
     return null;
   }
 }
@@ -93,9 +99,26 @@ export async function saveToGist(obj) {
     for (const [k, v] of Object.entries(obj)) {
       files[`${k}.json`] = { content: JSON.stringify(v, null, 2) };
     }
-    let res;
-    if (cfg.gistId) {
-      res = await fetch(`https://api.github.com/gists/${cfg.gistId}`, {
+
+    // 始终查找描述为"彩票分解数据同步"的最早 Gist
+    const res = await fetch('https://api.github.com/gists', {
+      headers: { Authorization: `token ${cfg.githubToken}` }
+    });
+    let gistId = null;
+    if (res.ok) {
+      const gists = await res.json();
+      const found = gists.filter(g => g.description === '彩票分解数据同步');
+      if (found.length > 0) {
+        found.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        gistId = found[0].id;
+        saveGistId(gistId);
+      }
+    }
+
+    let res2;
+    if (gistId) {
+      // 更新已有的 Gist
+      res2 = await fetch(`https://api.github.com/gists/${gistId}`, {
         method: 'PATCH',
         headers: {
           Authorization: `token ${cfg.githubToken}`,
@@ -103,8 +126,10 @@ export async function saveToGist(obj) {
         },
         body: JSON.stringify({ files })
       });
+      console.log('[Gist] 更新 Gist:', gistId, res2.ok ? '✓' : '✗');
     } else {
-      res = await fetch('https://api.github.com/gists', {
+      // 创建新 Gist
+      res2 = await fetch('https://api.github.com/gists', {
         method: 'POST',
         headers: {
           Authorization: `token ${cfg.githubToken}`,
@@ -116,13 +141,15 @@ export async function saveToGist(obj) {
           files
         })
       });
-      if (res.ok) {
-        const data = await res.json();
+      if (res2.ok) {
+        const data = await res2.json();
         saveGistId(data.id);
+        console.log('[Gist] 创建新 Gist:', data.id);
       }
     }
-    return res.ok;
-  } catch {
+    return res2.ok;
+  } catch (e) {
+    console.error('[Gist] 保存失败:', e.message);
     return false;
   }
 }
