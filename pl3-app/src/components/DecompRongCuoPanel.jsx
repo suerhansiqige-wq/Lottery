@@ -24,7 +24,7 @@ function CopyBtn({ text, disabled }) {
       onClick={(e) => {
         e.stopPropagation();
         if (!text) return;
-        const finish = () => { setDone(true); setTimeout(() => setDone(false), 900); };
+        const finish = () => { setDone(true); setTimeout(() => setDone(false), 1500); };
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(text).then(finish).catch(() => {
             const ta = document.createElement('textarea');
@@ -43,10 +43,10 @@ function CopyBtn({ text, disabled }) {
         fontSize: 11, padding: '1px 6px', cursor: disabled || !text ? 'default' : 'pointer',
         border: `1px solid ${done ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
         background: done ? '#c8e6c9' : '#fff', color: done ? '#1b5e20' : '#555',
-        fontWeight: 600, lineHeight: '16px',
+        fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
       }}
     >
-      {done ? '已复制' : '复制'}
+      {done ? '✓' : '复制'}
     </button>
   );
 }
