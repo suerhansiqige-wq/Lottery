@@ -585,8 +585,8 @@ function FullDataTable({
             </tbody>
           </table>
         </div>
-        {/* 开奖直播模块 */}
-        <div style={{ flexShrink: 0, width: 360 }}>
+        {/* 开奖直播模块 + 智取博众分解按钮（纵向排列） */}
+        <div style={{ flexShrink: 0, width: 360, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ background: '#fff', border: '2px solid #e91e63', borderRadius: 8, overflow: 'hidden' }}>
             <div style={{ background: '#e91e63', color: '#fff', padding: '8px 12px', fontWeight: 700, fontSize: 15 }}>
               排列三开奖直播
@@ -598,9 +598,7 @@ function FullDataTable({
               allowFullScreen
             />
           </div>
-        </div>
-        {/* 智取、博众分解按钮：置于直播模块下方，宽度与直播模块一致 */}
-        <div style={{ flexShrink: 0, width: 360, marginTop: 12 }}>
+          {/* 智取、博众分解按钮：置于直播框下方，宽度与直播模块一致 */}
           <button
             onClick={onDecompSubmit}
             title="保存智取/博众下期分解数据，容错结果自动重算"
