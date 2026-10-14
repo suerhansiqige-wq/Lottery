@@ -974,6 +974,7 @@ export const lotteryData = [
   { issue: '26270', d1: 6, d2: 4, d3: 1 },
   { issue: '26271', d1: 6, d2: 2, d3: 2 },
   { issue: '26272', d1: 8, d2: 9, d3: 0 },
+  { issue: '26273', d1: 7, d2: 0, d3: 3 },
 ];
 
 
