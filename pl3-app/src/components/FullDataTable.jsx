@@ -286,9 +286,25 @@ function FullDataTable({
 }) {
   const [copiedIssues, setCopiedIssues] = useState(new Set());
   
-  const handleCopy = (issue, numbers) => {
-    navigator.clipboard.writeText(numbers.join(' '));
-    setCopiedIssues(prev => new Set(prev).add(issue));
+  const handleCopy = async (issue, numbers) => {
+    try {
+      await navigator.clipboard.writeText(numbers.join(' '));
+      setCopiedIssues(prev => new Set(prev).add(issue));
+    } catch (err) {
+      console.error('复制失败:', err);
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = numbers.join(' ');
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setCopiedIssues(prev => new Set(prev).add(issue));
+      } catch (fallbackErr) {
+        console.error('Fallback复制也失败:', fallbackErr);
+      }
+      document.body.removeChild(textArea);
+    }
   };
   
   const displayData = data.slice(-showCount)
