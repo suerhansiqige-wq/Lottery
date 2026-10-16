@@ -1,5 +1,154 @@
-import { useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { parseDecompGroups, verifyDraw } from '../utils/decompRongCuo.js'
+
+// ============================================================
+// 遗漏策略：三组并集（用于通杀码右侧新增列）
+// 组1: 百位6个最多遗漏 + 十位5个冷号(排除前5) + 个位5个冷号(排除前5)
+// 组2: 十位6个最多遗漏 + 百位5个冷号 + 个位5个冷号
+// 组3: 个位6个最多遗漏 + 百位5个冷号 + 十位5个冷号
+// ============================================================
+function getMissingAtPeriod(data, periodIndex) {
+  const historical = data.slice(0, periodIndex);
+  const missing = { d1: {}, d2: {}, d3: {} };
+  for (let digit = 0; digit <= 9; digit++) {
+    for (const pos of ['d1', 'd2', 'd3']) {
+      let miss = 0;
+      for (let i = historical.length - 1; i >= 0; i--) {
+        if (historical[i][pos] === digit) break;
+        miss++;
+      }
+      missing[pos][digit] = miss;
+    }
+  }
+  return missing;
+}
+
+function selectOneGroup(missing, sixPos) {
+  const result = { d1: [], d2: [], d3: [] };
+  for (const pos of ['d1', 'd2', 'd3']) {
+    const digits = Array.from({ length: 10 }, (_, d) => d);
+    digits.sort((a, b) => missing[pos][b] - missing[pos][a]);
+    if (pos === sixPos) {
+      result[pos] = digits.slice(0, 6);
+    } else {
+      // 排除最多遗漏的5个数字，选剩余5个
+      result[pos] = digits.slice(5, 10);
+    }
+  }
+  return result;
+}
+
+function generateOmissionNumbers(data, periodIndex) {
+  // 基于到periodIndex期的数据生成下一期的遗漏策略号码（遗漏1位）
+  const missing = getMissingAtPeriod(data, periodIndex);
+  const group1 = selectOneGroup(missing, 'd1');
+  const group2 = selectOneGroup(missing, 'd2');
+  const group3 = selectOneGroup(missing, 'd3');
+  
+  const combinations = new Set();
+  for (const g of [group1, group2, group3]) {
+    for (const d1 of g.d1) {
+      for (const d2 of g.d2) {
+        for (const d3 of g.d3) {
+          combinations.add(`${d1}${d2}${d3}`);
+        }
+      }
+    }
+  }
+  return Array.from(combinations).sort();
+}
+
+// ============================================================
+// 遗漏2位策略：三组并集
+// 组1: 百位5个最多遗漏 + 十位5个最多遗漏 + 个位排除前5（选后5）
+// 组2: 十位5个最多遗漏 + 个位5个最多遗漏 + 百位排除前5（选后5）
+// 组3: 百位5个最多遗漏 + 个位5个最多遗漏 + 十位排除前5（选后5）
+// ============================================================
+function selectTwoGroups(missing, excludePos) {
+  // excludePos: 哪个位置排除最多遗漏的5个数字（选后5），其他位置选前5
+  const result = { d1: [], d2: [], d3: [] };
+  
+  for (const pos of ['d1', 'd2', 'd3']) {
+    const digits = Array.from({ length: 10 }, (_, d) => d);
+    digits.sort((a, b) => missing[pos][b] - missing[pos][a]);
+    
+    if (pos === excludePos) {
+      // 这个位置排除最多遗漏的5个，选剩余5个
+      result[pos] = digits.slice(5, 10);
+    } else {
+      // 其他位置选最多遗漏的5个
+      result[pos] = digits.slice(0, 5);
+    }
+  }
+  
+  return result;
+}
+
+function generateOmissionNumbers2(data, periodIndex) {
+  // 基于到periodIndex期的数据生成下一期的遗漏2位策略号码
+  const missing = getMissingAtPeriod(data, periodIndex);
+  const group1 = selectTwoGroups(missing, 'd3'); // 个位排除前5
+  const group2 = selectTwoGroups(missing, 'd1'); // 百位排除前5
+  const group3 = selectTwoGroups(missing, 'd2'); // 十位排除前5
+  
+  const combinations = new Set();
+  for (const g of [group1, group2, group3]) {
+    for (const d1 of g.d1) {
+      for (const d2 of g.d2) {
+        for (const d3 of g.d3) {
+          combinations.add(`${d1}${d2}${d3}`);
+        }
+      }
+    }
+  }
+  return Array.from(combinations).sort();
+}
+
+// ============================================================
+// 遗漏3位策略：三组并集
+// 组1: 百位6个最多遗漏 + 十位5个最多遗漏 + 个位5个最多遗漏
+// 组2: 十位6个最多遗漏 + 个位5个最多遗漏 + 百位5个最多遗漏
+// 组3: 百位6个最多遗漏 + 个位5个最多遗漏 + 十位5个最多遗漏
+// ============================================================
+function selectThreeGroups(missing, sixPos) {
+  // sixPos: 哪个位置选6个最多遗漏，其他位置选5个最多遗漏
+  const result = { d1: [], d2: [], d3: [] };
+  
+  for (const pos of ['d1', 'd2', 'd3']) {
+    const digits = Array.from({ length: 10 }, (_, d) => d);
+    digits.sort((a, b) => missing[pos][b] - missing[pos][a]);
+    
+    if (pos === sixPos) {
+      // 这个位置选6个最多遗漏
+      result[pos] = digits.slice(0, 6);
+    } else {
+      // 其他位置选5个最多遗漏
+      result[pos] = digits.slice(0, 5);
+    }
+  }
+  
+  return result;
+}
+
+function generateOmissionNumbers3(data, periodIndex) {
+  // 基于到periodIndex期的数据生成下一期的遗漏3位策略号码
+  const missing = getMissingAtPeriod(data, periodIndex);
+  const group1 = selectThreeGroups(missing, 'd1'); // 百位6个，其他5个
+  const group2 = selectThreeGroups(missing, 'd2'); // 十位6个，其他5个
+  const group3 = selectThreeGroups(missing, 'd1'); // 百位6个，其他5个
+  
+  const combinations = new Set();
+  for (const g of [group1, group2, group3]) {
+    for (const d1 of g.d1) {
+      for (const d2 of g.d2) {
+        for (const d3 of g.d3) {
+          combinations.add(`${d1}${d2}${d3}`);
+        }
+      }
+    }
+  }
+  return Array.from(combinations).sort();
+}
 
 // ============================================================
 // 【算法锁定】横加减 / 竖加减 4列（对齐 Excel「黄金三格」福表 G~R 列，每 3 列合并为 1 格）
@@ -68,8 +217,37 @@ function FullDataTable({
   onDecompSubmit,
   submitFlash,
 }) {
+  const [copiedIssues, setCopiedIssues] = useState(new Set());
+  
+  const handleCopy = (issue, numbers) => {
+    navigator.clipboard.writeText(numbers.join(' '));
+    setCopiedIssues(prev => new Set(prev).add(issue));
+  };
+  
   const displayData = data.slice(-showCount)
   const isTrialRow = (item) => trialDigits && trialDigits.every(d => d !== null) && data.length > 0 && item.issue === data[data.length - 1].issue
+
+  // 计算遗漏策略号码（基于完整data，因为需要历史数据）
+  const omissionNumbersMap = useMemo(() => {
+    const map = new Map();
+    const map2 = new Map();
+    const map3 = new Map();
+    const map4 = new Map(); // 三个策略的并集
+    for (let i = 0; i < data.length; i++) {
+      const issue = data[i].issue;
+      const numbers = generateOmissionNumbers(data, i + 1); // 用i+1期数据预测下一期
+      const numbers2 = generateOmissionNumbers2(data, i + 1);
+      const numbers3 = generateOmissionNumbers3(data, i + 1);
+      map.set(issue, numbers);
+      map2.set(issue, numbers2);
+      map3.set(issue, numbers3);
+      
+      // 合并三个策略的号码（取并集）
+      const union = new Set([...numbers, ...numbers2, ...numbers3]);
+      map4.set(issue, Array.from(union).sort());
+    }
+    return { map, map2, map3, map4 };
+  }, [data]);
 
   // 往期各期「最小容错等级」徽章数据源：仅对已开奖行（d1/d2/d3 有值）且该期分解非空时计算；
   //   下期预留行尚无开奖号 → 不产出徽章，等开奖数据更新、该行转为正常已开奖行后才显示
@@ -175,6 +353,10 @@ function FullDataTable({
                 <th>连号</th>
                 <th>必出号</th>
                 <th>通杀码</th>
+                <th style={{ borderBottom: '3px solid #ff6b35' }}>遗漏1位</th>
+                <th style={{ borderBottom: '3px solid #9b59b6' }}>遗漏2位</th>
+                <th style={{ borderBottom: '3px solid #e74c3c' }}>遗漏3位</th>
+                <th style={{ borderBottom: '3px solid #27ae60' }}>遗漏验证</th>
                 {/* 智取分解 / 博众分解 两列 */}
                 {DECOMP_COLS.map(c => (
                   <th key={'dcTh_' + c.kind} title={c.title}
@@ -274,6 +456,181 @@ function FullDataTable({
                       );
                     })()}
                   </td>
+                  {/* 遗漏1位列 - 显示基于上期数据生成的预测号码，并验证当期是否命中 */}
+                  <td style={{ padding: '4px 2px', textAlign: 'center' }}>
+                    {(() => {
+                      const prevIdx = data.indexOf(item) - 1;
+                      if (prevIdx < 0) return <span style={{ color: '#999' }}>-</span>;
+                      const prevIssue = data[prevIdx].issue;
+                      const numbers = omissionNumbersMap.map.get(prevIssue);
+                      if (!numbers || numbers.length === 0) return <span style={{ color: '#999' }}>-</span>;
+                      
+                      // 检查当期开奖号是否在预测列表中
+                      const actualNum = `${item.d1}${item.d2}${item.d3}`;
+                      const hit = numbers.includes(actualNum);
+                      const isCopied = copiedIssues.has(`map-${prevIssue}`);
+                      
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                          <button
+                            onClick={() => handleCopy(`map-${prevIssue}`, numbers)}
+                            title="复制所有预测号码"
+                            style={{
+                              fontSize: 10,
+                              padding: '2px 8px',
+                              border: '1px solid #95a5a6',
+                              borderRadius: 3,
+                              background: isCopied ? '#27ae60' : '#95a5a6',
+                              color: '#fff',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {isCopied ? '✓' : '复制'}
+                          </button>
+                          <span style={{ 
+                            fontSize: 14,
+                            fontWeight: 700,
+                            color: hit ? '#27ae60' : '#e74c3c',
+                          }}>
+                            {hit ? '✓' : '✗'}
+                          </span>
+                        </div>
+                      );
+                    })()}
+                  </td>
+                  {/* 遗漏2位列 - 显示基于上期数据生成的预测号码（新逻辑），并验证当期是否命中 */}
+                  <td style={{ padding: '4px 2px', textAlign: 'center' }}>
+                    {(() => {
+                      const prevIdx = data.indexOf(item) - 1;
+                      if (prevIdx < 0) return <span style={{ color: '#999' }}>-</span>;
+                      const prevIssue = data[prevIdx].issue;
+                      const numbers = omissionNumbersMap.map2.get(prevIssue);
+                      if (!numbers || numbers.length === 0) return <span style={{ color: '#999' }}>-</span>;
+                      
+                      // 检查当期开奖号是否在预测列表中
+                      const actualNum = `${item.d1}${item.d2}${item.d3}`;
+                      const hit = numbers.includes(actualNum);
+                      const isCopied = copiedIssues.has(`map2-${prevIssue}`);
+                      
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                          <button
+                            onClick={() => handleCopy(`map2-${prevIssue}`, numbers)}
+                            title="复制所有预测号码"
+                            style={{
+                              fontSize: 10,
+                              padding: '2px 8px',
+                              border: '1px solid #95a5a6',
+                              borderRadius: 3,
+                              background: isCopied ? '#27ae60' : '#95a5a6',
+                              color: '#fff',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {isCopied ? '✓' : '复制'}
+                          </button>
+                          <span style={{ 
+                            fontSize: 14,
+                            fontWeight: 700,
+                            color: hit ? '#27ae60' : '#e74c3c',
+                          }}>
+                            {hit ? '✓' : '✗'}
+                          </span>
+                        </div>
+                      );
+                    })()}
+                  </td>
+                  {/* 遗漏3位列 - 显示基于上期数据生成的预测号码（新逻辑），并验证当期是否命中 */}
+                  <td style={{ padding: '4px 2px', textAlign: 'center' }}>
+                    {(() => {
+                      const prevIdx = data.indexOf(item) - 1;
+                      if (prevIdx < 0) return <span style={{ color: '#999' }}>-</span>;
+                      const prevIssue = data[prevIdx].issue;
+                      const numbers = omissionNumbersMap.map3.get(prevIssue);
+                      if (!numbers || numbers.length === 0) return <span style={{ color: '#999' }}>-</span>;
+                      
+                      // 检查当期开奖号是否在预测列表中
+                      const actualNum = `${item.d1}${item.d2}${item.d3}`;
+                      const hit = numbers.includes(actualNum);
+                      const isCopied = copiedIssues.has(`map3-${prevIssue}`);
+                      
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                          <button
+                            onClick={() => handleCopy(`map3-${prevIssue}`, numbers)}
+                            title="复制所有预测号码"
+                            style={{
+                              fontSize: 10,
+                              padding: '2px 8px',
+                              border: '1px solid #95a5a6',
+                              borderRadius: 3,
+                              background: isCopied ? '#27ae60' : '#95a5a6',
+                              color: '#fff',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {isCopied ? '✓' : '复制'}
+                          </button>
+                          <span style={{ 
+                            fontSize: 14,
+                            fontWeight: 700,
+                            color: hit ? '#27ae60' : '#e74c3c',
+                          }}>
+                            {hit ? '✓' : '✗'}
+                          </span>
+                        </div>
+                      );
+                    })()}
+                  </td>
+                  {/* 遗漏验证列 - 合并三个策略的号码并验证 */}
+                  <td style={{ padding: '4px 2px', textAlign: 'center' }}>
+                    {(() => {
+                      const prevIdx = data.indexOf(item) - 1;
+                      if (prevIdx < 0) return <span style={{ color: '#999' }}>-</span>;
+                      const prevIssue = data[prevIdx].issue;
+                      const numbers = omissionNumbersMap.map4.get(prevIssue);
+                      if (!numbers || numbers.length === 0) return <span style={{ color: '#999' }}>-</span>;
+                      
+                      // 检查当期开奖号是否在预测列表中
+                      const actualNum = `${item.d1}${item.d2}${item.d3}`;
+                      const hit = numbers.includes(actualNum);
+                      const isCopied = copiedIssues.has(`map4-${prevIssue}`);
+                      
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                          <button
+                            onClick={() => handleCopy(`map4-${prevIssue}`, numbers)}
+                            title="复制所有预测号码"
+                            style={{
+                              fontSize: 10,
+                              padding: '2px 8px',
+                              border: '1px solid #95a5a6',
+                              borderRadius: 3,
+                              background: isCopied ? '#27ae60' : '#95a5a6',
+                              color: '#fff',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {isCopied ? '✓' : '复制'}
+                          </button>
+                          <span style={{ 
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: '#666',
+                          }}>
+                            {numbers.length}注
+                          </span>
+                          <span style={{ 
+                            fontSize: 14,
+                            fontWeight: 700,
+                            color: hit ? '#27ae60' : '#e74c3c',
+                          }}>
+                            {hit ? '✓' : '✗'}
+                          </span>
+                        </div>
+                      );
+                    })()}
+                  </td>
                   {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数 */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, item.issue, c.title))}
                   {/* 杀百十合、杀百个合、杀十个合三列已彻底删除 - 用户要求 */}
@@ -317,6 +674,153 @@ function FullDataTable({
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                           <span style={{ fontWeight: 700, color: '#333' }}>{tongsha}</span>
                           <span style={{ color: '#999', fontSize: 12 }}>(待验证)</span>
+                        </div>
+                      );
+                    })()}
+                  </td>
+                  {/* 遗漏1位 - 预留行：显示基于最新数据生成的预测号码 */}
+                  <td style={{ padding: '4px 2px', textAlign: 'center' }}>
+                    {(() => {
+                      const numbers = omissionNumbersMap.map.get(lastItem.issue);
+                      if (!numbers || numbers.length === 0) return <span style={{ color: '#999' }}>-</span>;
+                      const isCopied = copiedIssues.has(`map-${lastItem.issue}`);
+                      
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                          <button
+                            onClick={() => handleCopy(`map-${lastItem.issue}`, numbers)}
+                            title="复制所有预测号码"
+                            style={{
+                              fontSize: 10,
+                              padding: '2px 8px',
+                              border: '1px solid #95a5a6',
+                              borderRadius: 3,
+                              background: isCopied ? '#27ae60' : '#95a5a6',
+                              color: '#fff',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {isCopied ? '✓' : '复制'}
+                          </button>
+                          <span style={{ 
+                            fontSize: 14,
+                            fontWeight: 700,
+                            color: '#ff6b35',
+                          }}>
+                            ?
+                          </span>
+                        </div>
+                      );
+                    })()}
+                  </td>
+                  {/* 遗漏2位 - 预留行：显示基于最新数据生成的预测号码（新逻辑） */}
+                  <td style={{ padding: '4px 2px', textAlign: 'center' }}>
+                    {(() => {
+                      const numbers = omissionNumbersMap.map2.get(lastItem.issue);
+                      if (!numbers || numbers.length === 0) return <span style={{ color: '#999' }}>-</span>;
+                      const isCopied = copiedIssues.has(`map2-${lastItem.issue}`);
+                      
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                          <button
+                            onClick={() => handleCopy(`map2-${lastItem.issue}`, numbers)}
+                            title="复制所有预测号码"
+                            style={{
+                              fontSize: 10,
+                              padding: '2px 8px',
+                              border: '1px solid #95a5a6',
+                              borderRadius: 3,
+                              background: isCopied ? '#27ae60' : '#95a5a6',
+                              color: '#fff',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {isCopied ? '✓' : '复制'}
+                          </button>
+                          <span style={{ 
+                            fontSize: 14,
+                            fontWeight: 700,
+                            color: '#9b59b6',
+                          }}>
+                            ?
+                          </span>
+                        </div>
+                      );
+                    })()}
+                  </td>
+                  {/* 遗漏3位 - 预留行：显示基于最新数据生成的预测号码（新逻辑） */}
+                  <td style={{ padding: '4px 2px', textAlign: 'center' }}>
+                    {(() => {
+                      const numbers = omissionNumbersMap.map3.get(lastItem.issue);
+                      if (!numbers || numbers.length === 0) return <span style={{ color: '#999' }}>-</span>;
+                      const isCopied = copiedIssues.has(`map3-${lastItem.issue}`);
+                      
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                          <button
+                            onClick={() => handleCopy(`map3-${lastItem.issue}`, numbers)}
+                            title="复制所有预测号码"
+                            style={{
+                              fontSize: 10,
+                              padding: '2px 8px',
+                              border: '1px solid #95a5a6',
+                              borderRadius: 3,
+                              background: isCopied ? '#27ae60' : '#95a5a6',
+                              color: '#fff',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {isCopied ? '✓' : '复制'}
+                          </button>
+                          <span style={{ 
+                            fontSize: 14,
+                            fontWeight: 700,
+                            color: '#e74c3c',
+                          }}>
+                            ?
+                          </span>
+                        </div>
+                      );
+                    })()}
+                  </td>
+                  {/* 遗漏验证 - 预留行：显示基于最新数据生成的三个策略合并号码 */}
+                  <td style={{ padding: '4px 2px', textAlign: 'center' }}>
+                    {(() => {
+                      const numbers = omissionNumbersMap.map4.get(lastItem.issue);
+                      if (!numbers || numbers.length === 0) return <span style={{ color: '#999' }}>-</span>;
+                      const isCopied = copiedIssues.has(`map4-${lastItem.issue}`);
+                      
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                          <button
+                            onClick={() => handleCopy(`map4-${lastItem.issue}`, numbers)}
+                            title="复制所有预测号码"
+                            style={{
+                              fontSize: 10,
+                              padding: '2px 8px',
+                              border: '1px solid #95a5a6',
+                              borderRadius: 3,
+                              background: isCopied ? '#27ae60' : '#95a5a6',
+                              color: '#fff',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {isCopied ? '✓' : '复制'}
+                          </button>
+                          <span style={{ 
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: '#666',
+                          }}>
+                            {numbers.length}注
+                          </span>
+                          <span style={{ 
+                            fontSize: 14,
+                            fontWeight: 700,
+                            color: '#27ae60',
+                          }}>
+                            ?
+                          </span>
                         </div>
                       );
                     })()}
