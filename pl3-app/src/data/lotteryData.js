@@ -7756,3 +7756,317 @@ export const lotteryData = [
   { issue: '26280', d1: 8, d2: 6, d3: 4 },
   { issue: '26281', d1: 9, d2: 8, d3: 3 },
 ];
+export function enrichData(data) {
+  return data.map((item, index) => {
+    const digits = [item.d1, item.d2, item.d3];
+    const sum = item.d1 + item.d2 + item.d3;
+    const span = Math.max(...digits) - Math.min(...digits);
+    const hAdd = [(item.d1 + item.d2) % 10, (item.d2 + item.d3) % 10, (item.d3 + item.d1) % 10];
+    const hSub = [Math.abs(item.d1 - item.d2), Math.abs(item.d2 - item.d3), Math.abs(item.d3 - item.d1)];
+    let vAdd = [null, null, null];
+    let vSub = [null, null, null];
+    if (index > 0) {
+      const prev = data[index - 1];
+      vAdd = [(item.d1 + prev.d1) % 10, (item.d2 + prev.d2) % 10, (item.d3 + prev.d3) % 10];
+      vSub = [Math.abs(item.d1 - prev.d1), Math.abs(item.d2 - prev.d2), Math.abs(item.d3 - prev.d3)];
+    }
+    const trackGroups = calcTrackGroups(data, index);
+    const shenghao = trackGroups[1]; // G2: 横加跟踪
+    const lianhao = trackGroups[3]; // G4: 竖加跟踪
+    const mustOutNums = trackGroups[4]; // G5: 必出号
+    const uniqueDigits = [...new Set(digits)].sort((a, b) => a - b);
+
+    // 参考一: 横相减、横相加、竖相减、竖相加中未出现的数字
+    const allCalcValues = new Set([
+      ...hSub, ...hAdd,
+      ...(vSub[0] !== null ? vSub : []),
+      ...(vAdd[0] !== null ? vAdd : []),
+    ]);
+    const canKaoYi = [];
+    for (let d = 0; d <= 9; d++) {
+      if (!allCalcValues.has(d)) canKaoYi.push(d);
+    }
+
+    return {
+      ...item, digits, sum, span,
+      hAdd, hSub, vAdd, vSub,
+      uniqueDigits,
+      shenghao, lianhao, mustOutNums, canKaoYi,
+      trackGroups,
+    };
+  }).map((enriched, index, arr) => {
+    // 参考二: 当期及前2期生号中未出现的数字
+    const shenghaoDigits = new Set();
+    for (let k = 0; k < 3; k++) {
+      const idx = index - k;
+      if (idx >= 0) {
+        arr[idx].shenghao.forEach(v => {
+          if (v !== -1) shenghaoDigits.add(v);
+        });
+      }
+    }
+    const canKaoEr = [];
+    for (let d = 0; d <= 9; d++) {
+      if (!shenghaoDigits.has(d)) canKaoEr.push(d);
+    }
+
+    // 胆码: A组去重，B组去重，两组中不同时存在的数字（对称差集）作为胆码
+    // 和值为双位数时拆分（如14→1,4）
+    const sumDigits = String(enriched.sum).split('').map(Number);
+    const groupA = new Set([
+      ...enriched.digits, ...sumDigits, enriched.span,
+    ]);
+    const groupB = new Set([
+      ...enriched.mustOutNums.filter(v => v !== -1),
+      ...enriched.canKaoYi,
+      ...canKaoEr,
+    ]);
+    const danMa = [];
+    for (let d = 0; d <= 9; d++) {
+      const inA = groupA.has(d);
+      const inB = groupB.has(d);
+      // 只在一组中存在，不同时在两组中
+      if ((inA && !inB) || (!inA && inB)) danMa.push(d);
+    }
+    danMa.sort((a, b) => a - b);
+
+    // 出现次1: 必出号、参考一、参考二三组中只在一组出现的数字（不重叠）
+    const mustOutSet = new Set(enriched.mustOutNums.filter(v => v !== -1));
+    const canKaoYiSet = new Set(enriched.canKaoYi);
+    const canKaoErSet = new Set(canKaoEr);
+    const chuXianCi1 = [];
+    const chuXianCi2 = [];
+    for (let d = 0; d <= 9; d++) {
+      const count = [mustOutSet, canKaoYiSet, canKaoErSet].filter(s => s.has(d)).length;
+      if (count === 1) chuXianCi1.push(d);
+      if (count >= 2) chuXianCi2.push(d);
+    }
+
+    // 组三1: 0-9中胆码不包括的数字
+    const danMaSet = new Set(danMa);
+    const zuSan1 = [];
+    for (let d = 0; d <= 9; d++) {
+      if (!danMaSet.has(d)) zuSan1.push(d);
+    }
+
+    // 组三2: 胆码与出现次1和出现次2中重复的数字
+    const cxSet = new Set([...chuXianCi1, ...chuXianCi2]);
+    const zuSan2 = [];
+    for (const d of danMa) {
+      if (cxSet.has(d)) zuSan2.push(d);
+    }
+
+    return { ...enriched, canKaoEr, danMa, chuXianCi1, chuXianCi2, zuSan1, zuSan2 };
+  });
+}
+
+function calcTrackGroups(data, currentIndex) {
+  // G1 and G3 are computed fresh each row (non-accumulating)
+  // G2 and G4 are accumulating (depend on previous row's values)
+  // G5 depends on G2 and G4
+
+  // We need to compute G2 and G4 iteratively from the beginning
+  // G2[d]: if G1[d]=1 → reset to ""; else carry forward previous G2[d] (or digit d if first)
+  // G4[d]: if G3[d]=1 AND d not in current draw → digit d; else reset to ""
+
+  // First compute all G1 and G3 values for current row
+  const item = data[currentIndex];
+  const drawDigits = [item.d1, item.d2, item.d3];
+  const drawSet = new Set(drawDigits);
+
+  // G1[d]: did digit d appear in current or previous 2 draws?
+  const g1 = Array(10).fill(0);
+  for (let d = 0; d <= 9; d++) {
+    for (let k = 0; k < 3; k++) {
+      const idx = currentIndex - k;
+      if (idx >= 0) {
+        const dd = data[idx];
+        if (dd.d1 === d || dd.d2 === d || dd.d3 === d) { g1[d] = 1; break; }
+      }
+    }
+  }
+
+  // G3[d]: is digit d adjacent (±1) to any current draw digit?
+  const g3 = Array(10).fill(0);
+  for (let d = 0; d <= 9; d++) {
+    for (const cd of drawDigits) {
+      if (cd + 1 === d || cd - 1 === d) { g3[d] = 1; break; }
+    }
+  }
+
+  // For G2 and G4, we need to compute iteratively from start
+  let prevG2 = Array(10).fill(null); // null means not yet initialized
+  let prevG4 = Array(10).fill(null);
+  let curG2 = Array(10).fill(null);
+  let curG4 = Array(10).fill(null);
+
+  for (let i = 0; i <= currentIndex; i++) {
+    const it = data[i];
+    const dd = [it.d1, it.d2, it.d3];
+    const dSet = new Set(dd);
+
+    // Compute G1 for this row
+    const rowG1 = Array(10).fill(0);
+    for (let d = 0; d <= 9; d++) {
+      for (let k = 0; k < 3; k++) {
+        const idx = i - k;
+        if (idx >= 0) {
+          const ddd = data[idx];
+          if (ddd.d1 === d || ddd.d2 === d || ddd.d3 === d) { rowG1[d] = 1; break; }
+        }
+      }
+    }
+
+    // Compute G3 for this row
+    const rowG3 = Array(10).fill(0);
+    for (let d = 0; d <= 9; d++) {
+      for (const cd of dd) {
+        if (cd + 1 === d || cd - 1 === d) { rowG3[d] = 1; break; }
+      }
+    }
+
+    // Compute G2 for this row
+    curG2 = Array(10).fill(null);
+    for (let d = 0; d <= 9; d++) {
+      if (rowG1[d] === 1) {
+        curG2[d] = null; // reset
+      } else {
+        // Carry forward from previous, or initialize with digit d
+        curG2[d] = (prevG2[d] !== null) ? prevG2[d] : d;
+      }
+    }
+
+    // Compute G4 for this row
+    curG4 = Array(10).fill(null);
+    for (let d = 0; d <= 9; d++) {
+      if (rowG3[d] === 1 && !dSet.has(d)) {
+        curG4[d] = d; // show digit
+      } else {
+        curG4[d] = null; // reset
+      }
+    }
+
+    prevG2 = [...curG2];
+    prevG4 = [...curG4];
+  }
+
+  // Now compute G5 for current row
+  const g5 = Array(10).fill(-1);
+  for (let d = 0; d <= 9; d++) {
+    if (curG2[d] === null && curG4[d] === null) {
+      g5[d] = d; // digit shows
+    }
+  }
+
+  // Convert G2 and G4 to display format (arrays of digit values, -1 = empty)
+  const g2Display = Array(10).fill(-1);
+  const g4Display = Array(10).fill(-1);
+  for (let d = 0; d <= 9; d++) {
+    if (curG2[d] !== null) g2Display[d] = curG2[d];
+    if (curG4[d] !== null) g4Display[d] = curG4[d];
+  }
+
+  // G1 and G3 display: 1 where active
+  const g1Display = Array(10).fill(0);
+  const g3Display = Array(10).fill(0);
+  for (let d = 0; d <= 9; d++) {
+    if (g1[d]) g1Display[d] = 1;
+    if (g3[d]) g3Display[d] = 1;
+  }
+
+  return [g1Display, g2Display, g3Display, g4Display, g5
+];
+}
+
+
+
+export function getFrequencyStats(data) {
+  const stats = { d1: {}, d2: {}, d3: {} };
+  for (let i = 0; i <= 9; i++) {
+    stats.d1[i] = 0; stats.d2[i] = 0; stats.d3[i] = 0;
+  }
+  data.forEach(item => {
+    stats.d1[item.d1]++;
+    stats.d2[item.d2]++;
+    stats.d3[item.d3]++;
+  });
+  return stats;
+}
+
+export function getSumDistribution(data) {
+  const dist = {};
+  data.forEach(item => {
+    const s = item.d1 + item.d2 + item.d3;
+    dist[s] = (dist[s] || 0) + 1;
+  });
+  return dist;
+}
+
+export function getMissingNumbers(data, count) {
+  const missing = { d1: {}, d2: {}, d3: {} };
+  const recentData = count ? data.slice(-count) : data;
+  for (let digit = 0; digit <= 9; digit++) {
+    for (const pos of ['d1', 'd2', 'd3']) {
+      let miss = 0;
+      for (let i = recentData.length - 1; i >= 0; i--) {
+        if (recentData[i][pos] === digit) break;
+        miss++;
+      }
+      missing[pos][digit] = miss;
+    }
+  }
+  return missing;
+}
+
+export function getHAddSubRecovery(data) {
+  const hAddMissing = {};
+  const hSubMissing = {};
+  for (let v = 0; v <= 18; v++) {
+    let miss = 0;
+    for (let i = data.length - 1; i >= 0; i--) {
+      if (data[i].hAdd.includes(v)) break;
+      miss++;
+    }
+    hAddMissing[v] = miss;
+  }
+  for (let v = 0; v <= 9; v++) {
+    let miss = 0;
+    for (let i = data.length - 1; i >= 0; i--) {
+      if (data[i].hSub.includes(v)) break;
+      miss++;
+    }
+    hSubMissing[v] = miss;
+  }
+  return { hAddMissing, hSubMissing };
+}
+
+export function getVAddSubRecovery(data) {
+  const vAddMissing = {};
+  const vSubMissing = {};
+  for (let v = 0; v <= 18; v++) {
+    let miss = 0;
+    for (let i = data.length - 1; i >= 0; i--) {
+      if (data[i].vAdd && data[i].vAdd.includes(v)) break;
+      miss++;
+    }
+    vAddMissing[v] = miss;
+  }
+  for (let v = 0; v <= 9; v++) {
+    let miss = 0;
+    for (let i = data.length - 1; i >= 0; i--) {
+      if (data[i].vSub && data[i].vSub.includes(v)) break;
+      miss++;
+    }
+    vSubMissing[v] = miss;
+  }
+  return { vAddMissing, vSubMissing };
+}
+
+export function getRecentGeneratedNums(data, lookback = 5) {
+  const recent = data.slice(-lookback);
+  const nums = new Set();
+  recent.forEach(item => {
+    nums.add(item.d1); nums.add(item.d2); nums.add(item.d3);
+  });
+  return [...nums].sort((a, b) => a - b);
+}
