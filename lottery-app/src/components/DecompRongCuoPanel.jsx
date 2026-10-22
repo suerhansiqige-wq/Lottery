@@ -344,7 +344,7 @@ export default function DecompRongCuoPanel({
       {/* 智取（黄）与博众（绿）并排等高贴边 */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
         <DecompModule title="智取分解容错" issue={decompIssue} result={decompResult} theme="zq" />
-        <DecompModule title="博众分解容错" issue={bozhongIssue} result={decompResult} theme="bz" />
+        <DecompModule title="博众分解容错" issue={bozhongIssue} result={bozhongResult} theme="bz" />
       </div>
       <InterModule
         decompIssue={decompIssue}
