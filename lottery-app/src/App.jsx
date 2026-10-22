@@ -740,6 +740,9 @@ return (
             nextIssue={nextIssue}
             onDecompSubmit={onDecompSubmit}
             submitFlash={submitFlash}
+            selfPickIssue={nextIssue}
+            selfPickValue={selfPickTexts[nextIssue] || ''}
+            onSelfPickChange={(v) => setSelfPickText(nextIssue, v)}
           />
         </main>
       </div>
@@ -751,9 +754,6 @@ return (
           decompResult={decompResult}
           bozhongIssue={bozhongIssue}
           bozhongResult={bozhongResult}
-          selfPickIssue={nextIssue}
-          selfPickValue={selfPickTexts[nextIssue] || ''}
-          onSelfPickChange={(v) => setSelfPickText(nextIssue, v)}
           onDecompSubmit={onDecompSubmit}
           submitFlash={submitFlash}
         />

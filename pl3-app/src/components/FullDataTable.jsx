@@ -271,6 +271,211 @@ const calcDecompBoxWidth = (texts, issues) => {
   return Math.min(Math.max(maxLen * DECOMP_CHAR_W + DECOMP_BOX_CHROME, DECOMP_MIN_W), DECOMP_MAX_W);
 };
 
+// ============================================================
+// 规则9预测算法（安全9规则，基于PL3历史数据优化）
+// 9个核心杀号规则：allIn(ha1/hs1/va1/ha3) + dblHAdd(ha1/ha2/ha3/va2) + dblHSub(va1)
+// ============================================================
+function pl3HAdd(d) { return [(d[0]+d[1])%10, (d[1]+d[2])%10, (d[2]+d[0])%10]; }
+function pl3HSub(d) { return [Math.abs(d[0]-d[1]), Math.abs(d[1]-d[2]), Math.abs(d[2]-d[0])]; }
+function pl3VAdd(d, p) { return [(d[0]+p[0])%10, (d[1]+p[1])%10, (d[2]+p[2])%10]; }
+function pl3VSub(d, p) { return [Math.abs(d[0]-p[0]), Math.abs(d[1]-p[1]), Math.abs(d[2]-p[2])]; }
+
+function generateRule9Numbers(prev1, prev2, prev3) {
+  if (!prev1 || !prev2 || !prev3) return [];
+  const d1 = [prev1.d1, prev1.d2, prev1.d3];
+  const d2 = [prev2.d1, prev2.d2, prev2.d3];
+  const d3 = [prev3.d1, prev3.d2, prev3.d3];
+
+  const ha1 = pl3HAdd(d1), hs1 = pl3HSub(d1);
+  const ha2 = pl3HAdd(d2), hs2 = pl3HSub(d2);
+  const ha3 = pl3HAdd(d3), hs3 = pl3HSub(d3);
+  const va1 = pl3VAdd(d1, d2), vs1 = pl3VSub(d1, d2);
+  const va2 = pl3VAdd(d2, d3), vs2 = pl3VSub(d2, d3);
+
+  const poolHA1 = new Set(ha1), poolHS1 = new Set(hs1);
+  const poolHA2 = new Set(ha2), poolHS2 = new Set(hs2);
+  const poolHA3 = new Set(ha3), poolHS3 = new Set(hs3);
+  const poolVA1 = new Set(va1), poolVS1 = new Set(vs1);
+  const poolVA2 = new Set(va2), poolVS2 = new Set(vs2);
+
+  const result = [];
+  for (let n = 0; n < 1000; n++) {
+    const s = String(n).padStart(3, '0');
+    const a = +s[0], b = +s[1], c = +s[2];
+
+    const ha = pl3HAdd([a,b,c]);
+    const hs = pl3HSub([a,b,c]);
+
+    // 安全9规则（9个核心杀号）
+    if ([a,b,c].every(v => poolHA1.has(v))) continue;
+    if ([a,b,c].every(v => poolHS1.has(v))) continue;
+    if ([a,b,c].every(v => poolVA1.has(v))) continue;
+    if ([a,b,c].every(v => poolHA3.has(v))) continue;
+    if (ha.every(v => poolHA1.has(v))) continue;
+    if (ha.every(v => poolHA2.has(v))) continue;
+    if (ha.every(v => poolHA3.has(v))) continue;
+    if (ha.every(v => poolVA2.has(v))) continue;
+    if (hs.every(v => poolVS1.has(v))) continue;
+
+    result.push(s);
+  }
+  
+  // 动态过滤：超过850注时启用多级过滤
+  if (result.length > 850) {
+    let filtered = result.filter(s => {
+      const sum = (+s[0]) + (+s[1]) + (+s[2]);
+      return sum >= 5 && sum <= 22;
+    });
+    if (filtered.length > 850) {
+      filtered = filtered.filter(s => {
+        const sum = (+s[0]) + (+s[1]) + (+s[2]);
+        return sum >= 6 && sum <= 21;
+      });
+    }
+    if (filtered.length > 850) {
+      filtered = filtered.filter(s => {
+        const digits = [+s[0], +s[1], +s[2]];
+        const span = Math.max(...digits) - Math.min(...digits);
+        return span >= 1;
+      });
+    }
+    if (filtered.length > 850) {
+      filtered = filtered.filter(s => {
+        const sum = (+s[0]) + (+s[1]) + (+s[2]);
+        return sum >= 7 && sum <= 20;
+      });
+    }
+    if (filtered.length > 850) {
+      filtered = filtered.filter(s => {
+        const digits = [+s[0], +s[1], +s[2]];
+        const span = Math.max(...digits) - Math.min(...digits);
+        return span >= 2;
+      });
+    }
+    return filtered;
+  }
+  return result;
+}
+
+/** 自选号码：用户为「最新未开奖期」手填的号码，独立于分解容错 */
+function SelfPickModule({ issue, value, onChange }) {
+  const [copiedZuLiu, setCopiedZuLiu] = useState(false);
+  const [copiedZuSan, setCopiedZuSan] = useState(false);
+
+  const handleCopy = async (text, type) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      if (type === 'zuLiu') {
+        setCopiedZuLiu(true);
+        setTimeout(() => setCopiedZuLiu(false), 2000);
+      } else {
+        setCopiedZuSan(true);
+        setTimeout(() => setCopiedZuSan(false), 2000);
+      }
+    } catch (err) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch {}
+      document.body.removeChild(ta);
+      if (type === 'zuLiu') {
+        setCopiedZuLiu(true);
+        setTimeout(() => setCopiedZuLiu(false), 2000);
+      } else {
+        setCopiedZuSan(true);
+        setTimeout(() => setCopiedZuSan(false), 2000);
+      }
+    }
+  };
+
+  const parsed = useMemo(() => {
+    const tokens = (value || '').split(/[\s,，;；]+/).filter(t => /^\d{3}$/.test(t));
+    const seen = new Set();
+    const nums = [];
+    for (const t of tokens) if (!seen.has(t)) { seen.add(t); nums.push(t); }
+    const zuLiuNums = [];
+    const zuSanNums = [];
+    for (const n of nums) (new Set(n.split('')).size === 3 ? zuLiuNums : zuSanNums).push(n);
+    return { raw: tokens.length, nums, zuLiuNums, zuSanNums, zuLiu: zuLiuNums.length, zuSan: zuSanNums.length };
+  }, [value]);
+
+  return (
+    <div style={{ width: '100%', border: '2px solid #00838f', borderRadius: 6, background: '#e0f7fa', overflow: 'hidden' }}>
+      <div style={{
+        padding: '6px 10px', background: '#00838f', color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8, flexWrap: 'wrap',
+      }}>
+        <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.95 }}>
+          {issue ? `${issue} 期（最新未开奖）` : '—'}
+        </span>
+        <span style={{ fontSize: 15, fontWeight: 800 }}>自选号码</span>
+      </div>
+      <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <textarea
+          value={value || ''}
+          onChange={e => onChange && onChange(e.target.value)}
+          placeholder="输入自选号码：每行一个，或空格/逗号分隔的三位数，如 123 456 789"
+          style={{
+            width: '100%', minHeight: 64, resize: 'vertical',
+            fontSize: 12, lineHeight: '18px', fontFamily: 'Consolas,Menlo,monospace',
+            padding: '4px 6px', boxSizing: 'border-box', borderRadius: 3,
+            border: '1px solid #4dd0e1', background: '#fff', color: '#222',
+          }}
+        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, color: '#00695c', fontWeight: 700 }}>
+            共 {parsed.nums.length} 注{parsed.raw !== parsed.nums.length ? `（输入 ${parsed.raw}，去重后）` : ''}
+          </span>
+          <span style={{ fontSize: 11, color: '#00838f' }}>组六{parsed.zuLiu}/组三{parsed.zuSan}</span>
+        </div>
+        {parsed.nums.length > 0 && (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px dashed #4dd0e1', borderRadius: 3, background: '#fff', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#e0f2f1', borderBottom: '1px solid #b2dfdb' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#00695c' }}>组六 {parsed.zuLiu} 注</span>
+                <button
+                  onClick={() => handleCopy(parsed.zuLiuNums.join(' '), 'zuLiu')}
+                  style={{
+                    fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+                    border: `1px solid ${copiedZuLiu ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+                    background: copiedZuLiu ? '#c8e6c9' : '#fff', color: copiedZuLiu ? '#1b5e20' : '#555',
+                    fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+                  }}
+                >
+                  {copiedZuLiu ? '✓' : '复制'}
+                </button>
+              </div>
+              <div style={{ fontSize: 12, color: '#00695c', fontFamily: 'Consolas,monospace', lineHeight: '18px', wordBreak: 'break-all', padding: 4, maxHeight: 88, overflowY: 'auto', flex: 1 }}>
+                {parsed.zuLiuNums.join(' ') || '—'}
+              </div>
+            </div>
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px dashed #ef9a9a', borderRadius: 3, background: '#fff', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#ffebee', borderBottom: '1px solid #ffcdd2' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#c62828' }}>组三 {parsed.zuSan} 注</span>
+                <button
+                  onClick={() => handleCopy(parsed.zuSanNums.join(' '), 'zuSan')}
+                  style={{
+                    fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+                    border: `1px solid ${copiedZuSan ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+                    background: copiedZuSan ? '#c8e6c9' : '#fff', color: copiedZuSan ? '#1b5e20' : '#555',
+                    fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+                  }}
+                >
+                  {copiedZuSan ? '✓' : '复制'}
+                </button>
+              </div>
+              <div style={{ fontSize: 12, color: '#c62828', fontFamily: 'Consolas,monospace', lineHeight: '18px', wordBreak: 'break-all', padding: 4, maxHeight: 88, overflowY: 'auto', flex: 1 }}>
+                {parsed.zuSanNums.join(' ') || '—'}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function FullDataTable({
   data, showCount, setShowCount, trialDigits, onTrialChange,
   decompTexts = {}, bozhongTexts = {},
@@ -283,6 +488,10 @@ function FullDataTable({
   // 智取、博众分解按钮（从 DecompRongCuoPanel 移入）
   onDecompSubmit,
   submitFlash,
+  // 自选号码（从 DecompRongCuoPanel 移入右侧面板）
+  selfPickIssue,
+  selfPickValue,
+  onSelfPickChange,
 }) {
   const [copiedIssues, setCopiedIssues] = useState(new Set());
   
@@ -346,6 +555,17 @@ function FullDataTable({
     }
     return { dm, bz };
   }, [displayData, decompTexts, bozhongTexts]);
+
+  // 规则9预测号码（基于近3期数据生成下一期预测）
+  const rule9Map = useMemo(() => {
+    const map = new Map();
+    for (let i = 2; i < data.length; i++) {
+      const prevItem = data[i];
+      const numbers = generateRule9Numbers(prevItem, data[i-1], data[i-2]);
+      map.set(prevItem.issue, numbers);
+    }
+    return map;
+  }, [data]);
 
   // 参与列宽计算的期号：所有展示行 + 下期预留行（预留行也可能已录入分解）
   const decompIssues = useMemo(() => {
@@ -573,10 +793,11 @@ function FullDataTable({
                 <th>连号</th>
                 <th>必出号</th>
                 <th>通杀码</th>
-                <th style={{ borderBottom: '3px solid #ff6b35' }}>遗漏1位</th>
-                <th style={{ borderBottom: '3px solid #9b59b6' }}>遗漏2位</th>
-                <th style={{ borderBottom: '3px solid #e74c3c' }}>遗漏3位</th>
+                <th style={{ borderBottom: '3px solid #ff6b35', display: 'none' }}>遗漏1位</th>
+                <th style={{ borderBottom: '3px solid #9b59b6', display: 'none' }}>遗漏2位</th>
+                <th style={{ borderBottom: '3px solid #e74c3c', display: 'none' }}>遗漏3位</th>
                 <th style={{ borderBottom: '3px solid #27ae60' }}>遗漏验证</th>
+                <th style={{ borderBottom: '3px solid #3498db' }}>规则9</th>
                 {/* 参考一/参考二/胆码三列表头已彻底删除 - 用户要求 */}
                 {/* 智取分解 / 博众分解 两列（表格最右侧，与福彩3D 同位置逻辑） */}
                 {DECOMP_COLS.map(c => (
@@ -688,7 +909,7 @@ function FullDataTable({
                     })()}
                   </td>
                   {/* 遗漏1位列 - 显示基于上期数据生成的预测号码，并验证当期是否命中 */}
-                  <td style={{ padding: '4px 2px', textAlign: 'center' }}>
+                  <td style={{ padding: '4px 2px', textAlign: 'center', display: 'none' }}>
                     {(() => {
                       const prevIdx = data.indexOf(item) - 1;
                       if (prevIdx < 0) return <span style={{ color: '#999' }}>-</span>;
@@ -730,7 +951,7 @@ function FullDataTable({
                     })()}
                   </td>
                   {/* 遗漏2位列 - 显示基于上期数据生成的预测号码（新逻辑），并验证当期是否命中 */}
-                  <td style={{ padding: '4px 2px', textAlign: 'center' }}>
+                  <td style={{ padding: '4px 2px', textAlign: 'center', display: 'none' }}>
                     {(() => {
                       const prevIdx = data.indexOf(item) - 1;
                       if (prevIdx < 0) return <span style={{ color: '#999' }}>-</span>;
@@ -772,7 +993,7 @@ function FullDataTable({
                     })()}
                   </td>
                   {/* 遗漏3位列 - 显示基于上期数据生成的预测号码（新逻辑），并验证当期是否命中 */}
-                  <td style={{ padding: '4px 2px', textAlign: 'center' }}>
+                  <td style={{ padding: '4px 2px', textAlign: 'center', display: 'none' }}>
                     {(() => {
                       const prevIdx = data.indexOf(item) - 1;
                       if (prevIdx < 0) return <span style={{ color: '#999' }}>-</span>;
@@ -862,6 +1083,44 @@ function FullDataTable({
                       );
                     })()}
                   </td>
+                  {/* 规则9列 - 安全9规则预测验证 */}
+                  <td style={{ padding: '4px 2px', textAlign: 'center' }}>
+                    {(() => {
+                      const prevIdx = data.indexOf(item) - 1;
+                      if (prevIdx < 2) return <span style={{ color: '#999' }}>-</span>;
+                      const prevItem = data[prevIdx];
+                      const numbers = rule9Map.get(prevItem.issue);
+                      if (!numbers || numbers.length === 0) return <span style={{ color: '#999' }}>-</span>;
+                      const actualNum = `${item.d1}${item.d2}${item.d3}`;
+                      const hit = numbers.includes(actualNum);
+                      const isCopied = copiedIssues.has('rule9-' + prevItem.issue);
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                          <button
+                            onClick={() => handleCopy('rule9-' + prevItem.issue, numbers)}
+                            title="复制所有预测号码"
+                            style={{
+                              fontSize: 10,
+                              padding: '2px 8px',
+                              border: '1px solid #95a5a6',
+                              borderRadius: 3,
+                              background: isCopied ? '#27ae60' : '#95a5a6',
+                              color: '#fff',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {isCopied ? '✓' : '复制'}
+                          </button>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#666' }}>
+                            {numbers.length}注
+                          </span>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: hit ? '#27ae60' : '#e74c3c' }}>
+                            {hit ? '✓' : '✗'}
+                          </span>
+                        </div>
+                      );
+                    })()}
+                  </td>
                   {/* 参考一/参考二/胆码三列单元格已彻底删除 - 用户要求 */}
                   {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数（与福彩3D 一致） */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, item.issue, c.title))}
@@ -942,7 +1201,7 @@ function FullDataTable({
                     })()}
                   </td>
                   {/* 遗漏1位 - 预留行：显示基于最新数据生成的预测号码 */}
-                  <td style={{ padding: '4px 2px', textAlign: 'center' }}>
+                  <td style={{ padding: '4px 2px', textAlign: 'center', display: 'none' }}>
                     {(() => {
                       const numbers = omissionNumbersMap.map.get(lastItem.issue);
                       if (!numbers || numbers.length === 0) return <span style={{ color: '#999' }}>-</span>;
@@ -977,7 +1236,7 @@ function FullDataTable({
                     })()}
                   </td>
                   {/* 遗漏2位 - 预留行：显示基于最新数据生成的预测号码（新逻辑） */}
-                  <td style={{ padding: '4px 2px', textAlign: 'center' }}>
+                  <td style={{ padding: '4px 2px', textAlign: 'center', display: 'none' }}>
                     {(() => {
                       const numbers = omissionNumbersMap.map2.get(lastItem.issue);
                       if (!numbers || numbers.length === 0) return <span style={{ color: '#999' }}>-</span>;
@@ -1012,7 +1271,7 @@ function FullDataTable({
                     })()}
                   </td>
                   {/* 遗漏3位 - 预留行：显示基于最新数据生成的预测号码（新逻辑） */}
-                  <td style={{ padding: '4px 2px', textAlign: 'center' }}>
+                  <td style={{ padding: '4px 2px', textAlign: 'center', display: 'none' }}>
                     {(() => {
                       const numbers = omissionNumbersMap.map3.get(lastItem.issue);
                       if (!numbers || numbers.length === 0) return <span style={{ color: '#999' }}>-</span>;
@@ -1088,6 +1347,39 @@ function FullDataTable({
                       );
                     })()}
                   </td>
+                  {/* 规则9 - 预留行 */}
+                  <td style={{ padding: '4px 2px', textAlign: 'center' }}>
+                    {(() => {
+                      const numbers = generateRule9Numbers(data[data.length-1], data[data.length-2], data[data.length-3]);
+                      if (!numbers || numbers.length === 0) return <span style={{ color: '#999' }}>-</span>;
+                      const isCopied = copiedIssues.has('rule9-' + lastItem.issue);
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                          <button
+                            onClick={() => handleCopy('rule9-' + lastItem.issue, numbers)}
+                            title="复制所有预测号码"
+                            style={{
+                              fontSize: 10,
+                              padding: '2px 8px',
+                              border: '1px solid #95a5a6',
+                              borderRadius: 3,
+                              background: isCopied ? '#27ae60' : '#95a5a6',
+                              color: '#fff',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {isCopied ? '✓' : '复制'}
+                          </button>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#666' }}>
+                            {numbers.length}注
+                          </span>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: '#27ae60' }}>
+                            ?
+                          </span>
+                        </div>
+                      );
+                    })()}
+                  </td>
                   {/* 参考一/参考二/胆码三列预留行占位已彻底删除 - 用户要求 */}
                   {/* 智取分解 / 博众分解 - 预留行：下期分解条件录入框（点按钮后锁定，密码解锁再编辑） */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, appNextIssue || nextIssue, c.title))}
@@ -1105,20 +1397,9 @@ function FullDataTable({
             </tbody>
           </table>
         </div>
-        {/* 开奖直播模块 + 智取博众分解按钮（纵向排列） */}
-        <div style={{ flexShrink: 0, width: 360, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ background: '#fff', border: '2px solid #e91e63', borderRadius: 8, overflow: 'hidden' }}>
-            <div style={{ background: '#e91e63', color: '#fff', padding: '8px 12px', fontWeight: 700, fontSize: 15 }}>
-              排列三开奖直播
-            </div>
-            <iframe
-              src={import.meta.env.BASE_URL + 'pl3-player.html'}
-              title="排列三开奖直播"
-              style={{ width: 360, height: 240, border: 'none', display: 'block' }}
-              allowFullScreen
-            />
-          </div>
-          {/* 智取、博众分解按钮：置于直播框下方，宽度与直播模块一致 */}
+        {/* 右侧面板：自选号码 + 智取博众分解按钮 */}
+        <div style={{ flex: 1, minWidth: 280, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <SelfPickModule issue={selfPickIssue} value={selfPickValue} onChange={onSelfPickChange} />
           <button
             onClick={onDecompSubmit}
             title="保存智取/博众下期分解数据，容错结果自动重算"
@@ -1132,6 +1413,19 @@ function FullDataTable({
           >
             智取、博众分解
           </button>
+          <a
+            href="https://lotto.sina.cn/video/tcopen/index.d.html?type=tc"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'block', width: '100%', padding: '10px 22px', fontSize: 16, fontWeight: 800,
+              textAlign: 'center', textDecoration: 'none', cursor: 'pointer',
+              border: '2px solid #1976d2', borderRadius: 6, background: '#1976d2', color: '#fff',
+              boxSizing: 'border-box',
+            }}
+          >
+            开奖直播
+          </a>
         </div>
         </div>
       </div>

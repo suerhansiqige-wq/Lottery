@@ -179,80 +179,6 @@ function DecompModule({ title, issue, result, theme }) {
   );
 }
 
-/** 自选号码：用户为「最新未开奖期」手填的号码，独立于分解容错，置于智取/博众上方 */
-function SelfPickModule({ issue, value, onChange }) {
-  // 解析：按空白/逗号/分号切分，仅保留恰好三位数字的 token，去重保序；
-  // 并自动拆分为组六（三位互不相同）与组三（含重复数字）两类，供横向并排展示
-  const parsed = useMemo(() => {
-    const tokens = (value || '').split(/[\s,，;；]+/).filter(t => /^\d{3}$/.test(t));
-    const seen = new Set();
-    const nums = [];
-    for (const t of tokens) if (!seen.has(t)) { seen.add(t); nums.push(t); }
-    const zuLiuNums = [];
-    const zuSanNums = [];
-    for (const n of nums) (new Set(n.split('')).size === 3 ? zuLiuNums : zuSanNums).push(n);
-    return { raw: tokens.length, nums, zuLiuNums, zuSanNums, zuLiu: zuLiuNums.length, zuSan: zuSanNums.length };
-  }, [value]);
-
-  return (
-    <div style={{ border: '2px solid #00838f', borderRadius: 6, background: '#e0f7fa', overflow: 'hidden' }}>
-      <div style={{
-        padding: '6px 10px', background: '#00838f', color: '#fff',
-        display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8, flexWrap: 'wrap',
-      }}>
-        {/* 期号搬到「自选号码」标题左侧，两者靠左并排（用户要求） */}
-        <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.95 }}>
-          {issue ? `${issue} 期（最新未开奖）` : '—'}
-        </span>
-        <span style={{ fontSize: 15, fontWeight: 800 }}>自选号码</span>
-      </div>
-      <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <textarea
-          value={value || ''}
-          onChange={e => onChange && onChange(e.target.value)}
-          placeholder="输入自选号码：每行一个，或空格/逗号分隔的三位数，如 123 456 789"
-          style={{
-            width: '100%', minHeight: 64, resize: 'vertical',
-            fontSize: 12, lineHeight: '18px', fontFamily: 'Consolas,Menlo,monospace',
-            padding: '4px 6px', boxSizing: 'border-box', borderRadius: 3,
-            border: '1px solid #4dd0e1', background: '#fff', color: '#222',
-          }}
-        />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, color: '#00695c', fontWeight: 700 }}>
-            共 {parsed.nums.length} 注{parsed.raw !== parsed.nums.length ? `（输入 ${parsed.raw}，去重后）` : ''}
-          </span>
-          <span style={{ fontSize: 11, color: '#00838f' }}>组六{parsed.zuLiu}/组三{parsed.zuSan}</span>
-          <CopyBtn text={parsed.nums.join(' ')} disabled={parsed.nums.length === 0} />
-        </div>
-        {parsed.nums.length > 0 && (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
-            {/* 组六（青）与组三（红）横向并排 */}
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px dashed #4dd0e1', borderRadius: 3, background: '#fff', overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#e0f2f1', borderBottom: '1px solid #b2dfdb' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#00695c' }}>组六 {parsed.zuLiu} 注</span>
-                <CopyBtn text={parsed.zuLiuNums.join(' ')} disabled={parsed.zuLiu === 0} />
-              </div>
-              <div style={{ fontSize: 12, color: '#00695c', fontFamily: 'Consolas,monospace', lineHeight: '18px', wordBreak: 'break-all', padding: 4, maxHeight: 88, overflowY: 'auto', flex: 1 }}>
-                {parsed.zuLiuNums.join(' ') || '—'}
-              </div>
-            </div>
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px dashed #ef9a9a', borderRadius: 3, background: '#fff', overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#ffebee', borderBottom: '1px solid #ffcdd2' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#c62828' }}>组三 {parsed.zuSan} 注</span>
-                <CopyBtn text={parsed.zuSanNums.join(' ')} disabled={parsed.zuSan === 0} />
-              </div>
-              <div style={{ fontSize: 12, color: '#c62828', fontFamily: 'Consolas,monospace', lineHeight: '18px', wordBreak: 'break-all', padding: 4, maxHeight: 88, overflowY: 'auto', flex: 1 }}>
-                {parsed.zuSanNums.join(' ') || '—'}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 /** 容错1-5 合并频次：智取+博众 容错1~5 号码合并后按出现次数降序排列 */
 function MergeFreqModule({ decompIssue, bozhongIssue, decompResult, bozhongResult }) {
   // 同期约束：与交集一致，跨期合并无意义
@@ -403,15 +329,12 @@ function InterModule({ decompIssue, bozhongIssue, decompResult, bozhongResult })
 export default function DecompRongCuoPanel({
   decompIssue, decompResult,
   bozhongIssue, bozhongResult,
-  selfPickIssue, selfPickValue, onSelfPickChange,
   onDecompSubmit,
   submitFlash,
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {/* 自选号码：置于智取/博众上方，与最新未开奖期对应 */}
-      <SelfPickModule issue={selfPickIssue} value={selfPickValue} onChange={onSelfPickChange} />
-      {/* 容错1-5 合并频次：置于按钮行下方、智取/博众上方 */}
+      {/* 容错1-5 合并频次 */}
       <MergeFreqModule
         decompIssue={decompIssue}
         bozhongIssue={bozhongIssue}
@@ -421,7 +344,7 @@ export default function DecompRongCuoPanel({
       {/* 智取（黄）与博众（绿）并排等高贴边 */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
         <DecompModule title="智取分解容错" issue={decompIssue} result={decompResult} theme="zq" />
-        <DecompModule title="博众分解容错" issue={bozhongIssue} result={bozhongResult} theme="bz" />
+        <DecompModule title="博众分解容错" issue={bozhongIssue} result={decompResult} theme="bz" />
       </div>
       <InterModule
         decompIssue={decompIssue}
