@@ -7757,6 +7757,108 @@ export const lotteryData = [
   { issue: '26281', d1: 9, d2: 8, d3: 3 },
 ];
 export function enrichData(data) {
+  // 优化版本：一次性计算所有trackGroups，避免O(n²)复杂度
+  
+  // 预计算所有行的G1和G3
+  const allG1 = [];
+  const allG3 = [];
+  
+  for (let i = 0; i < data.length; i++) {
+    const item = data[i];
+    const drawDigits = [item.d1, item.d2, item.d3];
+    
+    // G1[d]: digit d是否在当前期或前2期出现
+    const g1 = Array(10).fill(0);
+    for (let d = 0; d <= 9; d++) {
+      for (let k = 0; k < 3; k++) {
+        const idx = i - k;
+        if (idx >= 0) {
+          const dd = data[idx];
+          if (dd.d1 === d || dd.d2 === d || dd.d3 === d) { g1[d] = 1; break; }
+        }
+      }
+    }
+    allG1.push(g1);
+    
+    // G3[d]: digit d是否与当前期号码相邻(±1)
+    const g3 = Array(10).fill(0);
+    for (let d = 0; d <= 9; d++) {
+      for (const cd of drawDigits) {
+        if (cd + 1 === d || cd - 1 === d) { g3[d] = 1; break; }
+      }
+    }
+    allG3.push(g3);
+  }
+  
+  // 迭代计算G2和G4（累积状态）
+  const allG2 = [];
+  const allG4 = [];
+  const allG5 = [];
+  
+  let prevG2 = Array(10).fill(null);
+  let prevG4 = Array(10).fill(null);
+  
+  for (let i = 0; i < data.length; i++) {
+    const item = data[i];
+    const drawDigits = [item.d1, item.d2, item.d3];
+    const drawSet = new Set(drawDigits);
+    const g1 = allG1[i];
+    const g3 = allG3[i];
+    
+    // G2[d]: 如果G1[d]=1则重置，否则继承前一期
+    const curG2 = Array(10).fill(null);
+    for (let d = 0; d <= 9; d++) {
+      if (g1[d] === 1) {
+        curG2[d] = null;
+      } else {
+        curG2[d] = (prevG2[d] !== null) ? prevG2[d] : d;
+      }
+    }
+    allG2.push(curG2);
+    prevG2 = curG2;
+    
+    // G4[d]: 如果G3[d]=1且d不在当前期号码中，则显示d，否则重置
+    const curG4 = Array(10).fill(null);
+    for (let d = 0; d <= 9; d++) {
+      if (g3[d] === 1 && !drawSet.has(d)) {
+        curG4[d] = d;
+      } else {
+        curG4[d] = null;
+      }
+    }
+    allG4.push(curG4);
+    prevG4 = curG4;
+    
+    // G5[d]: 如果G2[d]和G4[d]都为null，则显示d
+    const g5 = Array(10).fill(-1);
+    for (let d = 0; d <= 9; d++) {
+      if (curG2[d] === null && curG4[d] === null) {
+        g5[d] = d;
+      }
+    }
+    allG5.push(g5);
+  }
+  
+  // 构建trackGroups数组
+  const allTrackGroups = [];
+  for (let i = 0; i < data.length; i++) {
+    const g1Display = Array(10).fill(-1);
+    const g2Display = Array(10).fill(-1);
+    const g3Display = Array(10).fill(-1);
+    const g4Display = Array(10).fill(-1);
+    const g5 = allG5[i];
+    
+    for (let d = 0; d <= 9; d++) {
+      if (allG1[i][d]) g1Display[d] = 1;
+      if (allG2[i][d] !== null) g2Display[d] = allG2[i][d];
+      if (allG3[i][d]) g3Display[d] = 1;
+      if (allG4[i][d] !== null) g4Display[d] = allG4[i][d];
+    }
+    
+    allTrackGroups.push([g1Display, g2Display, g3Display, g4Display, g5]);
+  }
+  
+  // 现在构建enriched数据
   return data.map((item, index) => {
     const digits = [item.d1, item.d2, item.d3];
     const sum = item.d1 + item.d2 + item.d3;
@@ -7770,7 +7872,8 @@ export function enrichData(data) {
       vAdd = [(item.d1 + prev.d1) % 10, (item.d2 + prev.d2) % 10, (item.d3 + prev.d3) % 10];
       vSub = [Math.abs(item.d1 - prev.d1), Math.abs(item.d2 - prev.d2), Math.abs(item.d3 - prev.d3)];
     }
-    const trackGroups = calcTrackGroups(data, index);
+    
+    const trackGroups = allTrackGroups[index];
     const shenghao = trackGroups[1]; // G2: 横加跟踪
     const lianhao = trackGroups[3]; // G4: 竖加跟踪
     const mustOutNums = trackGroups[4]; // G5: 必出号
@@ -7859,125 +7962,6 @@ export function enrichData(data) {
     return { ...enriched, canKaoEr, danMa, chuXianCi1, chuXianCi2, zuSan1, zuSan2 };
   });
 }
-
-function calcTrackGroups(data, currentIndex) {
-  // G1 and G3 are computed fresh each row (non-accumulating)
-  // G2 and G4 are accumulating (depend on previous row's values)
-  // G5 depends on G2 and G4
-
-  // We need to compute G2 and G4 iteratively from the beginning
-  // G2[d]: if G1[d]=1 → reset to ""; else carry forward previous G2[d] (or digit d if first)
-  // G4[d]: if G3[d]=1 AND d not in current draw → digit d; else reset to ""
-
-  // First compute all G1 and G3 values for current row
-  const item = data[currentIndex];
-  const drawDigits = [item.d1, item.d2, item.d3];
-  const drawSet = new Set(drawDigits);
-
-  // G1[d]: did digit d appear in current or previous 2 draws?
-  const g1 = Array(10).fill(0);
-  for (let d = 0; d <= 9; d++) {
-    for (let k = 0; k < 3; k++) {
-      const idx = currentIndex - k;
-      if (idx >= 0) {
-        const dd = data[idx];
-        if (dd.d1 === d || dd.d2 === d || dd.d3 === d) { g1[d] = 1; break; }
-      }
-    }
-  }
-
-  // G3[d]: is digit d adjacent (±1) to any current draw digit?
-  const g3 = Array(10).fill(0);
-  for (let d = 0; d <= 9; d++) {
-    for (const cd of drawDigits) {
-      if (cd + 1 === d || cd - 1 === d) { g3[d] = 1; break; }
-    }
-  }
-
-  // For G2 and G4, we need to compute iteratively from start
-  let prevG2 = Array(10).fill(null); // null means not yet initialized
-  let prevG4 = Array(10).fill(null);
-  let curG2 = Array(10).fill(null);
-  let curG4 = Array(10).fill(null);
-
-  for (let i = 0; i <= currentIndex; i++) {
-    const it = data[i];
-    const dd = [it.d1, it.d2, it.d3];
-    const dSet = new Set(dd);
-
-    // Compute G1 for this row
-    const rowG1 = Array(10).fill(0);
-    for (let d = 0; d <= 9; d++) {
-      for (let k = 0; k < 3; k++) {
-        const idx = i - k;
-        if (idx >= 0) {
-          const ddd = data[idx];
-          if (ddd.d1 === d || ddd.d2 === d || ddd.d3 === d) { rowG1[d] = 1; break; }
-        }
-      }
-    }
-
-    // Compute G3 for this row
-    const rowG3 = Array(10).fill(0);
-    for (let d = 0; d <= 9; d++) {
-      for (const cd of dd) {
-        if (cd + 1 === d || cd - 1 === d) { rowG3[d] = 1; break; }
-      }
-    }
-
-    // Compute G2 for this row
-    curG2 = Array(10).fill(null);
-    for (let d = 0; d <= 9; d++) {
-      if (rowG1[d] === 1) {
-        curG2[d] = null; // reset
-      } else {
-        // Carry forward from previous, or initialize with digit d
-        curG2[d] = (prevG2[d] !== null) ? prevG2[d] : d;
-      }
-    }
-
-    // Compute G4 for this row
-    curG4 = Array(10).fill(null);
-    for (let d = 0; d <= 9; d++) {
-      if (rowG3[d] === 1 && !dSet.has(d)) {
-        curG4[d] = d; // show digit
-      } else {
-        curG4[d] = null; // reset
-      }
-    }
-
-    prevG2 = [...curG2];
-    prevG4 = [...curG4];
-  }
-
-  // Now compute G5 for current row
-  const g5 = Array(10).fill(-1);
-  for (let d = 0; d <= 9; d++) {
-    if (curG2[d] === null && curG4[d] === null) {
-      g5[d] = d; // digit shows
-    }
-  }
-
-  // Convert G2 and G4 to display format (arrays of digit values, -1 = empty)
-  const g2Display = Array(10).fill(-1);
-  const g4Display = Array(10).fill(-1);
-  for (let d = 0; d <= 9; d++) {
-    if (curG2[d] !== null) g2Display[d] = curG2[d];
-    if (curG4[d] !== null) g4Display[d] = curG4[d];
-  }
-
-  // G1 and G3 display: 1 where active
-  const g1Display = Array(10).fill(0);
-  const g3Display = Array(10).fill(0);
-  for (let d = 0; d <= 9; d++) {
-    if (g1[d]) g1Display[d] = 1;
-    if (g3[d]) g3Display[d] = 1;
-  }
-
-  return [g1Display, g2Display, g3Display, g4Display, g5
-];
-}
-
 
 
 export function getFrequencyStats(data) {
