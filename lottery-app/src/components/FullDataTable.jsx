@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { parseDecompGroups, verifyDraw } from '../utils/decompRongCuo.js'
 
 // ============================================================
@@ -1076,6 +1076,13 @@ function FullDataTable({
     }
     return result;
   }, [intersectionNumbers, tongshaDigit, positionKillDigits]);
+
+  // 同步 filteredNumbers 到 App.jsx 的 selfPickTexts，确保容错计算使用最新数据
+  useEffect(() => {
+    if (onSelfPickChange && selfPickIssue) {
+      onSelfPickChange(filteredNumbers.join(' '));
+    }
+  }, [filteredNumbers, selfPickIssue, onSelfPickChange]);
 
   // 往期各期「最小容错等级」徽章数据源：仅对已开奖行（d1/d2/d3 有值）且该期分解非空时计算；
   //   下期预留行尚无开奖号 → 不产出徽章，等开奖数据更新、该行转为正常已开奖行后才显示

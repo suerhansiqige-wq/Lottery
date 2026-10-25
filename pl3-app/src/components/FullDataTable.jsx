@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { parseDecompGroups, verifyDraw } from '../utils/decompRongCuo.js'
 
 // ============================================================
@@ -1170,6 +1170,13 @@ function FullDataTable({
     }
     return result;
   }, [intersectionNumbers, tongshaDigit, positionKillDigits]);
+
+  // 同步 filteredNumbers 到 App.jsx 的 selfPickTexts，确保容错计算使用最新数据
+  useEffect(() => {
+    if (onSelfPickChange && selfPickIssue) {
+      onSelfPickChange(filteredNumbers.join(' '));
+    }
+  }, [filteredNumbers, selfPickIssue, onSelfPickChange]);
 
   // 参与列宽计算的期号：所有展示行 + 下期预留行（预留行也可能已录入分解）
   const decompIssues = useMemo(() => {
