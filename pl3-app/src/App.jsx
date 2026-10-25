@@ -91,7 +91,7 @@ function App() {
 
   // 自选号码：按「最新未开奖期」存储，键 pl3_selfPick（仅存非空期）
   const [selfPickTexts, setSelfPickTextsState] = useState(() => loadOverrides('pl3_selfPick'));
-  const setSelfPickText = (issue, val) => {
+  const setSelfPickText = useCallback((issue, val) => {
     if (!issue) return;
     setSelfPickTextsState(prev => {
       const next = { ...prev };
@@ -99,7 +99,7 @@ function App() {
       safeSetItem('pl3_selfPick', JSON.stringify(next));
       return next;
     });
-  };
+  }, []);
 
   // 黄金三格号码：按「最新未开奖期」存储，键 pl3_goldenGrid（仅存非空期）
   const [goldenGridTexts, setGoldenGridTextsState] = useState(() => loadOverrides('pl3_goldenGrid'));

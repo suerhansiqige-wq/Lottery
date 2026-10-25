@@ -158,7 +158,7 @@ function App() {
 
   // 自选号码：按「最新未开奖期」存储用户手填号码，localStorage 键 3d_selfPick（仅存非空期）
   const [selfPickTexts, setSelfPickTextsState] = useState(() => loadOverrides('3d_selfPick'));
-  const setSelfPickText = (issue, val) => {
+  const setSelfPickText = useCallback((issue, val) => {
     if (!issue) return;
     setSelfPickTextsState(prev => {
       const next = { ...prev };
@@ -166,7 +166,7 @@ function App() {
       safeSetItem('3d_selfPick', JSON.stringify(next));
       return next;
     });
-  };
+  }, []);
 
   // 黄金三格号码：按「最新未开奖期」存储用户手填号码，localStorage 键 3d_goldenGrid（仅存非空期）
   const [goldenGridTexts, setGoldenGridTextsState] = useState(() => loadOverrides('3d_goldenGrid'));
