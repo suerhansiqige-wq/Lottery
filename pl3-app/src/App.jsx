@@ -101,6 +101,18 @@ function App() {
     });
   };
 
+  // 黄金三格号码：按「最新未开奖期」存储，键 pl3_goldenGrid（仅存非空期）
+  const [goldenGridTexts, setGoldenGridTextsState] = useState(() => loadOverrides('pl3_goldenGrid'));
+  const setGoldenGridText = (issue, val) => {
+    if (!issue) return;
+    setGoldenGridTextsState(prev => {
+      const next = { ...prev };
+      if (val && val.trim()) next[issue] = val; else delete next[issue];
+      safeSetItem('pl3_goldenGrid', JSON.stringify(next));
+      return next;
+    });
+  };
+
   const makeLockSetter = (setState, storageKey) => (val) => {
     setState(prev => {
       const next = typeof val === 'function' ? val(prev) : val;
@@ -583,6 +595,11 @@ function App() {
             selfPickIssue={nextIssue}
             selfPickValue={selfPickTexts[nextIssue] || ''}
             onSelfPickChange={(v) => setSelfPickText(nextIssue, v)}
+            goldenGridIssue={nextIssue}
+            goldenGridValue={goldenGridTexts[nextIssue] || ''}
+            onGoldenGridChange={(v) => setGoldenGridText(nextIssue, v)}
+            baobenIssue={nextIssue}
+            baobenGoldenGridValue={goldenGridTexts[nextIssue] || ''}
           />
         </main>
       </div>
