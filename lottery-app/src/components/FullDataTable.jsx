@@ -464,9 +464,16 @@ const HJS_COLS = [
 ];
 
 // 渲染横加减/竖加减4个合并单元格；src 为空或该组无上期数据（全 null）时显示 -
-// 【已隐藏】用户要求隐藏横相减/横相加/竖相减/竖相加四列
 function renderHjsCells(src) {
-  return null;
+  return HJS_COLS.map((c, i) => {
+    const arr = src ? src[c.field] : null;
+    const has = arr && arr.some(v => v !== null && v !== undefined);
+    return (
+      <td key={'hjs' + i} title={c.title} style={{ fontWeight: 700, color: '#000' }}>
+        {has ? arr.join('') : '-'}
+      </td>
+    );
+  });
 }
 
 // ============================================================
@@ -1183,7 +1190,10 @@ function FullDataTable({
                 <th style={{ borderBottom: '3px solid #a8d8ea' }}>个</th>
                 <th>和值</th>
                 <th>跨度</th>
-                {/* 横加减/竖加减4列已隐藏 - 用户要求 */}
+                {/* 横加减/竖加减4列（Excel G~R 每3列合并为1格） */}
+                {HJS_COLS.map((c, i) => (
+                  <th key={'hjsTh' + i} title={c.title}>{c.th}</th>
+                ))}
                 <th>生号</th>
                 <th>连号</th>
                 <th>必出号</th>
