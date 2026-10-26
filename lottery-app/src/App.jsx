@@ -161,24 +161,16 @@ function App() {
   const setSelfPickText = useCallback((issue, val) => {
     if (!issue) return;
     setSelfPickTextsState(prev => {
+      const has = !!(val && val.trim());
+      // 值未变化时返回原对象，避免 setState 触发重渲染形成死循环
+      if (has && prev[issue] === val) return prev;
+      if (!has && !(issue in prev)) return prev;
       const next = { ...prev };
-      if (val && val.trim()) next[issue] = val; else delete next[issue];
+      if (has) next[issue] = val; else delete next[issue];
       safeSetItem('3d_selfPick', JSON.stringify(next));
       return next;
     });
   }, []);
-
-  // 黄金三格号码：按「最新未开奖期」存储用户手填号码，localStorage 键 3d_goldenGrid（仅存非空期）
-  const [goldenGridTexts, setGoldenGridTextsState] = useState(() => loadOverrides('3d_goldenGrid'));
-  const setGoldenGridText = (issue, val) => {
-    if (!issue) return;
-    setGoldenGridTextsState(prev => {
-      const next = { ...prev };
-      if (val && val.trim()) next[issue] = val; else delete next[issue];
-      safeSetItem('3d_goldenGrid', JSON.stringify(next));
-      return next;
-    });
-  };
 
   // 锁定集合写入：接收新 Set，同步落盘
   const makeLockSetter = (setState, storageKey) => (val) => {
@@ -308,23 +300,13 @@ function App() {
 
   // ============================================================
   // 【算法锁定】分解容错计算目标期
-  // 优先取「下期预留行」（用户手工录入的最新分解条件）；该行为空时回退到 JSON 中
-  // 有数据的最新一期。原因：分解数据由桌面 xls 手工导出，常滞后于开奖数据。
+  // 固定取「下期预留行」，与表格预留行同源：该行为空即无分解条件，模块显示空态。
+  // 不回退旧期数据（历史踩坑：回退导致表格预留行空、容错模块却用旧期分解出结果，用户无法对应）
   // ============================================================
   const nextIssue = baseData.length > 0 ? String(Number(baseData[baseData.length - 1].issue) + 1) : '';
 
-  const pickTargetIssue = (texts) => {
-    if (nextIssue && (texts[nextIssue] || '').trim()) return nextIssue;
-    let best = '';
-    for (const k of Object.keys(texts)) {
-      if (!(texts[k] || '').trim()) continue;
-      if (!best || Number(k) > Number(best)) best = k;
-    }
-    return best || nextIssue;
-  };
-
-  const decompIssue = useMemo(() => pickTargetIssue(decompTexts), [decompTexts, nextIssue]);
-  const bozhongIssue = useMemo(() => pickTargetIssue(bozhongTexts), [bozhongTexts, nextIssue]);
+  const decompIssue = nextIssue;
+  const bozhongIssue = nextIssue;
 
   // ============================================================
   // 【算法锁定】分解容错计算（候选集 = 《自选号码》的组六号码，见下）
@@ -433,12 +415,14 @@ function App() {
     setLockedDecomp(prev => {
       const next = new Set(prev);
       allIssues.forEach(i => next.add(i));
+      if (next.size === prev.size) return prev;
       safeSetItem('3d_lockedDecomp', JSON.stringify([...next]));
       return next;
     });
     setLockedBozhong(prev => {
       const next = new Set(prev);
       allIssues.forEach(i => next.add(i));
+      if (next.size === prev.size) return prev;
       safeSetItem('3d_lockedBozhong', JSON.stringify([...next]));
       return next;
     });
@@ -755,11 +739,6 @@ return (
             selfPickIssue={nextIssue}
             selfPickValue={selfPickTexts[nextIssue] || ''}
             onSelfPickChange={(v) => setSelfPickText(nextIssue, v)}
-            goldenGridIssue={nextIssue}
-            goldenGridValue={goldenGridTexts[nextIssue] || ''}
-            onGoldenGridChange={(v) => setGoldenGridText(nextIssue, v)}
-            baobenIssue={nextIssue}
-            baobenGoldenGridValue={goldenGridTexts[nextIssue] || ''}
           />
         </main>
       </div>

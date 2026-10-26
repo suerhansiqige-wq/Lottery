@@ -94,24 +94,16 @@ function App() {
   const setSelfPickText = useCallback((issue, val) => {
     if (!issue) return;
     setSelfPickTextsState(prev => {
+      const has = !!(val && val.trim());
+      // 值未变化时返回原对象，避免 setState 触发重渲染形成死循环
+      if (has && prev[issue] === val) return prev;
+      if (!has && !(issue in prev)) return prev;
       const next = { ...prev };
-      if (val && val.trim()) next[issue] = val; else delete next[issue];
+      if (has) next[issue] = val; else delete next[issue];
       safeSetItem('pl3_selfPick', JSON.stringify(next));
       return next;
     });
   }, []);
-
-  // 黄金三格号码：按「最新未开奖期」存储，键 pl3_goldenGrid（仅存非空期）
-  const [goldenGridTexts, setGoldenGridTextsState] = useState(() => loadOverrides('pl3_goldenGrid'));
-  const setGoldenGridText = (issue, val) => {
-    if (!issue) return;
-    setGoldenGridTextsState(prev => {
-      const next = { ...prev };
-      if (val && val.trim()) next[issue] = val; else delete next[issue];
-      safeSetItem('pl3_goldenGrid', JSON.stringify(next));
-      return next;
-    });
-  };
 
   const makeLockSetter = (setState, storageKey) => (val) => {
     setState(prev => {
@@ -181,18 +173,10 @@ function App() {
   // ============================================================
   const nextIssue = baseData.length > 0 ? String(Number(baseData[baseData.length - 1].issue) + 1) : '';
 
-  const pickTargetIssue = (texts) => {
-    if (nextIssue && (texts[nextIssue] || '').trim()) return nextIssue;
-    let best = '';
-    for (const k of Object.keys(texts)) {
-      if (!(texts[k] || '').trim()) continue;
-      if (!best || Number(k) > Number(best)) best = k;
-    }
-    return best || nextIssue;
-  };
-
-  const decompIssue = useMemo(() => pickTargetIssue(decompTexts), [decompTexts, nextIssue]);
-  const bozhongIssue = useMemo(() => pickTargetIssue(bozhongTexts), [bozhongTexts, nextIssue]);
+  // 分解容错目标期固定为下期预留行，与表格预留行同源；未录入即无分解条件，
+  // 不回退旧期数据（历史踩坑：回退导致表格预留行空、容错模块却用旧期分解出结果）
+  const decompIssue = nextIssue;
+  const bozhongIssue = nextIssue;
 
   // 候选集 = 《自选号码》的组六号码；组三不参与分解
   const selfPickZuLiu = useMemo(() => {
@@ -286,12 +270,14 @@ function App() {
     setLockedDecomp(prev => {
       const next = new Set(prev);
       allIssues.forEach(i => next.add(i));
+      if (next.size === prev.size) return prev;
       safeSetItem('pl3_lockedDecomp', JSON.stringify([...next]));
       return next;
     });
     setLockedBozhong(prev => {
       const next = new Set(prev);
       allIssues.forEach(i => next.add(i));
+      if (next.size === prev.size) return prev;
       safeSetItem('pl3_lockedBozhong', JSON.stringify([...next]));
       return next;
     });
@@ -595,11 +581,6 @@ function App() {
             selfPickIssue={nextIssue}
             selfPickValue={selfPickTexts[nextIssue] || ''}
             onSelfPickChange={(v) => setSelfPickText(nextIssue, v)}
-            goldenGridIssue={nextIssue}
-            goldenGridValue={goldenGridTexts[nextIssue] || ''}
-            onGoldenGridChange={(v) => setGoldenGridText(nextIssue, v)}
-            baobenIssue={nextIssue}
-            baobenGoldenGridValue={goldenGridTexts[nextIssue] || ''}
           />
         </main>
       </div>
