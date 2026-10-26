@@ -3,6 +3,7 @@ import { lotteryData as staticLotteryData, enrichData } from './data/lotteryData
 import decompositionData from './data/decompositionData.json'
 import bozhongData from './data/bozhongData.json'
 import { parseDecompGroups, computeRongCuo } from './utils/decompRongCuo.js'
+import { getAddSubNumbers } from './utils/addSubPool.js'
 import FullDataTable from './components/FullDataTable.jsx'
 import DecompRongCuoPanel from './components/DecompRongCuoPanel.jsx'
 import { loadFromGist, saveToGist, setGistToken, getGistToken, clearGistToken, testGistToken } from './utils/gistSync.js'
@@ -168,6 +169,19 @@ function App() {
     return enrichData([...baseData, trialRow])
   }, [baseData, trialDigits])
 
+  // 加减号码（前200期 横相加∪横相减）下期预留行候选池。
+  // poolData 与 FullDataTable 内同一构造：完整历史 + 试验行（试验行只存在于窗口化的 enrichedData 末尾）
+  const addSubPoolData = useMemo(() => {
+    const known = new Set(baseData.map(d => d.issue));
+    const extra = enrichedData.filter(d => !known.has(d.issue));
+    return extra.length ? [...baseData, ...extra] : baseData;
+  }, [baseData, enrichedData]);
+
+  const addSubTailPool = useMemo(
+    () => new Set(getAddSubNumbers(addSubPoolData, addSubPoolData.length)),
+    [addSubPoolData]
+  );
+
   // ============================================================
   // 分解容错目标期 / 候选集 / 结果 / 往期验证（与福彩3D 同一套逻辑）
   // ============================================================
@@ -178,7 +192,7 @@ function App() {
   const decompIssue = nextIssue;
   const bozhongIssue = nextIssue;
 
-  // 候选集 = 《自选号码》的组六号码；组三不参与分解
+  // 候选集 = 《直选高倍》号码池 = 自选号码的组六 ∩ 加减号码预留行候选池；组三与池外号码不参与分解
   const selfPickZuLiu = useMemo(() => {
     const tokens = (selfPickTexts[nextIssue] || '').split(/[\s,，;；]+/).filter(t => /^\d{3}$/.test(t));
     const seen = new Set();
@@ -186,10 +200,10 @@ function App() {
     for (const t of tokens) {
       if (seen.has(t)) continue;
       seen.add(t);
-      if (new Set(t.split('')).size === 3) out.push(t);
+      if (new Set(t.split('')).size === 3 && addSubTailPool.has(t)) out.push(t);
     }
     return out;
-  }, [selfPickTexts, nextIssue]);
+  }, [selfPickTexts, nextIssue, addSubTailPool]);
 
   const decompResult = useMemo(
     () => computeRongCuo(parseDecompGroups(decompTexts[decompIssue] || ''), selfPickZuLiu),
@@ -199,6 +213,15 @@ function App() {
     () => computeRongCuo(parseDecompGroups(bozhongTexts[bozhongIssue] || ''), selfPickZuLiu),
     [bozhongTexts, bozhongIssue, selfPickZuLiu]
   );
+
+  // 分解出的「无容错」号码 = 智取无容错 ∪ 博众无容错（本期容错交集的无容错必然含于其中），
+  // 供右侧「保本投注」框并入
+  const wuRongCuoNumbers = useMemo(() => {
+    const s = new Set();
+    if (decompResult && decompResult.valid) for (const n of decompResult.none.numbers) s.add(n);
+    if (bozhongResult && bozhongResult.valid) for (const n of bozhongResult.none.numbers) s.add(n);
+    return [...s];
+  }, [decompResult, bozhongResult]);
 
 
   // 启动时从后端加载分解数据（跨浏览器/电脑同步）
@@ -564,6 +587,7 @@ function App() {
         <main className="main-content" style={{ flex: 1, minWidth: 0 }}>
           <FullDataTable
             data={enrichedData}
+            fullData={baseData}
             showCount={showCount}
             setShowCount={setShowCount}
             trialDigits={trialDigits}
@@ -581,12 +605,13 @@ function App() {
             selfPickIssue={nextIssue}
             selfPickValue={selfPickTexts[nextIssue] || ''}
             onSelfPickChange={(v) => setSelfPickText(nextIssue, v)}
+            wuRongCuoNumbers={wuRongCuoNumbers}
           />
         </main>
       </div>
 
       {/* 分解容错面板（与福彩3D 同一组件与模块顺序）：
-          ①自选号码 → 橙色锁定按钮行 → ③容错1-5合并频次 → ④智取/博众并排 → ⑤本期容错交集 */}
+          ①自选号码 → 橙色锁定按钮行 → ④智取/博众并排 → ⑤本期容错交集 → ③容错1-5合并频次（置底） */}
       <div style={{ marginTop: 16 }}>
         <DecompRongCuoPanel
           decompIssue={decompIssue}

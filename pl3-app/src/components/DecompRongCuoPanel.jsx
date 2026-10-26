@@ -7,6 +7,7 @@ import { useState, useMemo } from 'react';
 //   - 智取、博众两模块并排、等高贴边（flex + alignItems:stretch）
 //   - 每个模块内 3×3 网格 = 容错1~8（8格）+ 无容错（末位1格）
 //   - 本期容错模块独占一行，repeat(9,1fr) 单行九格
+//   - 模块自上而下：智取/博众并排 → 本期容错 → 容错1-5合并频次（用户要求置底）
 // 数据锁定：号码默认隐藏仅暴露注数，点「显示」展开，点「复制」一键复制
 // ============================================================
 
@@ -129,7 +130,7 @@ function DecompModule({ title, issue, result, theme }) {
         <span style={{ fontSize: 15, fontWeight: 800 }}>{title}</span>
         <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.95 }}>
           {issue ? `${issue} 期` : '—'}
-          {result && result.valid ? ` · ${result.groupCount} 组分解 · 候选${result.total}注(自选组六)` : ''}
+          {result && result.valid ? ` · ${result.groupCount} 组分解 · 候选${result.total}注(直选高倍池)` : ''}
         </span>
       </div>
 
@@ -140,7 +141,7 @@ function DecompModule({ title, issue, result, theme }) {
               flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 13, color: '#999', minHeight: 120, textAlign: 'center', padding: 12,
             }}>
-              《自选号码》未提供组六号码<br />请先在上方「自选号码」录入三位号码（组三自动忽略，不参与分解）
+              《自选号码》未提供直选高倍号码<br />请先在上方「自选号码」录入三位号码（组三与不在加减号码池内的号码不参与分解）
             </div>
           ) : (
           <>
@@ -317,7 +318,7 @@ function InterModule({ decompIssue, bozhongIssue, decompResult, bozhongResult })
             {!sameIssue
               ? `智取目标期 ${decompIssue || '—'} 与博众目标期 ${bozhongIssue || '—'} 不一致，跨期取交集无意义，已暂停计算。请把两套分解条件录到同一期。`
               : (decompResult && decompResult.valid && bozhongResult && bozhongResult.valid && (decompResult.total === 0 || bozhongResult.total === 0))
-                ? '《自选号码》候选为空（无组六号码），交集暂停计算'
+                ? '《自选号码》的直选高倍候选为空，交集暂停计算'
                 : '需智取与博众分解条件均已录入后计算交集'}
           </div>
         )}
@@ -334,19 +335,19 @@ export default function DecompRongCuoPanel({
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {/* 容错1-5 合并频次 */}
-      <MergeFreqModule
-        decompIssue={decompIssue}
-        bozhongIssue={bozhongIssue}
-        decompResult={decompResult}
-        bozhongResult={bozhongResult}
-      />
       {/* 智取（黄）与博众（绿）并排等高贴边 */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
         <DecompModule title="智取分解容错" issue={decompIssue} result={decompResult} theme="zq" />
         <DecompModule title="博众分解容错" issue={bozhongIssue} result={bozhongResult} theme="bz" />
       </div>
       <InterModule
+        decompIssue={decompIssue}
+        bozhongIssue={bozhongIssue}
+        decompResult={decompResult}
+        bozhongResult={bozhongResult}
+      />
+      {/* 容错1-5 合并频次（用户要求置于应用最下方） */}
+      <MergeFreqModule
         decompIssue={decompIssue}
         bozhongIssue={bozhongIssue}
         decompResult={decompResult}

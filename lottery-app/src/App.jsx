@@ -4,6 +4,7 @@ import { enrichData } from './data/enrichDataOptimized.js'
 import decompositionData from './data/decompositionData.json'
 import bozhongData from './data/bozhongData.json'
 import { parseDecompGroups, computeRongCuo } from './utils/decompRongCuo.js'
+import { getAddSubNumbers } from './utils/addSubPool.js'
 import FullDataTable from './components/FullDataTable.jsx'
 import DecompRongCuoPanel from './components/DecompRongCuoPanel.jsx'
 import { loadFromGist, saveToGist, setGistToken, getGistToken, clearGistToken, testGistToken } from './utils/gistSync.js'
@@ -259,6 +260,19 @@ function App() {
     return result
   }, [baseData, trialDigits, showCount])
 
+  // 加减号码（前200期 横相加∪横相减）下期预留行候选池。
+  // poolData 与 FullDataTable 内同一构造：完整历史 + 试验行（试验行只存在于窗口化的 enrichedData 末尾）
+  const addSubPoolData = useMemo(() => {
+    const known = new Set(baseData.map(d => d.issue));
+    const extra = enrichedData.filter(d => !known.has(d.issue));
+    return extra.length ? [...baseData, ...extra] : baseData;
+  }, [baseData, enrichedData]);
+
+  const addSubTailPool = useMemo(
+    () => new Set(getAddSubNumbers(addSubPoolData, addSubPoolData.length)),
+    [addSubPoolData]
+  );
+
   // 遗漏杀直选自动剔除：最新开奖号的直选号码自动从编辑框中移除
   const lastIssueNum = baseData.length > 0 ? baseData[baseData.length - 1].issue : '';
   useEffect(() => {
@@ -309,11 +323,12 @@ function App() {
   const bozhongIssue = nextIssue;
 
   // ============================================================
-  // 【算法锁定】分解容错计算（候选集 = 《自选号码》的组六号码，见下）
+  // 【算法锁定】分解容错计算（候选集 = 《直选高倍》号码池，见下）
   // ============================================================
-  // 【候选集】《自选号码》模块提供的号码中，仅取组六（三位互不相同）作为
-  // 智取/博众分解容错的候选集；组三不参与分解。自选为空时候选集为空数组，
-  // 容错模块会显示空候选提示而非回退到全部 1000 注
+  // 【候选集】取《自选号码》中的组六（三位互不相同）再与「加减号码」下期预留行
+  // 候选池求交，即右侧「直选高倍」框里的号码作为智取/博众分解容错的候选集；
+  // 组三与不在加减池内的号码都不参与分解。候选为空时容错模块显示空候选提示，
+  // 不回退到全部 1000 注
   // ============================================================
   const selfPickZuLiu = useMemo(() => {
     const tokens = (selfPickTexts[nextIssue] || '').split(/[\s,，;；]+/).filter(t => /^\d{3}$/.test(t));
@@ -322,10 +337,11 @@ function App() {
     for (const t of tokens) {
       if (seen.has(t)) continue;
       seen.add(t);
-      if (new Set(t.split('')).size === 3) out.push(t);   // 仅组六
+      // 仅组六，且必须在加减号码预留行候选池内（= 直选高倍池）
+      if (new Set(t.split('')).size === 3 && addSubTailPool.has(t)) out.push(t);
     }
     return out;
-  }, [selfPickTexts, nextIssue]);
+  }, [selfPickTexts, nextIssue, addSubTailPool]);
 
   // 依赖数组必须包含 decompTexts / bozhongTexts —— 历史踩坑：漏依赖会导致
   // textarea 编辑后容错结果不重算（编辑框看起来“失效”）
@@ -339,6 +355,15 @@ function App() {
     () => computeRongCuo(parseDecompGroups(bozhongTexts[bozhongIssue] || ''), selfPickZuLiu),
     [bozhongTexts, bozhongIssue, selfPickZuLiu]
   );
+
+  // 分解出的「无容错」号码 = 智取无容错 ∪ 博众无容错（本期容错交集的无容错必然含于其中），
+  // 供右侧「保本投注」框并入
+  const wuRongCuoNumbers = useMemo(() => {
+    const s = new Set();
+    if (decompResult && decompResult.valid) for (const n of decompResult.none.numbers) s.add(n);
+    if (bozhongResult && bozhongResult.valid) for (const n of bozhongResult.none.numbers) s.add(n);
+    return [...s];
+  }, [decompResult, bozhongResult]);
 
 
   // 启动时从后端加载分解数据（跨浏览器/电脑同步）
@@ -722,6 +747,7 @@ return (
         <main className="main-content" style={{ flex: 1, minWidth: 0 }}>
           <FullDataTable
             data={enrichedData}
+            fullData={baseData}
             showCount={showCount}
             setShowCount={setShowCount}
             trialDigits={trialDigits}
@@ -739,6 +765,7 @@ return (
             selfPickIssue={nextIssue}
             selfPickValue={selfPickTexts[nextIssue] || ''}
             onSelfPickChange={(v) => setSelfPickText(nextIssue, v)}
+            wuRongCuoNumbers={wuRongCuoNumbers}
           />
         </main>
       </div>

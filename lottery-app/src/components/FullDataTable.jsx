@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { parseDecompGroups, verifyDraw } from '../utils/decompRongCuo.js'
+import { ADD_SUB_LOOKBACK, buildAddSubIndex, getAddSubNumbers } from '../utils/addSubPool.js'
 
 // ============================================================
 // 遗漏策略：三组并集
@@ -211,19 +212,61 @@ const calcDecompBoxWidth = (texts, issues) => {
   return Math.min(Math.max(maxLen * DECOMP_CHAR_W + DECOMP_BOX_CHROME, DECOMP_MIN_W), DECOMP_MAX_W);
 };
 
-/** 本期高倍：交集号码 */
-function SelfPickModule({ issue, value, onChange }) {
-  const [copiedZuLiu, setCopiedZuLiu] = useState(false);
-  const [copiedZuSan, setCopiedZuSan] = useState(false);
+/** 自选号码：手动输入框，号码源（供下方直选高倍与分解容错使用） */
+function SelfPickInputModule({ issue, value, onChange }) {
+  const count = useMemo(() => {
+    const seen = new Set();
+    for (const t of (value || '').split(/[\s,，;；]+/)) if (/^\d{3}$/.test(t)) seen.add(t);
+    return seen.size;
+  }, [value]);
+
+  return (
+    <div style={{ width: '100%', border: '2px solid #00838f', borderRadius: 6, background: '#e0f7fa', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div style={{
+        padding: '6px 10px', background: '#00838f', color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8, flexWrap: 'wrap',
+      }}>
+        <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.95 }}>
+          {issue ? `${issue} 期（最新未开奖）` : '—'}
+        </span>
+        <span style={{ fontSize: 15, fontWeight: 800 }}>自选号码</span>
+        <span style={{
+          fontSize: 12, fontWeight: 800, color: '#00695c',
+          background: '#fff', borderRadius: 10, padding: '1px 8px', whiteSpace: 'nowrap',
+        }}>
+          {count} 注
+        </span>
+      </div>
+      <div style={{ padding: 8 }}>
+        <textarea
+          value={value || ''}
+          onChange={(e) => onChange && onChange(e.target.value)}
+          placeholder="手动输入号码，空格/逗号/换行分隔"
+          spellCheck={false}
+          style={{
+            display: 'block', width: '100%', boxSizing: 'border-box', height: 72, resize: 'none',
+            fontSize: 12, fontFamily: 'Consolas,monospace', lineHeight: '16px',
+            padding: 4, border: '1px solid #4dd0e1', borderRadius: 3,
+            background: '#fff', color: '#00695c',
+            overflowY: 'auto', cursor: 'text',
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** 直选高倍 / 保本投注
+ *  直选高倍 = 自选号码中的组六 ∩ 加减号码预留行候选池（组三一律归保本投注）
+ *  保本投注 = 自选号码中的组三 + (自选号码 − 加减号码预留行候选池) + 分解容错（智取/博众）的无容错号码，合并去重
+ */
+function ZhiXuanGaoBeiModule({ issue, value, addSubNumbers = [], wuRongCuoNumbers = [] }) {
+  const [copiedHigh, setCopiedHigh] = useState(false);
+  const [copiedBaoben, setCopiedBaoben] = useState(false);
 
   const handleCopy = async (text, type) => {
     try {
       await navigator.clipboard.writeText(text);
-      if (type === 'zuLiu') {
-        setCopiedZuLiu(true);
-      } else {
-        setCopiedZuSan(true);
-      }
     } catch (err) {
       const ta = document.createElement('textarea');
       ta.value = text;
@@ -231,12 +274,9 @@ function SelfPickModule({ issue, value, onChange }) {
       ta.select();
       try { document.execCommand('copy'); } catch {}
       document.body.removeChild(ta);
-      if (type === 'zuLiu') {
-        setCopiedZuLiu(true);
-      } else {
-        setCopiedZuSan(true);
-      }
     }
+    if (type === 'high') setCopiedHigh(true);
+    else setCopiedBaoben(true);
   };
 
   const parsed = useMemo(() => {
@@ -248,10 +288,14 @@ function SelfPickModule({ issue, value, onChange }) {
       seen.add(t);
       nums.push(t);
     }
-    const zuLiuNums = nums.filter(n => new Set(n.split('')).size === 3);
-    const zuSanNums = nums.filter(n => new Set(n.split('')).size !== 3);
-    return { nums, zuLiuNums, zuSanNums, zuLiu: zuLiuNums.length, zuSan: zuSanNums.length };
-  }, [value]);
+    const poolSet = new Set(addSubNumbers);
+    const isZuSan = (n) => new Set(n.split('')).size !== 3;
+    const zuSanNums = nums.filter(isZuSan);
+    const highNums = nums.filter(n => !isZuSan(n) && poolSet.has(n));
+    const baobenNums = [...new Set([...zuSanNums, ...nums.filter(n => !poolSet.has(n)), ...wuRongCuoNumbers])]
+      .sort((a, b) => Number(a) - Number(b));
+    return { nums, highNums, baobenNums, high: highNums.length, baoben: baobenNums.length };
+  }, [value, addSubNumbers, wuRongCuoNumbers]);
 
   return (
     <div style={{ width: '100%', flex: 1, border: '2px solid #00838f', borderRadius: 6, background: '#e0f7fa', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -262,66 +306,55 @@ function SelfPickModule({ issue, value, onChange }) {
         <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.95 }}>
           {issue ? `${issue} 期（最新未开奖）` : '—'}
         </span>
-        <span style={{ fontSize: 15, fontWeight: 800 }}>自选号码</span>
+        <span style={{ fontSize: 15, fontWeight: 800 }}>直选高倍</span>
       </div>
       <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minHeight: 0 }}>
-        <textarea
-          value={value || ''}
-          onChange={(e) => onChange && onChange(e.target.value)}
-          placeholder="手动输入号码，空格/逗号/换行分隔"
-          spellCheck={false}
-          style={{
-            width: '100%', boxSizing: 'border-box', height: 56, resize: 'none',
-            fontSize: 12, fontFamily: 'Consolas,monospace', lineHeight: '16px',
-            padding: 4, border: '1px solid #4dd0e1', borderRadius: 3,
-            background: '#fff', color: '#00695c',
-            overflowY: 'auto', cursor: 'text',
-          }}
-        />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, color: '#00695c', fontWeight: 700 }}>
             共 {parsed.nums.length} 注
           </span>
-          <span style={{ fontSize: 11, color: '#00838f' }}>组六{parsed.zuLiu}/组三{parsed.zuSan}</span>
+          <span style={{ fontSize: 11, color: '#00838f' }}>直选高倍{parsed.high}/保本{parsed.baoben}</span>
         </div>
         {parsed.nums.length > 0 && (
           <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', flex: '1 1 0', minHeight: 0 }}>
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px dashed #4dd0e1', borderRadius: 3, background: '#fff', overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#e0f2f1', borderBottom: '1px solid #b2dfdb' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#00695c' }}>组六 {parsed.zuLiu} 注</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#e0f2f1', borderBottom: '1px solid #b2dfdb' }}
+                title="自选号码中的组六 ∩ 加减号码（预留行待开奖格）候选池；组三一律归保本投注">
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#00695c' }}>直选高倍 {parsed.high} 注</span>
                 <button
-                  onClick={() => handleCopy(parsed.zuLiuNums.join(' '), 'zuLiu')}
+                  onClick={() => handleCopy(parsed.highNums.join(' '), 'high')}
                   style={{
                     fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                    border: `1px solid ${copiedZuLiu ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                    background: copiedZuLiu ? '#c8e6c9' : '#fff', color: copiedZuLiu ? '#1b5e20' : '#555',
+                    border: `1px solid ${copiedHigh ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+                    background: copiedHigh ? '#c8e6c9' : '#fff', color: copiedHigh ? '#1b5e20' : '#555',
                     fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
                   }}
                 >
-                  {copiedZuLiu ? '✓' : '复制'}
+                  {copiedHigh ? '✓' : '复制'}
                 </button>
               </div>
               <div style={{ fontSize: 12, color: '#00695c', fontFamily: 'Consolas,monospace', lineHeight: '18px', wordBreak: 'break-all', padding: 4, overflowY: 'auto', flex: '1 1 0', minHeight: 0 }}>
-                {parsed.zuLiuNums.join(' ') || '—'}
+                {parsed.highNums.join(' ') || '—'}
               </div>
             </div>
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px dashed #ef9a9a', borderRadius: 3, background: '#fff', overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#ffebee', borderBottom: '1px solid #ffcdd2' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#c62828' }}>组三 {parsed.zuSan} 注</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#ffebee', borderBottom: '1px solid #ffcdd2' }}
+                title="自选号码中的组三 + 自选号码中不属于加减号码候选池的号码 + 分解容错（智取/博众）的无容错号码（去重）">
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#c62828' }}>保本投注 {parsed.baoben} 注</span>
                 <button
-                  onClick={() => handleCopy(parsed.zuSanNums.join(' '), 'zuSan')}
+                  onClick={() => handleCopy(parsed.baobenNums.join(' '), 'baoben')}
                   style={{
                     fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                    border: `1px solid ${copiedZuSan ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                    background: copiedZuSan ? '#c8e6c9' : '#fff', color: copiedZuSan ? '#1b5e20' : '#555',
+                    border: `1px solid ${copiedBaoben ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+                    background: copiedBaoben ? '#c8e6c9' : '#fff', color: copiedBaoben ? '#1b5e20' : '#555',
                     fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
                   }}
                 >
-                  {copiedZuSan ? '✓' : '复制'}
+                  {copiedBaoben ? '✓' : '复制'}
                 </button>
               </div>
               <div style={{ fontSize: 12, color: '#c62828', fontFamily: 'Consolas,monospace', lineHeight: '18px', wordBreak: 'break-all', padding: 4, overflowY: 'auto', flex: '1 1 0', minHeight: 0 }}>
-                {parsed.zuSanNums.join(' ') || '—'}
+                {parsed.baobenNums.join(' ') || '—'}
               </div>
             </div>
           </div>
@@ -330,9 +363,10 @@ function SelfPickModule({ issue, value, onChange }) {
     </div>
   );
 }
-
 function FullDataTable({
   data, showCount, setShowCount, trialDigits, onTrialChange,
+  // 加减号码需要回溯200期历史，而 data 已被 enrichData 窗口化，故另传完整数据
+  fullData,
   decompTexts = {}, bozhongTexts = {},
   setDecompText, setBozhongText,
   lockedDecomp, lockedBozhong,
@@ -348,6 +382,8 @@ function FullDataTable({
   selfPickIssue,
   selfPickValue,
   onSelfPickChange,
+  // 分解容错「无容错」号码（智取∪博众），并入保本投注
+  wuRongCuoNumbers = [],
 }) {
   const [copiedIssues, setCopiedIssues] = useState(new Set());
   
@@ -403,6 +439,54 @@ function FullDataTable({
     }
     return { map, map2, map3, map4 };
   }, [data, displayData]);
+
+  // 加减号码：各期用其前 ADD_SUB_LOOKBACK 期的横相加∪横相减候选池验证当期开奖号
+  // poolData = 完整历史 + 试验行（试验行只存在于窗口化的 data 末尾）
+  const poolData = useMemo(() => {
+    const base = fullData && fullData.length ? fullData : data;
+    const known = new Set(base.map(d => d.issue));
+    const extra = data.filter(d => !known.has(d.issue));
+    return extra.length ? [...base, ...extra] : base;
+  }, [fullData, data]);
+  const addSubIndex = useMemo(() => buildAddSubIndex(poolData), [poolData]);
+  const issueIndexMap = useMemo(() => {
+    const m = new Map();
+    poolData.forEach((d, i) => { if (!m.has(d.issue)) m.set(d.issue, i); });
+    return m;
+  }, [poolData]);
+  // 下期预留行：用最后一期往前200期建池，尚无开奖号故只出注数与复制，不出对错
+  const tailAddSubNumbers = useMemo(() => getAddSubNumbers(poolData, poolData.length), [poolData]);
+
+  const renderAddSubCell = (issue, index) => {
+    const rec = addSubIndex.get(issue);
+    const copied = copiedIssues.has(issue);
+    const btnStyle = {
+      fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+      border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+      background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
+      fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+    };
+    if (!rec) {
+      return <td key="addSub" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+    return (
+      <td key="addSub" style={{ padding: '2px 4px', background: rec.hit ? '#e8f5e9' : '#ffebee' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+          <span style={{ fontWeight: 800, color: rec.hit ? '#1b5e20' : '#b71c1c' }}>{rec.size}注</span>
+          <span title={rec.hit ? '当期开奖号在候选池内' : '当期开奖号不在候选池内'}
+            style={{ fontWeight: 900, fontSize: 15, color: rec.hit ? '#2e7d32' : '#c62828' }}>
+            {rec.hit ? '✓' : '✗'}
+          </span>
+          <button
+            style={btnStyle}
+            onClick={() => handleCopy(issue, getAddSubNumbers(poolData, index))}
+          >
+            {copied ? '✓' : '复制'}
+          </button>
+        </div>
+      </td>
+    );
+  };
 
   // 往期各期「最小容错等级」徽章数据源：仅对已开奖行（d1/d2/d3 有值）且该期分解非空时计算；
   //   下期预留行尚无开奖号 → 不产出徽章，等开奖数据更新、该行转为正常已开奖行后才显示
@@ -510,6 +594,7 @@ function FullDataTable({
                 <th>生号</th>
                 <th>连号</th>
                 <th>必出号</th>
+                <th title={`用其前${ADD_SUB_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>加减号码</th>
                 {/* 智取分解 / 博众分解 两列 */}
                 {DECOMP_COLS.map(c => (
                   <th key={'dcTh_' + c.kind} title={c.title}
@@ -591,6 +676,8 @@ function FullDataTable({
                   <td style={mustOutStyle}>
                     {mustOutDigits.length > 0 ? mustOutDigits.join('') : '-'}
                   </td>
+                  {/* 加减号码：前200期横相加∪横相减候选池注数 + 对错符号 + 复制 */}
+                  {renderAddSubCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数 */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, item.issue, c.title))}
                   {/* 杀百十合、杀百个合、杀十个合三列已彻底删除 - 用户要求 */}
@@ -624,6 +711,29 @@ function FullDataTable({
                   <td style={{ color: '#fff', fontWeight: 600, background: '#1e8449' }}>
                     {(() => { const d = lastItem.mustOutNums.filter(v => v !== -1); return d.length > 0 ? d.join('') : '-'; })()}
                   </td>
+                  {/* 加减号码 - 预留行：下期候选池注数 + 复制（尚未开奖，无对错） */}
+                  {(() => {
+                    const cpd = copiedIssues.has('next_' + nextIssue);
+                    return (
+                      <td key="addSubNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{tailAddSubNumbers.length}注</span>
+                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
+                          <button
+                            style={{
+                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
+                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+                            }}
+                            onClick={() => handleCopy('next_' + nextIssue, tailAddSubNumbers)}
+                          >
+                            {cpd ? '✓' : '复制'}
+                          </button>
+                        </div>
+                      </td>
+                    );
+                  })()}
                   {/* 智取分解 / 博众分解 - 预留行：下期分解条件录入框（点按钮后锁定，密码解锁再编辑） */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, appNextIssue || nextIssue, c.title))}
                   {/* 杀百十合、杀百个合、杀十个合三列预留行已彻底删除 - 用户要求 */}
@@ -633,10 +743,13 @@ function FullDataTable({
             </tbody>
           </table>
         </div>
-        {/* 右侧面板：自选号码 + 智取博众分解按钮 */}
+        {/* 右侧面板：自选号码输入 + 直选高倍 + 智取博众分解按钮 */}
         <div style={{ flex: 1, minWidth: 280, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ flex: '0 0 auto', display: 'flex' }}>
+            <SelfPickInputModule issue={selfPickIssue} value={selfPickValue} onChange={onSelfPickChange} />
+          </div>
           <div style={{ flex: '1 1 0', minHeight: 0, display: 'flex' }}>
-            <SelfPickModule issue={selfPickIssue} value={selfPickValue} onChange={onSelfPickChange} />
+            <ZhiXuanGaoBeiModule issue={selfPickIssue} value={selfPickValue} addSubNumbers={tailAddSubNumbers} wuRongCuoNumbers={wuRongCuoNumbers} />
           </div>
           <button
             onClick={onDecompSubmit}
