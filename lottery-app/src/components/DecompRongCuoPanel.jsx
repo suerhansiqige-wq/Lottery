@@ -130,7 +130,7 @@ function DecompModule({ title, issue, result, theme }) {
         <span style={{ fontSize: 15, fontWeight: 800 }}>{title}</span>
         <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.95 }}>
           {issue ? `${issue} 期` : '—'}
-          {result && result.valid ? ` · ${result.groupCount} 组分解 · 候选${result.total}注(直选高倍池)` : ''}
+          {result && result.valid ? ` · ${result.groupCount} 组分解 · 候选${result.total}注(自选组六∩加减号码池)` : ''}
         </span>
       </div>
 

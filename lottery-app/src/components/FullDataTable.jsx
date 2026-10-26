@@ -257,7 +257,7 @@ function SelfPickInputModule({ issue, value, onChange }) {
 }
 
 /** 直选高倍 / 保本投注
- *  直选高倍 = 自选号码中的组六 ∩ 加减号码预留行候选池（组三一律归保本投注）
+ *  直选高倍 = 自选号码中的组六 ∩ 加减号码预留行候选池，再剔除分解容错（智取/博众）的无容错号码
  *  保本投注 = 自选号码中的组三 + (自选号码 − 加减号码预留行候选池) + 分解容错（智取/博众）的无容错号码，合并去重
  */
 function ZhiXuanGaoBeiModule({ issue, value, addSubNumbers = [], wuRongCuoNumbers = [] }) {
@@ -291,7 +291,8 @@ function ZhiXuanGaoBeiModule({ issue, value, addSubNumbers = [], wuRongCuoNumber
     const poolSet = new Set(addSubNumbers);
     const isZuSan = (n) => new Set(n.split('')).size !== 3;
     const zuSanNums = nums.filter(isZuSan);
-    const highNums = nums.filter(n => !isZuSan(n) && poolSet.has(n));
+    const wuSet = new Set(wuRongCuoNumbers);
+    const highNums = nums.filter(n => !isZuSan(n) && poolSet.has(n) && !wuSet.has(n));
     const baobenNums = [...new Set([...zuSanNums, ...nums.filter(n => !poolSet.has(n)), ...wuRongCuoNumbers])]
       .sort((a, b) => Number(a) - Number(b));
     return { nums, highNums, baobenNums, high: highNums.length, baoben: baobenNums.length };
@@ -319,7 +320,7 @@ function ZhiXuanGaoBeiModule({ issue, value, addSubNumbers = [], wuRongCuoNumber
           <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', flex: '1 1 0', minHeight: 0 }}>
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px dashed #4dd0e1', borderRadius: 3, background: '#fff', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#e0f2f1', borderBottom: '1px solid #b2dfdb' }}
-                title="自选号码中的组六 ∩ 加减号码（预留行待开奖格）候选池；组三一律归保本投注">
+                title="自选号码中的组六 ∩ 加减号码（预留行待开奖格）候选池，已剔除分解容错（智取/博众）的无容错号码；组三一律归保本投注">
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#00695c' }}>直选高倍 {parsed.high} 注</span>
                 <button
                   onClick={() => handleCopy(parsed.highNums.join(' '), 'high')}

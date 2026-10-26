@@ -337,7 +337,7 @@ function App() {
     for (const t of tokens) {
       if (seen.has(t)) continue;
       seen.add(t);
-      // 仅组六，且必须在加减号码预留行候选池内（= 直选高倍池）
+      // 仅组六，且必须在加减号码预留行候选池内（= 直选高倍池；无容错号码仍参与分解，只在右侧框剔除）
       if (new Set(t.split('')).size === 3 && addSubTailPool.has(t)) out.push(t);
     }
     return out;
