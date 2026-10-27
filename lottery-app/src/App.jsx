@@ -779,6 +779,7 @@ return (
           bozhongResult={bozhongResult}
           onDecompSubmit={onDecompSubmit}
           submitFlash={submitFlash}
+          wuRongCuoNumbers={wuRongCuoNumbers}
         />
       </div>
 

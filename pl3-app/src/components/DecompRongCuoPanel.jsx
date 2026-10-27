@@ -16,6 +16,31 @@ const ACCENT = {
   bz: { bg: '#e8f5e9', border: '#43a047', head: '#1b5e20', tag: '博众' },
 };
 
+/**
+ * 把「无容错」号码（智取无容错 ∪ 博众无容错）从分解面板的容错1~8 展示中剔除。
+ * 这些号码只保留在右侧「保本投注」框里，不再作为可投注的容错候选出现。
+ *
+ * 注意：errorCount 只取决于号码本身与 20 组分解式，与候选集无关，所以这一步是
+ * 纯展示层过滤 —— 不能真的把它们从 computeRongCuo 的候选集里拿掉，否则
+ * 「无容错」格恒为 0（自我否定），且 直选高倍框 会立刻把它重新收回来形成死循环。
+ * 「无容错」格本身保留，它正是这批号码的出处。
+ */
+function excludeWu(result, wuSet) {
+  if (!result || !result.valid || wuSet.size === 0) return result;
+  const map = (cell) => {
+    const numbers = cell.numbers.filter(n => !wuSet.has(n));
+    const zuLiu = numbers.filter(n => new Set(n.split('')).size === 3).length;
+    return { ...cell, numbers, count: numbers.length, zuLiu, zuSan: numbers.length - zuLiu };
+  };
+  return {
+    ...result,
+    levels: result.levels.map(map),
+    eliminated: result.eliminated.filter(n => !wuSet.has(n)),
+    // 无容错号码必然全部来自候选集，故直接减去其个数
+    total: Math.max(0, result.total - wuSet.size),
+  };
+}
+
 /** 复制按钮：即时反馈，避免等待 clipboard promise 造成的迟滞 */
 function CopyBtn({ text, disabled }) {
   const [done, setDone] = useState(false);
@@ -130,7 +155,7 @@ function DecompModule({ title, issue, result, theme }) {
         <span style={{ fontSize: 15, fontWeight: 800 }}>{title}</span>
         <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.95 }}>
           {issue ? `${issue} 期` : '—'}
-          {result && result.valid ? ` · ${result.groupCount} 组分解 · 候选${result.total}注(自选组六∩加减号码池)` : ''}
+          {result && result.valid ? ` · ${result.groupCount} 组分解 · 候选${result.total}注(自选组六∩加减号码池，已剔无容错)` : ''}
         </span>
       </div>
 
@@ -332,26 +357,32 @@ export default function DecompRongCuoPanel({
   bozhongIssue, bozhongResult,
   onDecompSubmit,
   submitFlash,
+  wuRongCuoNumbers = [],
 }) {
+  // 无容错号码只进「保本投注」框：从两套结果的容错1~8 / 交集 / 合并频次中剔除
+  const wuSet = useMemo(() => new Set(wuRongCuoNumbers), [wuRongCuoNumbers]);
+  const zq = useMemo(() => excludeWu(decompResult, wuSet), [decompResult, wuSet]);
+  const bz = useMemo(() => excludeWu(bozhongResult, wuSet), [bozhongResult, wuSet]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* 智取（黄）与博众（绿）并排等高贴边 */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
-        <DecompModule title="智取分解容错" issue={decompIssue} result={decompResult} theme="zq" />
-        <DecompModule title="博众分解容错" issue={bozhongIssue} result={bozhongResult} theme="bz" />
+        <DecompModule title="智取分解容错" issue={decompIssue} result={zq} theme="zq" />
+        <DecompModule title="博众分解容错" issue={bozhongIssue} result={bz} theme="bz" />
       </div>
       <InterModule
         decompIssue={decompIssue}
         bozhongIssue={bozhongIssue}
-        decompResult={decompResult}
-        bozhongResult={bozhongResult}
+        decompResult={zq}
+        bozhongResult={bz}
       />
       {/* 容错1-5 合并频次（用户要求置于应用最下方） */}
       <MergeFreqModule
         decompIssue={decompIssue}
         bozhongIssue={bozhongIssue}
-        decompResult={decompResult}
-        bozhongResult={bozhongResult}
+        decompResult={zq}
+        bozhongResult={bz}
       />
     </div>
   );
