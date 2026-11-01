@@ -352,6 +352,9 @@ const HJS_COLS = [
 // 只隐藏表格展示，数据照常计算（加减号码候选池依赖横相加与横相减）；改回 true 即恢复显示
 const SHOW_HJS_SLBC_COLS = false;
 
+// 2026-11-01 用户要求：加减号码列也隐藏。候选池本身照常计算（直选高倍/保本取数依赖它），只是不再占一列
+const SHOW_ADDSUB_COL = false;
+
 function renderHjsCells(src) {
   if (!SHOW_HJS_SLBC_COLS) return [];
   return HJS_COLS.map((c, i) => {
@@ -669,6 +672,7 @@ function FullDataTable({
   const tailAddSubNumbers = useMemo(() => getAddSubNumbers(poolData, poolData.length), [poolData]);
 
   const renderAddSubCell = (issue, index) => {
+    if (!SHOW_ADDSUB_COL) return null;
     const rec = addSubIndex.get(issue);
     const copied = copiedIssues.has(issue);
     if (!rec) {
@@ -941,7 +945,7 @@ function FullDataTable({
                 {SHOW_HJS_SLBC_COLS && <th>生号</th>}
                 {SHOW_HJS_SLBC_COLS && <th>连号</th>}
                 {SHOW_HJS_SLBC_COLS && <th>必出号</th>}
-                <th title={`用其前${ADD_SUB_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>加减号码</th>
+                {SHOW_ADDSUB_COL && <th title={`用其前${ADD_SUB_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>加减号码</th>}
                 {/* 参考一/参考二/胆码三列表头已彻底删除 - 用户要求 */}
                 {/* 智取分解 / 博众分解 两列（表格最右侧，与福彩3D 同位置逻辑） */}
                 {DECOMP_COLS.map(c => (
@@ -1078,7 +1082,7 @@ function FullDataTable({
                     </td>
                   )}
                   {/* 加减号码 - 预留行：下期候选池注数 + 复制（尚未开奖，无对错） */}
-                  {(() => {
+                  {SHOW_ADDSUB_COL && (() => {
                     const cpd = copiedIssues.has('next_' + nextIssue);
                     return (
                       <td key="addSubNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
