@@ -168,16 +168,19 @@ const HJS_COLS = [
   { field: 'vAdd', th: '竖相加', title: '竖相加：(本期百+上期百) (本期十+上期十) (本期个+上期个) 取尾 三位连写' },
 ];
 
-// 2026-11-01 用户要求：横相减/横相加/竖相减/竖相加/生号/连号/必出号 七列全部隐藏。
+// 横相减/横相加/竖相减/竖相加 四列开关：2026-11-01 用户要求隐藏。
 // 只隐藏表格展示，数据照常计算（加减号码候选池依赖横相加与横相减）；改回 true 即恢复显示
-const SHOW_HJS_SLBC_COLS = false;
+const SHOW_HJS_COLS = false;
 
-// 2026-11-01 用户要求：加减号码列也隐藏。候选池本身照常计算（直选高倍/保本取数依赖它），只是不再占一列
+// 生号/连号/必出号 三列开关：2026-11-01 先随横竖加减一起隐藏，同日应用户要求恢复显示
+const SHOW_SLBC_COLS = true;
+
+// 加减号码列开关：2026-11-01 用户要求隐藏。候选池本身照常计算（直选高倍/保本取数依赖它），只是不再占一列
 const SHOW_ADDSUB_COL = false;
 
 // 渲染横加减/竖加减4个合并单元格；src 为空或该组无上期数据（全 null）时显示 -
 function renderHjsCells(src) {
-  if (!SHOW_HJS_SLBC_COLS) return [];
+  if (!SHOW_HJS_COLS) return [];
   return HJS_COLS.map((c, i) => {
     const arr = src ? src[c.field] : null;
     const has = arr && arr.some(v => v !== null && v !== undefined);
@@ -398,6 +401,7 @@ function ZhiXuanGaoBeiModule({ issue, value, jxValue = '', addSubNumbers = [], w
     </div>
   );
 }
+
 function FullDataTable({
   data, showCount, setShowCount, trialDigits, onTrialChange,
   // 加减号码需要回溯200期历史，而 data 已被 enrichData 窗口化，故另传完整数据
@@ -627,12 +631,12 @@ function FullDataTable({
                 <th>和值</th>
                 <th>跨度</th>
                 {/* 横加减/竖加减4列（Excel G~R 每3列合并为1格） */}
-                {SHOW_HJS_SLBC_COLS && HJS_COLS.map((c, i) => (
+                {SHOW_HJS_COLS && HJS_COLS.map((c, i) => (
                   <th key={'hjsTh' + i} title={c.title}>{c.th}</th>
                 ))}
-                {SHOW_HJS_SLBC_COLS && <th>生号</th>}
-                {SHOW_HJS_SLBC_COLS && <th>连号</th>}
-                {SHOW_HJS_SLBC_COLS && <th>必出号</th>}
+                {SHOW_SLBC_COLS && <th>生号</th>}
+                {SHOW_SLBC_COLS && <th>连号</th>}
+                {SHOW_SLBC_COLS && <th>必出号</th>}
                 {SHOW_ADDSUB_COL && <th title={`用其前${ADD_SUB_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>加减号码</th>}
                 {/* 智取分解 / 博众分解 两列 */}
                 {DECOMP_COLS.map(c => (
@@ -704,19 +708,19 @@ function FullDataTable({
                   {/* 横加减/竖加减：下移一行，显示上期算出的值（与生号/连号/必出号同一规则） */}
                   {renderHjsCells(prevData)}
                   {/* 生号 */}
-                  {SHOW_HJS_SLBC_COLS && (
+                  {SHOW_SLBC_COLS && (
                     <td style={{ ...shengHaoStyle }}>
                       {shengHaoDigits.length > 0 ? shengHaoDigits.join('') : '-'}
                     </td>
                   )}
                   {/* 连号 */}
-                  {SHOW_HJS_SLBC_COLS && (
+                  {SHOW_SLBC_COLS && (
                     <td style={{ ...lianHaoStyle }}>
                       {lianHaoDigits.length > 0 ? lianHaoDigits.join('') : '-'}
                     </td>
                   )}
                   {/* 必出号 */}
-                  {SHOW_HJS_SLBC_COLS && (
+                  {SHOW_SLBC_COLS && (
                     <td style={mustOutStyle}>
                       {mustOutDigits.length > 0 ? mustOutDigits.join('') : '-'}
                     </td>
@@ -745,19 +749,19 @@ function FullDataTable({
                   {/* 横加减/竖加减 - 预留行显示最后一期算出的值（与生号/连号/必出号一致） */}
                   {renderHjsCells(lastItem)}
                   {/* 生号 - 预留行显示最后一期数据 */}
-                  {SHOW_HJS_SLBC_COLS && (
+                  {SHOW_SLBC_COLS && (
                     <td style={{ color: '#fff', fontWeight: 600, background: '#1e8449' }}>
                       {(() => { const d = lastItem.shenghao.filter(v => v !== -1); return d.length > 0 ? d.join('') : '-'; })()}
                     </td>
                   )}
                   {/* 连号 - 预留行显示最后一期数据 */}
-                  {SHOW_HJS_SLBC_COLS && (
+                  {SHOW_SLBC_COLS && (
                     <td style={{ color: '#fff', fontWeight: 600, background: '#1e8449' }}>
                       {(() => { const d = lastItem.lianhao.filter(v => v !== -1); return d.length > 0 ? d.join('') : '-'; })()}
                     </td>
                   )}
                   {/* 必出号 - 预留行显示最后一期数据 */}
-                  {SHOW_HJS_SLBC_COLS && (
+                  {SHOW_SLBC_COLS && (
                     <td style={{ color: '#fff', fontWeight: 600, background: '#1e8449' }}>
                       {(() => { const d = lastItem.mustOutNums.filter(v => v !== -1); return d.length > 0 ? d.join('') : '-'; })()}
                     </td>
