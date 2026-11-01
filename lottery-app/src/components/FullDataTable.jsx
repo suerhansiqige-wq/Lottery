@@ -212,42 +212,40 @@ const calcDecompBoxWidth = (texts, issues) => {
   return Math.min(Math.max(maxLen * DECOMP_CHAR_W + DECOMP_BOX_CHROME, DECOMP_MIN_W), DECOMP_MAX_W);
 };
 
-/** 自选号码：手动输入框，号码源（供下方直选高倍与分解容错使用） */
-function SelfPickInputModule({ issue, value, onChange }) {
-  const count = useMemo(() => {
-    const seen = new Set();
-    for (const t of (value || '').split(/[\s,，;；]+/)) if (/^\d{3}$/.test(t)) seen.add(t);
-    return seen.size;
-  }, [value]);
+/** 号码输入卡（左：直选大底，右：精选组选号码）：手动输入框
+ *  左卡（大底）是直选号码源，供下方直选高倍与分解容错使用；
+ *  右卡（精选）填组选号码，展开成直选号码后从大底剔除并进保本投注 */
+function SelfPickInputModule({ issue, title, value, onChange, accent = '#00838f', bg = '#e0f7fa', badgeColor = '#00695c', border = '#4dd0e1', titleSize = 18, placeholder = '手动输入号码，空格/逗号/换行分隔' }) {
+  const count = useMemo(() => parsePickNumbers(value).length, [value]);
 
   return (
-    <div style={{ width: '100%', border: '2px solid #00838f', borderRadius: 6, background: '#e0f7fa', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ width: '100%', border: `2px solid ${accent}`, borderRadius: 6, background: bg, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <div style={{
-        padding: '6px 10px', background: '#00838f', color: '#fff',
+        padding: '6px 10px', background: accent, color: '#fff',
         display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8, flexWrap: 'wrap',
       }}>
-        <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.95 }}>
-          {issue ? `${issue} 期（最新未开奖）` : '—'}
-        </span>
-        <span style={{ fontSize: 15, fontWeight: 800 }}>自选号码</span>
+        <span style={{ fontSize: titleSize, fontWeight: 800 }}>{title}</span>
         <span style={{
-          fontSize: 12, fontWeight: 800, color: '#00695c',
+          fontSize: 12, fontWeight: 800, color: badgeColor,
           background: '#fff', borderRadius: 10, padding: '1px 8px', whiteSpace: 'nowrap',
         }}>
           {count} 注
+        </span>
+        <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.9, marginLeft: 'auto' }}>
+          {issue ? `${issue} 期` : '—'}
         </span>
       </div>
       <div style={{ padding: 8 }}>
         <textarea
           value={value || ''}
           onChange={(e) => onChange && onChange(e.target.value)}
-          placeholder="手动输入号码，空格/逗号/换行分隔"
+          placeholder={placeholder}
           spellCheck={false}
           style={{
             display: 'block', width: '100%', boxSizing: 'border-box', height: 72, resize: 'none',
             fontSize: 12, fontFamily: 'Consolas,monospace', lineHeight: '16px',
-            padding: 4, border: '1px solid #4dd0e1', borderRadius: 3,
-            background: '#fff', color: '#00695c',
+            padding: 4, border: `1px solid ${border}`, borderRadius: 3,
+            background: '#fff', color: badgeColor,
             overflowY: 'auto', cursor: 'text',
           }}
         />
@@ -256,11 +254,42 @@ function SelfPickInputModule({ issue, value, onChange }) {
   );
 }
 
+/** 三位数字的全排列（去重后交给调用方的 Set）：组六 6 注、组三 3 注、豹子 1 注 */
+const permute3 = (num) => {
+  const d = num.split('');
+  const out = [];
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+      if (j === i) continue;
+      out.push(d[i] + d[j] + d[3 - i - j]);
+    }
+  }
+  return out;
+};
+
+export const parsePickNumbers = (text) => {
+  const seen = new Set();
+  const nums = [];
+  for (const t of (text || '').split(/[\s,，;；]+/)) {
+    if (!/^\d{3}$/.test(t) || seen.has(t)) continue;
+    seen.add(t);
+    nums.push(t);
+  }
+  return nums;
+};
+
+/** 组选号码展开为直选号码；同一组选的不同写法（012 与 210）展开结果相同，自动只留一份 */
+export const expandZuxuanToZhixuan = (tokens) => {
+  const out = new Set();
+  for (const t of tokens) for (const p of permute3(t)) out.add(p);
+  return out;
+};
+
 /** 直选高倍 / 保本投注
- *  直选高倍 = 自选号码中的组六 ∩ 加减号码预留行候选池，再剔除分解容错（智取/博众）的无容错号码
- *  保本投注 = 自选号码中的组三 + (自选号码 − 加减号码预留行候选池) + 分解容错（智取/博众）的无容错号码，合并去重
+ *  直选高倍 = 直选大底中的组六、且在加减号码预留行候选池内，再剔除分解容错（智取/博众）的无容错号码，并剔除精选展开的直选号码
+ *  保本投注 = 直选大底中的组三 + 直选大底中不在加减号码预留行候选池的号码 + 分解容错（智取/博众）的无容错号码 + 精选组选展开的直选号码，合并去重，且只保留大底里有的号码
  */
-function ZhiXuanGaoBeiModule({ issue, value, addSubNumbers = [], wuRongCuoNumbers = [] }) {
+function ZhiXuanGaoBeiModule({ issue, value, jxValue = '', addSubNumbers = [], wuRongCuoNumbers = [] }) {
   const [copiedHigh, setCopiedHigh] = useState(false);
   const [copiedBaoben, setCopiedBaoben] = useState(false);
 
@@ -280,23 +309,20 @@ function ZhiXuanGaoBeiModule({ issue, value, addSubNumbers = [], wuRongCuoNumber
   };
 
   const parsed = useMemo(() => {
-    const tokens = (value || '').split(/[\s,，;；]+/).filter(t => /^\d{3}$/.test(t));
-    const seen = new Set();
-    const nums = [];
-    for (const t of tokens) {
-      if (seen.has(t)) continue;
-      seen.add(t);
-      nums.push(t);
-    }
+    const nums = parsePickNumbers(value);
     const poolSet = new Set(addSubNumbers);
     const isZuSan = (n) => new Set(n.split('')).size !== 3;
     const zuSanNums = nums.filter(isZuSan);
     const wuSet = new Set(wuRongCuoNumbers);
-    const highNums = nums.filter(n => !isZuSan(n) && poolSet.has(n) && !wuSet.has(n));
-    const baobenNums = [...new Set([...zuSanNums, ...nums.filter(n => !poolSet.has(n)), ...wuRongCuoNumbers])]
+    const jxNums = expandZuxuanToZhixuan(parsePickNumbers(jxValue));
+    const dadiSet = new Set(nums);
+    const highNums = nums.filter(n => !isZuSan(n) && poolSet.has(n) && !wuSet.has(n) && !jxNums.has(n));
+    // 保本只收大底里有的号码：精选展开出但大底没有的排列不进框
+    const baobenNums = [...new Set([...zuSanNums, ...nums.filter(n => !poolSet.has(n)), ...wuRongCuoNumbers, ...jxNums])]
+      .filter(n => dadiSet.has(n))
       .sort((a, b) => Number(a) - Number(b));
     return { nums, highNums, baobenNums, high: highNums.length, baoben: baobenNums.length };
-  }, [value, addSubNumbers, wuRongCuoNumbers]);
+  }, [value, jxValue, addSubNumbers, wuRongCuoNumbers]);
 
   return (
     <div style={{ width: '100%', flex: 1, border: '2px solid #00838f', borderRadius: 6, background: '#e0f7fa', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -320,7 +346,7 @@ function ZhiXuanGaoBeiModule({ issue, value, addSubNumbers = [], wuRongCuoNumber
           <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', flex: '1 1 0', minHeight: 0 }}>
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px dashed #4dd0e1', borderRadius: 3, background: '#fff', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#e0f2f1', borderBottom: '1px solid #b2dfdb' }}
-                title="自选号码中的组六 ∩ 加减号码（预留行待开奖格）候选池，已剔除分解容错（智取/博众）的无容错号码；组三一律归保本投注">
+                title="直选大底中的组六，且属于加减号码（预留行待开奖格）候选池，已剔除分解容错（智取/博众）的无容错号码，并已剔除精选组选号码展开的直选号码；组三一律归保本投注">
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#00695c' }}>直选高倍 {parsed.high} 注</span>
                 <button
                   onClick={() => handleCopy(parsed.highNums.join(' '), 'high')}
@@ -340,7 +366,7 @@ function ZhiXuanGaoBeiModule({ issue, value, addSubNumbers = [], wuRongCuoNumber
             </div>
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px dashed #ef9a9a', borderRadius: 3, background: '#fff', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#ffebee', borderBottom: '1px solid #ffcdd2' }}
-                title="自选号码中的组三 + 自选号码中不属于加减号码候选池的号码 + 分解容错（智取/博众）的无容错号码（去重）">
+                title="直选大底中的组三 + 直选大底中不属于加减号码候选池的号码 + 分解容错（智取/博众）的无容错号码 + 精选组选号码展开的直选号码，合并后重复号码只保留一组；大底里没有的号码不进本框">
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#c62828' }}>保本投注 {parsed.baoben} 注</span>
                 <button
                   onClick={() => handleCopy(parsed.baobenNums.join(' '), 'baoben')}
@@ -379,10 +405,13 @@ function FullDataTable({
   // 智取、博众分解按钮（从 DecompRongCuoPanel 移入）
   onDecompSubmit,
   submitFlash,
-  // 自选号码（从 DecompRongCuoPanel 移入右侧面板）
+  // 直选大底（从 DecompRongCuoPanel 移入右侧面板）
+  // 左卡「直选大底」= selfPick*，是直选号码源；右卡「精选」= selfPickJx*，填组选号码，展开后从大底剔出并进保本投注
   selfPickIssue,
   selfPickValue,
   onSelfPickChange,
+  selfPickJxValue,
+  onSelfPickJxChange,
   // 分解容错「无容错」号码（智取∪博众），并入保本投注
   wuRongCuoNumbers = [],
 }) {
@@ -744,13 +773,28 @@ function FullDataTable({
             </tbody>
           </table>
         </div>
-        {/* 右侧面板：自选号码输入 + 直选高倍 + 智取博众分解按钮 */}
+        {/* 右侧面板：直选大底 + 精选（并排）+ 直选高倍 + 智取博众分解按钮 */}
         <div style={{ flex: 1, minWidth: 280, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ flex: '0 0 auto', display: 'flex' }}>
-            <SelfPickInputModule issue={selfPickIssue} value={selfPickValue} onChange={onSelfPickChange} />
+          <div style={{ flex: '0 0 auto', display: 'flex', gap: 8 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <SelfPickInputModule issue={selfPickIssue} title="直选大底" value={selfPickValue} onChange={onSelfPickChange} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <SelfPickInputModule
+                issue={selfPickIssue}
+                title="精选"
+                value={selfPickJxValue}
+                onChange={onSelfPickJxChange}
+                placeholder="输入组选号码，自动展开为直选号码，空格/逗号/换行分隔"
+                accent="#ef6c00"
+                bg="#fff3e0"
+                badgeColor="#b35309"
+                border="#ffb74d"
+              />
+            </div>
           </div>
           <div style={{ flex: '1 1 0', minHeight: 0, display: 'flex' }}>
-            <ZhiXuanGaoBeiModule issue={selfPickIssue} value={selfPickValue} addSubNumbers={tailAddSubNumbers} wuRongCuoNumbers={wuRongCuoNumbers} />
+            <ZhiXuanGaoBeiModule issue={selfPickIssue} value={selfPickValue} jxValue={selfPickJxValue} addSubNumbers={tailAddSubNumbers} wuRongCuoNumbers={wuRongCuoNumbers} />
           </div>
           <button
             onClick={onDecompSubmit}

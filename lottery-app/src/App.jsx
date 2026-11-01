@@ -5,7 +5,7 @@ import decompositionData from './data/decompositionData.json'
 import bozhongData from './data/bozhongData.json'
 import { parseDecompGroups, computeRongCuo } from './utils/decompRongCuo.js'
 import { getAddSubNumbers } from './utils/addSubPool.js'
-import FullDataTable from './components/FullDataTable.jsx'
+import FullDataTable, { parsePickNumbers, expandZuxuanToZhixuan } from './components/FullDataTable.jsx'
 import DecompRongCuoPanel from './components/DecompRongCuoPanel.jsx'
 import { loadFromGist, saveToGist, setGistToken, getGistToken, clearGistToken, testGistToken } from './utils/gistSync.js'
 
@@ -158,20 +158,26 @@ function App() {
   const setBozhongText = makeTextSetter(setBozhongTextsState, '3d_bozhongTexts', 'bozhong');
 
   // 自选号码：按「最新未开奖期」存储用户手填号码，localStorage 键 3d_selfPick（仅存非空期）
+  // 这是右侧「直选大底」框，同时也是分解容错与直选高倍/保本投注的号码源
   const [selfPickTexts, setSelfPickTextsState] = useState(() => loadOverrides('3d_selfPick'));
-  const setSelfPickText = useCallback((issue, val) => {
+  const makeIssueTextSetter = (setState, storageKey) => (issue, val) => {
     if (!issue) return;
-    setSelfPickTextsState(prev => {
+    setState(prev => {
       const has = !!(val && val.trim());
       // 值未变化时返回原对象，避免 setState 触发重渲染形成死循环
       if (has && prev[issue] === val) return prev;
       if (!has && !(issue in prev)) return prev;
       const next = { ...prev };
       if (has) next[issue] = val; else delete next[issue];
-      safeSetItem('3d_selfPick', JSON.stringify(next));
+      safeSetItem(storageKey, JSON.stringify(next));
       return next;
     });
-  }, []);
+  };
+  const setSelfPickText = useCallback(makeIssueTextSetter(setSelfPickTextsState, '3d_selfPick'), []);
+
+  // 右侧「精选」框：填组选号码，独立存储；展开成直选后从大底剔出并并入保本投注，同时从分解容错候选集里剔除
+  const [selfPickJxTexts, setSelfPickJxTextsState] = useState(() => loadOverrides('3d_selfPickJx'));
+  const setSelfPickJxText = useCallback(makeIssueTextSetter(setSelfPickJxTextsState, '3d_selfPickJx'), []);
 
   // 锁定集合写入：接收新 Set，同步落盘
   const makeLockSetter = (setState, storageKey) => (val) => {
@@ -325,23 +331,21 @@ function App() {
   // ============================================================
   // 【算法锁定】分解容错计算（候选集 = 《直选高倍》号码池，见下）
   // ============================================================
-  // 【候选集】取《自选号码》中的组六（三位互不相同）再与「加减号码」下期预留行
-  // 候选池求交，即右侧「直选高倍」框里的号码作为智取/博众分解容错的候选集；
-  // 组三与不在加减池内的号码都不参与分解。候选为空时容错模块显示空候选提示，
-  // 不回退到全部 1000 注
+  // 【候选集】取直选大底里的组六（三位互不相同），与「加减号码」下期预留行候选池求同，
+  // 再剔除精选框组选号展开的直选号码，剩下的就是右侧「直选高倍」框的号码池，
+  // 作为智取/博众分解容错的候选集；组三、池外号码与精选号码都不参与分解。
+  // 候选为空时容错模块显示空候选提示，不回退到全部 1000 注
   // ============================================================
   const selfPickZuLiu = useMemo(() => {
-    const tokens = (selfPickTexts[nextIssue] || '').split(/[\s,，;；]+/).filter(t => /^\d{3}$/.test(t));
-    const seen = new Set();
+    // 分解候选 = 直选高倍框的号码池：大底里的组六、在加减号码预留行候选池内、并剔除精选组选展开的直选号。
+    // 唯一保留的是「无容错」号码：它们必须留在候选集内参与分解，否则容错结果会自我收缩（右侧框只做展示层剔除）
+    const jxZhiXuan = expandZuxuanToZhixuan(parsePickNumbers(selfPickJxTexts[nextIssue] || ''));
     const out = [];
-    for (const t of tokens) {
-      if (seen.has(t)) continue;
-      seen.add(t);
-      // 仅组六，且必须在加减号码预留行候选池内（= 直选高倍池；无容错号码仍参与分解，只在右侧框剔除）
-      if (new Set(t.split('')).size === 3 && addSubTailPool.has(t)) out.push(t);
+    for (const t of parsePickNumbers(selfPickTexts[nextIssue] || '')) {
+      if (new Set(t.split('')).size === 3 && addSubTailPool.has(t) && !jxZhiXuan.has(t)) out.push(t);
     }
     return out;
-  }, [selfPickTexts, nextIssue, addSubTailPool]);
+  }, [selfPickTexts, selfPickJxTexts, nextIssue, addSubTailPool]);
 
   // 依赖数组必须包含 decompTexts / bozhongTexts —— 历史踩坑：漏依赖会导致
   // textarea 编辑后容错结果不重算（编辑框看起来“失效”）
@@ -765,6 +769,8 @@ return (
             selfPickIssue={nextIssue}
             selfPickValue={selfPickTexts[nextIssue] || ''}
             onSelfPickChange={(v) => setSelfPickText(nextIssue, v)}
+            selfPickJxValue={selfPickJxTexts[nextIssue] || ''}
+            onSelfPickJxChange={(v) => setSelfPickJxText(nextIssue, v)}
             wuRongCuoNumbers={wuRongCuoNumbers}
           />
         </main>

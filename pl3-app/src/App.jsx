@@ -4,7 +4,7 @@ import decompositionData from './data/decompositionData.json'
 import bozhongData from './data/bozhongData.json'
 import { parseDecompGroups, computeRongCuo } from './utils/decompRongCuo.js'
 import { getAddSubNumbers } from './utils/addSubPool.js'
-import FullDataTable from './components/FullDataTable.jsx'
+import FullDataTable, { parsePickNumbers, expandZuxuanToZhixuan } from './components/FullDataTable.jsx'
 import DecompRongCuoPanel from './components/DecompRongCuoPanel.jsx'
 import { loadFromGist, saveToGist, setGistToken, getGistToken, clearGistToken, testGistToken } from './utils/gistSync.js'
 
@@ -91,20 +91,26 @@ function App() {
   const setBozhongText = makeTextSetter(setBozhongTextsState, 'pl3_bozhongTexts', 'bozhong');
 
   // 自选号码：按「最新未开奖期」存储，键 pl3_selfPick（仅存非空期）
+  // 这是右侧「直选大底」框，同时也是分解容错与直选高倍/保本投注的号码源
   const [selfPickTexts, setSelfPickTextsState] = useState(() => loadOverrides('pl3_selfPick'));
-  const setSelfPickText = useCallback((issue, val) => {
+  const makeIssueTextSetter = (setState, storageKey) => (issue, val) => {
     if (!issue) return;
-    setSelfPickTextsState(prev => {
+    setState(prev => {
       const has = !!(val && val.trim());
       // 值未变化时返回原对象，避免 setState 触发重渲染形成死循环
       if (has && prev[issue] === val) return prev;
       if (!has && !(issue in prev)) return prev;
       const next = { ...prev };
       if (has) next[issue] = val; else delete next[issue];
-      safeSetItem('pl3_selfPick', JSON.stringify(next));
+      safeSetItem(storageKey, JSON.stringify(next));
       return next;
     });
-  }, []);
+  };
+  const setSelfPickText = useCallback(makeIssueTextSetter(setSelfPickTextsState, 'pl3_selfPick'), []);
+
+  // 右侧「精选」框：填组选号码，独立存储；展开成直选后从大底剔出并并入保本投注，同时从分解容错候选集里剔除
+  const [selfPickJxTexts, setSelfPickJxTextsState] = useState(() => loadOverrides('pl3_selfPickJx'));
+  const setSelfPickJxText = useCallback(makeIssueTextSetter(setSelfPickJxTextsState, 'pl3_selfPickJx'), []);
 
   const makeLockSetter = (setState, storageKey) => (val) => {
     setState(prev => {
@@ -192,18 +198,17 @@ function App() {
   const decompIssue = nextIssue;
   const bozhongIssue = nextIssue;
 
-  // 候选集 = 《直选高倍》号码池 = 自选号码的组六 ∩ 加减号码预留行候选池；组三与池外号码不参与分解
+  // 候选集 = 《直选高倍》号码池 = 大底里的组六、且在加减号码预留行候选池内、且不在精选展开的直选号里；组三与池外号码不参与分解
   const selfPickZuLiu = useMemo(() => {
-    const tokens = (selfPickTexts[nextIssue] || '').split(/[\s,，;；]+/).filter(t => /^\d{3}$/.test(t));
-    const seen = new Set();
+    // 分解候选 = 直选高倍框的号码池：大底里的组六、在加减号码预留行候选池内、并剔除精选组选展开的直选号。
+    // 唯一保留的是「无容错」号码：它们必须留在候选集内参与分解，否则容错结果会自我收缩（右侧框只做展示层剔除）
+    const jxZhiXuan = expandZuxuanToZhixuan(parsePickNumbers(selfPickJxTexts[nextIssue] || ''));
     const out = [];
-    for (const t of tokens) {
-      if (seen.has(t)) continue;
-      seen.add(t);
-      if (new Set(t.split('')).size === 3 && addSubTailPool.has(t)) out.push(t);
+    for (const t of parsePickNumbers(selfPickTexts[nextIssue] || '')) {
+      if (new Set(t.split('')).size === 3 && addSubTailPool.has(t) && !jxZhiXuan.has(t)) out.push(t);
     }
     return out;
-  }, [selfPickTexts, nextIssue, addSubTailPool]);
+  }, [selfPickTexts, selfPickJxTexts, nextIssue, addSubTailPool]);
 
   const decompResult = useMemo(
     () => computeRongCuo(parseDecompGroups(decompTexts[decompIssue] || ''), selfPickZuLiu),
@@ -605,6 +610,8 @@ function App() {
             selfPickIssue={nextIssue}
             selfPickValue={selfPickTexts[nextIssue] || ''}
             onSelfPickChange={(v) => setSelfPickText(nextIssue, v)}
+            selfPickJxValue={selfPickJxTexts[nextIssue] || ''}
+            onSelfPickJxChange={(v) => setSelfPickJxText(nextIssue, v)}
             wuRongCuoNumbers={wuRongCuoNumbers}
           />
         </main>
