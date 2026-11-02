@@ -300,117 +300,6 @@ export const expandZuxuanToZhixuan = (tokens) => {
   return out;
 };
 
-/** 豹子号（三位同号）：每期固定并入保本投注，即使直选大底里没有 */
-const BAOZI_NUMS = Array.from({ length: 10 }, (_, i) => `${i}${i}${i}`);
-const BAOZI_SET = new Set(BAOZI_NUMS);
-
-/** 直选高倍 / 保本投注
- *  直选高倍 = 直选大底中的组六、且在加减号码预留行候选池内、且在综合列候选池内，再剔除分解容错（智取/博众）的无容错号码，并剔除精选展开的直选号码
- *  保本投注 = 直选大底中的组三 + 直选大底中不在加减号码预留行候选池的号码 + 分解容错（智取/博众）的无容错号码 + 精选组选展开的直选号码 + 10 个豹子号，合并去重；除豹子外只保留大底里有的号码
- */
-function ZhiXuanGaoBeiModule({ issue, value, jxValue = '', addSubNumbers = [], zongHeNumbers = [], wuRongCuoNumbers = [] }) {
-  const [copiedHigh, setCopiedHigh] = useState(false);
-  const [copiedBaoben, setCopiedBaoben] = useState(false);
-
-  const handleCopy = async (text, type) => {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch (err) {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      try { document.execCommand('copy'); } catch {}
-      document.body.removeChild(ta);
-    }
-    if (type === 'high') setCopiedHigh(true);
-    else setCopiedBaoben(true);
-  };
-
-  const parsed = useMemo(() => {
-    const nums = parsePickNumbers(value);
-    const poolSet = new Set(addSubNumbers);
-    const zongHeSet = new Set(zongHeNumbers);
-    const isZuSan = (n) => new Set(n.split('')).size !== 3;
-    const zuSanNums = nums.filter(isZuSan);
-    const wuSet = new Set(wuRongCuoNumbers);
-    const jxNums = expandZuxuanToZhixuan(parsePickNumbers(jxValue));
-    const dadiSet = new Set(nums);
-    const highNums = nums.filter(n => !isZuSan(n) && poolSet.has(n) && zongHeSet.has(n) && !wuSet.has(n) && !jxNums.has(n));
-    // 保本只收大底里有的号码：精选展开出但大底没有的排列不进框；豹子号是唯一的例外，每期必进
-    const baobenNums = [...new Set([...zuSanNums, ...nums.filter(n => !poolSet.has(n)), ...wuRongCuoNumbers, ...jxNums, ...BAOZI_NUMS])]
-      .filter(n => dadiSet.has(n) || BAOZI_SET.has(n))
-      .sort((a, b) => Number(a) - Number(b));
-    return { nums, highNums, baobenNums, high: highNums.length, baoben: baobenNums.length };
-  }, [value, jxValue, addSubNumbers, zongHeNumbers, wuRongCuoNumbers]);
-
-  return (
-    <div style={{ width: '100%', flex: 1, border: '2px solid #00838f', borderRadius: 6, background: '#e0f7fa', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <div style={{
-        padding: '6px 10px', background: '#00838f', color: '#fff',
-        display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8, flexWrap: 'wrap',
-      }}>
-        <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.95 }}>
-          {issue ? `${issue} 期（最新未开奖）` : '—'}
-        </span>
-        <span style={{ fontSize: 15, fontWeight: 800 }}>直选高倍</span>
-      </div>
-      <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minHeight: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, color: '#00695c', fontWeight: 700 }}>
-            共 {parsed.nums.length} 注
-          </span>
-          <span style={{ fontSize: 11, color: '#00838f' }}>直选高倍{parsed.high}/保本{parsed.baoben}</span>
-        </div>
-        {(parsed.nums.length > 0 || parsed.baobenNums.length > 0) && (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', flex: '1 1 0', minHeight: 0 }}>
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px dashed #4dd0e1', borderRadius: 3, background: '#fff', overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#e0f2f1', borderBottom: '1px solid #b2dfdb' }}
-                title="直选大底中的组六，且属于加减号码（预留行待开奖格）候选池，已剔除分解容错（智取/博众）的无容错号码，并已剔除精选组选号码展开的直选号码；组三与豹子一律归保本投注">
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#00695c' }}>直选高倍 {parsed.high} 注</span>
-                <button
-                  onClick={() => handleCopy(parsed.highNums.join(' '), 'high')}
-                  style={{
-                    fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                    border: `1px solid ${copiedHigh ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                    background: copiedHigh ? '#c8e6c9' : '#fff', color: copiedHigh ? '#1b5e20' : '#555',
-                    fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-                  }}
-                >
-                  {copiedHigh ? '✓' : '复制'}
-                </button>
-              </div>
-              <div style={{ fontSize: 12, color: '#00695c', fontFamily: 'Consolas,monospace', lineHeight: '18px', wordBreak: 'break-all', padding: 4, overflowY: 'auto', flex: '1 1 0', minHeight: 0 }}>
-                {parsed.highNums.join(' ') || '—'}
-              </div>
-            </div>
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px dashed #ef9a9a', borderRadius: 3, background: '#fff', overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#ffebee', borderBottom: '1px solid #ffcdd2' }}
-                title="直选大底中的组三 + 直选大底中不属于加减号码候选池的号码 + 分解容错（智取/博众）的无容错号码 + 精选组选号码展开的直选号码 + 10 个豹子号（000 到 999，每期固定并入），合并后重复号码只保留一组；大底里没有的号码不进本框，豹子号除外">
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#c62828' }}>保本投注 {parsed.baoben} 注</span>
-                <button
-                  onClick={() => handleCopy(parsed.baobenNums.join(' '), 'baoben')}
-                  style={{
-                    fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                    border: `1px solid ${copiedBaoben ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                    background: copiedBaoben ? '#c8e6c9' : '#fff', color: copiedBaoben ? '#1b5e20' : '#555',
-                    fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-                  }}
-                >
-                  {copiedBaoben ? '✓' : '复制'}
-                </button>
-              </div>
-              <div style={{ fontSize: 12, color: '#c62828', fontFamily: 'Consolas,monospace', lineHeight: '18px', wordBreak: 'break-all', padding: 4, overflowY: 'auto', flex: '1 1 0', minHeight: 0 }}>
-                {parsed.baobenNums.join(' ') || '—'}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function FullDataTable({
   data, showCount, setShowCount, trialDigits, onTrialChange,
   // 加减号码需要回溯200期历史，而 data 已被 enrichData 窗口化，故另传完整数据
@@ -507,45 +396,6 @@ function FullDataTable({
   }, [poolData]);
   // 下期预留行：用最后一期往前200期建池，尚无开奖号故只出注数与复制，不出对错
   const tailAddSubNumbers = useMemo(() => getAddSubNumbers(poolData, poolData.length), [poolData]);
-
-  // 下期综合列候选池：交集号码 - 容错列（对称差集） - 容错10列
-  const tailZongHeNumbers = useMemo(() => {
-    const issue = appNextIssue;
-    if (!issue) return [];
-    const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
-    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-    const decompRc10 = [];
-    if (decompResult && decompResult.buckets) {
-      for (let i = 1; i <= 10; i++) {
-        if (decompResult.buckets[i]) decompRc10.push(...decompResult.buckets[i]);
-      }
-    }
-    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
-    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-    const bozhongRc10 = [];
-    if (bozhongResult && bozhongResult.buckets) {
-      for (let i = 1; i <= 10; i++) {
-        if (bozhongResult.buckets[i]) bozhongRc10.push(...bozhongResult.buckets[i]);
-      }
-    }
-    // 交集号码 = 智取容错1~10 ∩ 博众容错1~10
-    const bozhongSet = new Set(bozhongRc10);
-    const intersection = decompRc10.filter(n => bozhongSet.has(n));
-    // 容错列 = 对称差集 = (A ∪ B) - (A ∩ B)
-    const intersectionSet = new Set(intersection);
-    const union = [...new Set([...decompRc10, ...bozhongRc10])];
-    const symmetricDiff = union.filter(n => !intersectionSet.has(n));
-    const symmetricDiffSet = new Set(symmetricDiff);
-    // 容错10列 = 智取errorCount===10 ∪ 博众errorCount===10
-    const decompRc10Only = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
-    const bozhongRc10Only = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
-    const rc10UnionSet = new Set([...decompRc10Only, ...bozhongRc10Only]);
-    // 综合列 = 交集号码 - 容错列 - 容错10列
-    return intersection
-      .filter(n => !symmetricDiffSet.has(n))
-      .filter(n => !rc10UnionSet.has(n))
-      .sort();
-  }, [appNextIssue, decompTexts, bozhongTexts]);
 
   const renderAddSubCell = (issue, index) => {
     if (!SHOW_ADDSUB_COL) return null;
@@ -1268,9 +1118,6 @@ function FullDataTable({
                 border="#ffb74d"
               />
             </div>
-          </div>
-          <div style={{ flex: '1 1 0', minHeight: 0, display: 'flex' }}>
-            <ZhiXuanGaoBeiModule issue={selfPickIssue} value={selfPickValue} jxValue={selfPickJxValue} addSubNumbers={tailAddSubNumbers} zongHeNumbers={tailZongHeNumbers} wuRongCuoNumbers={wuRongCuoNumbers} />
           </div>
           <button
             onClick={onDecompSubmit}
