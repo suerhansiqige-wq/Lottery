@@ -477,15 +477,42 @@ export const expandZuxuanToZhixuan = (tokens) => {
   return out;
 };
 
-/** 直选高倍 / 保本投注：手动输入框，不再自动组号 */
-function ZhiXuanGaoBeiModule({ issue }) {
-  const [highText, setHighText] = useState('');
-  const [baobenText, setBaobenText] = useState('');
+/** 直选高倍 / 保本投注
+ *  直选高倍 = （综合列 ∩ 直选大底 ∩ 组六 ∩ 加减号码） - 精选展开的组六号码 - 智取/博众无容错号码
+ *  保本投注 = 直选大底 - 直选高倍
+ */
+function ZhiXuanGaoBeiModule({ issue, selfPickValue = '', selfPickJxValue = '', addSubNumbers = [], zongHeNumbers = [], wuRongCuoNumbers = [] }) {
   const [copiedHigh, setCopiedHigh] = useState(false);
   const [copiedBaoben, setCopiedBaoben] = useState(false);
 
-  const highNums = useMemo(() => parsePickNumbers(highText), [highText]);
-  const baobenNums = useMemo(() => parsePickNumbers(baobenText), [baobenText]);
+  const isZuLiu = (n) => new Set(n.split('')).size === 3;
+  const isZuSan = (n) => !isZuLiu(n);
+
+  const { highNums, baobenNums } = useMemo(() => {
+    const dadiNums = parsePickNumbers(selfPickValue);
+    const dadiSet = new Set(dadiNums);
+    const addSubSet = new Set(addSubNumbers);
+    const zongHeSet = new Set(zongHeNumbers);
+    const wuSet = new Set(wuRongCuoNumbers);
+    const jxExpanded = expandZuxuanToZhixuan(parsePickNumbers(selfPickJxValue));
+    const jxZuLiu = [...jxExpanded].filter(isZuLiu);
+    const jxZuLiuSet = new Set(jxZuLiu);
+
+    const high = dadiNums
+      .filter(n => isZuLiu(n))
+      .filter(n => zongHeSet.has(n))
+      .filter(n => addSubSet.has(n))
+      .filter(n => !jxZuLiuSet.has(n))
+      .filter(n => !wuSet.has(n))
+      .sort((a, b) => Number(a) - Number(b));
+
+    const highSet = new Set(high);
+    const baoben = dadiNums
+      .filter(n => !highSet.has(n))
+      .sort((a, b) => Number(a) - Number(b));
+
+    return { highNums: high, baobenNums: baoben };
+  }, [selfPickValue, selfPickJxValue, addSubNumbers, zongHeNumbers, wuRongCuoNumbers]);
 
   const handleCopy = async (text, type) => {
     try {
@@ -515,10 +542,11 @@ function ZhiXuanGaoBeiModule({ issue }) {
       </div>
       <div style={{ padding: 8, display: 'flex', gap: 8, alignItems: 'stretch', flex: 1, minHeight: 0 }}>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px dashed #4dd0e1', borderRadius: 3, background: '#fff', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#e0f2f1', borderBottom: '1px solid #b2dfdb' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#e0f2f1', borderBottom: '1px solid #b2dfdb' }}
+            title="（综合列 ∩ 直选大底 ∩ 组六 ∩ 加减号码）- 精选展开组六 - 智取/博众无容错号码">
             <span style={{ fontSize: 12, fontWeight: 700, color: '#00695c' }}>直选高倍 {highNums.length} 注</span>
             <button
-              onClick={() => handleCopy(highText, 'high')}
+              onClick={() => handleCopy(highNums.join(' '), 'high')}
               style={{
                 fontSize: 11, padding: '1px 6px', cursor: 'pointer',
                 border: `1px solid ${copiedHigh ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
@@ -529,18 +557,16 @@ function ZhiXuanGaoBeiModule({ issue }) {
               {copiedHigh ? '✓' : '复制'}
             </button>
           </div>
-          <textarea
-            value={highText}
-            onChange={(e) => { setHighText(e.target.value); setCopiedHigh(false); }}
-            placeholder="手动输入号码，空格/逗号/换行分隔"
-            style={{ flex: 1, minHeight: 0, border: 'none', outline: 'none', resize: 'none', padding: 4, fontSize: 12, fontFamily: 'Consolas,monospace', lineHeight: '18px', color: '#00695c' }}
-          />
+          <div style={{ fontSize: 12, color: '#00695c', fontFamily: 'Consolas,monospace', lineHeight: '18px', wordBreak: 'break-all', padding: 4, overflowY: 'auto', flex: '1 1 0', minHeight: 0 }}>
+            {highNums.join(' ') || '—'}
+          </div>
         </div>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px dashed #ef9a9a', borderRadius: 3, background: '#fff', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#ffebee', borderBottom: '1px solid #ffcdd2' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#ffebee', borderBottom: '1px solid #ffcdd2' }}
+            title="直选大底中剔除直选高倍后的号码">
             <span style={{ fontSize: 12, fontWeight: 700, color: '#c62828' }}>保本投注 {baobenNums.length} 注</span>
             <button
-              onClick={() => handleCopy(baobenText, 'baoben')}
+              onClick={() => handleCopy(baobenNums.join(' '), 'baoben')}
               style={{
                 fontSize: 11, padding: '1px 6px', cursor: 'pointer',
                 border: `1px solid ${copiedBaoben ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
@@ -551,12 +577,9 @@ function ZhiXuanGaoBeiModule({ issue }) {
               {copiedBaoben ? '✓' : '复制'}
             </button>
           </div>
-          <textarea
-            value={baobenText}
-            onChange={(e) => { setBaobenText(e.target.value); setCopiedBaoben(false); }}
-            placeholder="手动输入号码，空格/逗号/换行分隔"
-            style={{ flex: 1, minHeight: 0, border: 'none', outline: 'none', resize: 'none', padding: 4, fontSize: 12, fontFamily: 'Consolas,monospace', lineHeight: '18px', color: '#c62828' }}
-          />
+          <div style={{ fontSize: 12, color: '#c62828', fontFamily: 'Consolas,monospace', lineHeight: '18px', wordBreak: 'break-all', padding: 4, overflowY: 'auto', flex: '1 1 0', minHeight: 0 }}>
+            {baobenNums.join(' ') || '—'}
+          </div>
         </div>
       </div>
     </div>
@@ -658,6 +681,45 @@ function FullDataTable({
   }, [poolData]);
   // 下期预留行：用最后一期往前200期建池，尚无开奖号故只出注数与复制，不出对错
   const tailAddSubNumbers = useMemo(() => getAddSubNumbers(poolData, poolData.length), [poolData]);
+
+  // 下期综合列候选池：交集号码 - 容错列（对称差集） - 容错10列
+  const tailZongHeNumbers = useMemo(() => {
+    const issue = appNextIssue;
+    if (!issue) return [];
+    const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
+    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+    const decompRc10 = [];
+    if (decompResult && decompResult.buckets) {
+      for (let i = 1; i <= 10; i++) {
+        if (decompResult.buckets[i]) decompRc10.push(...decompResult.buckets[i]);
+      }
+    }
+    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
+    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+    const bozhongRc10 = [];
+    if (bozhongResult && bozhongResult.buckets) {
+      for (let i = 1; i <= 10; i++) {
+        if (bozhongResult.buckets[i]) bozhongRc10.push(...bozhongResult.buckets[i]);
+      }
+    }
+    // 交集号码 = 智取容错1~10 ∩ 博众容错1~10
+    const bozhongSet = new Set(bozhongRc10);
+    const intersection = decompRc10.filter(n => bozhongSet.has(n));
+    // 容错列 = 对称差集 = (A ∪ B) - (A ∩ B)
+    const intersectionSet = new Set(intersection);
+    const union = [...new Set([...decompRc10, ...bozhongRc10])];
+    const symmetricDiff = union.filter(n => !intersectionSet.has(n));
+    const symmetricDiffSet = new Set(symmetricDiff);
+    // 容错10列 = 智取errorCount===10 ∪ 博众errorCount===10
+    const decompRc10Only = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
+    const bozhongRc10Only = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
+    const rc10UnionSet = new Set([...decompRc10Only, ...bozhongRc10Only]);
+    // 综合列 = 交集号码 - 容错列 - 容错10列
+    return intersection
+      .filter(n => !symmetricDiffSet.has(n))
+      .filter(n => !rc10UnionSet.has(n))
+      .sort();
+  }, [appNextIssue, decompTexts, bozhongTexts]);
 
   const renderAddSubCell = (issue, index) => {
     if (!SHOW_ADDSUB_COL) return null;
@@ -1525,7 +1587,14 @@ function FullDataTable({
             </div>
           </div>
           <div style={{ flex: '1 1 0', minHeight: 0, display: 'flex' }}>
-            <ZhiXuanGaoBeiModule issue={selfPickIssue} />
+            <ZhiXuanGaoBeiModule
+              issue={selfPickIssue}
+              selfPickValue={selfPickValue}
+              selfPickJxValue={selfPickJxValue}
+              addSubNumbers={tailAddSubNumbers}
+              zongHeNumbers={tailZongHeNumbers}
+              wuRongCuoNumbers={wuRongCuoNumbers}
+            />
           </div>
           <button
             onClick={onDecompSubmit}
