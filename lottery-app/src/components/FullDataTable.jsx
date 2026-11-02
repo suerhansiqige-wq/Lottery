@@ -617,13 +617,23 @@ function FullDataTable({
       }
     }
 
-    // 容错列 = (智取容错10 ∪ 博众容错10) - (智取容错10 ∩ 博众容错10) = 对称差集
+    // 容错列 = 1000注组六组三 - 对称差集 - 容错10列号码
     const decompSet = new Set(decompRc10);
     const bozhongSet = new Set(bozhongRc10);
     const intersection = decompRc10.filter(n => bozhongSet.has(n));
     const intersectionSet = new Set(intersection);
     const union = [...new Set([...decompRc10, ...bozhongRc10])];
-    const filtered = union.filter(n => !intersectionSet.has(n)).sort();
+    const symmetricDiff = union.filter(n => !intersectionSet.has(n));
+    const symmetricDiffSet = new Set(symmetricDiff);
+    const unionSet = new Set(union);
+    const isZuLiu = (n) => new Set(n.split('')).size === 3;
+    const isZuSan = (n) => new Set(n.split('')).size === 2;
+    const allNumbers = Array.from({ length: 1000 }, (_, i) => String(i).padStart(3, '0'));
+    const filtered = allNumbers
+      .filter(n => isZuLiu(n) || isZuSan(n))
+      .filter(n => !symmetricDiffSet.has(n))
+      .filter(n => !unionSet.has(n))
+      .sort();
 
     if (filtered.length === 0) {
       return <td key="rc" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
@@ -763,7 +773,7 @@ function FullDataTable({
                 {SHOW_SLBC_COLS && <th>必出号</th>}
                 {SHOW_ADDSUB_COL && <th title={`用其前${ADD_SUB_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>加减号码</th>}
                 <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>
-                <th title="(智取容错10 ∪ 博众容错10) - (智取容错10 ∩ 博众容错10) 对称差集；✓=在池内，✗=不在池内">容错</th>
+                <th title="1000注组六组三 - 对称差集 - 容错10列号码；✓=在池内，✗=不在池内">容错</th>
                 {/* 智取分解 / 博众分解 两列 */}
                 {DECOMP_COLS.map(c => (
                   <th key={'dcTh_' + c.kind} title={c.title}
@@ -855,7 +865,7 @@ function FullDataTable({
                   {renderAddSubCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 容错10：智取分解容错10 ∪ 博众分解容错10 */}
                   {renderRongCuo10Cell(item.issue)}
-                  {/* 容错：(智取容错10 ∪ 博众容错10) - (智取容错10 ∩ 博众容错10) 对称差集 */}
+                  {/* 容错：1000注组六组三 - 对称差集 - 容错10列号码 */}
                   {renderRongCuoCell(item.issue)}
                   {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数 */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, item.issue, c.title))}
