@@ -178,6 +178,10 @@ const SHOW_SLBC_COLS = true;
 // 加减号码列开关：2026-11-01 用户要求隐藏。候选池本身照常计算（直选高倍/保本取数依赖它），只是不再占一列
 const SHOW_ADDSUB_COL = true;
 
+// 容错10 / 交集号码 两列开关：2026-11-02 用户要求隐藏。数据照常计算（综合列依赖它们），只是不再占一列
+const SHOW_RC10_COL = false;
+const SHOW_JJ_COL = false;
+
 // 渲染横加减/竖加减4个合并单元格；src 为空或该组无上期数据（全 null）时显示 -
 function renderHjsCells(src) {
   if (!SHOW_HJS_COLS) return [];
@@ -905,8 +909,8 @@ function FullDataTable({
                 {SHOW_SLBC_COLS && <th>连号</th>}
                 {SHOW_SLBC_COLS && <th>必出号</th>}
                 {SHOW_ADDSUB_COL && <th title={`用其前${ADD_SUB_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>加减号码</th>}
-                <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>
-                <th title="智取容错10 ∩ 博众容错10（交集号码）；✓=在池内，✗=不在池内">交集号码</th>
+                {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
+                {SHOW_JJ_COL && <th title="智取容错10 ∩ 博众容错10（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
                 <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>
                 {/* 智取分解 / 博众分解 两列 */}
                 {DECOMP_COLS.map(c => (
@@ -998,9 +1002,9 @@ function FullDataTable({
                   {/* 加减号码：前200期横相加∪横相减候选池注数 + 对错符号 + 复制 */}
                   {renderAddSubCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 容错10：智取分解容错10 ∪ 博众分解容错10 */}
-                  {renderRongCuo10Cell(item.issue)}
+                  {SHOW_RC10_COL && renderRongCuo10Cell(item.issue)}
                   {/* 交集号码：智取容错10 ∩ 博众容错10 */}
-                  {renderJiJiaoCell(item.issue)}
+                  {SHOW_JJ_COL && renderJiJiaoCell(item.issue)}
                   {/* 综合：交集号码 - 容错列 - 容错10列 */}
                   {renderZongHeCell(item.issue)}
                   {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数 */}
@@ -1066,7 +1070,7 @@ function FullDataTable({
                     );
                   })()}
                   {/* 容错10 - 预留行：下期容错10注数 + 复制（尚未开奖，无对错） */}
-                  {(() => {
+                  {SHOW_RC10_COL && (() => {
                     const cpd = copiedIssues.has('rc10_next_' + nextIssue);
                     const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
@@ -1096,7 +1100,7 @@ function FullDataTable({
                     );
                   })()}
                   {/* 交集号码 - 预留行：下期交集注数 + 复制（尚未开奖，无对错） */}
-                  {(() => {
+                  {SHOW_JJ_COL && (() => {
                     const cpd = copiedIssues.has('jj_next_' + nextIssue);
                     const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
