@@ -356,7 +356,7 @@ const SHOW_HJS_COLS = false;
 const SHOW_SLBC_COLS = true;
 
 // 加减号码列开关：2026-11-01 用户要求隐藏。候选池本身照常计算（直选高倍/保本取数依赖它），只是不再占一列
-const SHOW_ADDSUB_COL = false;
+const SHOW_ADDSUB_COL = true;
 
 function renderHjsCells(src) {
   if (!SHOW_HJS_COLS) return [];
@@ -473,9 +473,13 @@ export const expandZuxuanToZhixuan = (tokens) => {
   return out;
 };
 
+/** 豹子号（三位同号）：每期固定并入保本投注，即使直选大底里没有 */
+const BAOZI_NUMS = Array.from({ length: 10 }, (_, i) => `${i}${i}${i}`);
+const BAOZI_SET = new Set(BAOZI_NUMS);
+
 /** 直选高倍 / 保本投注
  *  直选高倍 = 直选大底中的组六、且在加减号码预留行候选池内，再剔除分解容错（智取/博众）的无容错号码，并剔除精选展开的直选号码
- *  保本投注 = 直选大底中的组三 + 直选大底中不在加减号码预留行候选池的号码 + 分解容错（智取/博众）的无容错号码 + 精选组选展开的直选号码，合并去重，且只保留大底里有的号码
+ *  保本投注 = 直选大底中的组三 + 直选大底中不在加减号码预留行候选池的号码 + 分解容错（智取/博众）的无容错号码 + 精选组选展开的直选号码 + 10 个豹子号，合并去重；除豹子外只保留大底里有的号码
  */
 function ZhiXuanGaoBeiModule({ issue, value, jxValue = '', addSubNumbers = [], wuRongCuoNumbers = [] }) {
   const [copiedHigh, setCopiedHigh] = useState(false);
@@ -505,9 +509,9 @@ function ZhiXuanGaoBeiModule({ issue, value, jxValue = '', addSubNumbers = [], w
     const jxNums = expandZuxuanToZhixuan(parsePickNumbers(jxValue));
     const dadiSet = new Set(nums);
     const highNums = nums.filter(n => !isZuSan(n) && poolSet.has(n) && !wuSet.has(n) && !jxNums.has(n));
-    // 保本只收大底里有的号码：精选展开出但大底没有的排列不进框
-    const baobenNums = [...new Set([...zuSanNums, ...nums.filter(n => !poolSet.has(n)), ...wuRongCuoNumbers, ...jxNums])]
-      .filter(n => dadiSet.has(n))
+    // 保本只收大底里有的号码：精选展开出但大底没有的排列不进框；豹子号是唯一的例外，每期必进
+    const baobenNums = [...new Set([...zuSanNums, ...nums.filter(n => !poolSet.has(n)), ...wuRongCuoNumbers, ...jxNums, ...BAOZI_NUMS])]
+      .filter(n => dadiSet.has(n) || BAOZI_SET.has(n))
       .sort((a, b) => Number(a) - Number(b));
     return { nums, highNums, baobenNums, high: highNums.length, baoben: baobenNums.length };
   }, [value, jxValue, addSubNumbers, wuRongCuoNumbers]);
@@ -530,11 +534,11 @@ function ZhiXuanGaoBeiModule({ issue, value, jxValue = '', addSubNumbers = [], w
           </span>
           <span style={{ fontSize: 11, color: '#00838f' }}>直选高倍{parsed.high}/保本{parsed.baoben}</span>
         </div>
-        {parsed.nums.length > 0 && (
+        {(parsed.nums.length > 0 || parsed.baobenNums.length > 0) && (
           <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', flex: '1 1 0', minHeight: 0 }}>
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px dashed #4dd0e1', borderRadius: 3, background: '#fff', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#e0f2f1', borderBottom: '1px solid #b2dfdb' }}
-                title="直选大底中的组六，且属于加减号码（预留行待开奖格）候选池，已剔除分解容错（智取/博众）的无容错号码，并已剔除精选组选号码展开的直选号码；组三一律归保本投注">
+                title="直选大底中的组六，且属于加减号码（预留行待开奖格）候选池，已剔除分解容错（智取/博众）的无容错号码，并已剔除精选组选号码展开的直选号码；组三与豹子一律归保本投注">
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#00695c' }}>直选高倍 {parsed.high} 注</span>
                 <button
                   onClick={() => handleCopy(parsed.highNums.join(' '), 'high')}
@@ -554,7 +558,7 @@ function ZhiXuanGaoBeiModule({ issue, value, jxValue = '', addSubNumbers = [], w
             </div>
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px dashed #ef9a9a', borderRadius: 3, background: '#fff', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#ffebee', borderBottom: '1px solid #ffcdd2' }}
-                title="直选大底中的组三 + 直选大底中不属于加减号码候选池的号码 + 分解容错（智取/博众）的无容错号码 + 精选组选号码展开的直选号码，合并后重复号码只保留一组；大底里没有的号码不进本框">
+                title="直选大底中的组三 + 直选大底中不属于加减号码候选池的号码 + 分解容错（智取/博众）的无容错号码 + 精选组选号码展开的直选号码 + 10 个豹子号（000 到 999，每期固定并入），合并后重复号码只保留一组；大底里没有的号码不进本框，豹子号除外">
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#c62828' }}>保本投注 {parsed.baoben} 注</span>
                 <button
                   onClick={() => handleCopy(parsed.baobenNums.join(' '), 'baoben')}
