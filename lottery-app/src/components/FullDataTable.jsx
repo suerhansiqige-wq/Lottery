@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { parseDecompGroups, verifyDraw, computeRongCuo } from '../utils/decompRongCuo.js'
-import { ADD_SUB_LOOKBACK, buildAddSubIndex, getAddSubNumbers } from '../utils/addSubPool.js'
+import { ADD_SUB_LOOKBACK, ADD_SUB_LOOKBACK_300, buildAddSubIndex, getAddSubNumbers } from '../utils/addSubPool.js'
 
 // ============================================================
 // 遗漏策略：三组并集
@@ -177,6 +177,9 @@ const SHOW_SLBC_COLS = true;
 
 // 加减号码列开关：2026-11-01 用户要求隐藏。候选池本身照常计算（直选高倍/保本取数依赖它），只是不再占一列
 const SHOW_ADDSUB_COL = true;
+
+// 300期回溯列开关：2026-11-02 新增，显示300期回溯的加减号码验证结果
+const SHOW_ADDSUB_300_COL = true;
 
 // 容错10 / 交集号码 两列开关：2026-11-02 用户要求隐藏。数据照常计算（综合列依赖它们），只是不再占一列
 const SHOW_RC10_COL = false;
@@ -498,7 +501,7 @@ function FullDataTable({
     const extra = data.filter(d => !known.has(d.issue));
     return extra.length ? [...base, ...extra] : base;
   }, [fullData, data]);
-  const addSubIndex = useMemo(() => buildAddSubIndex(poolData), [poolData]);
+  const { map200: addSubIndex, map300: addSubIndex300 } = useMemo(() => buildAddSubIndex(poolData), [poolData]);
   const issueIndexMap = useMemo(() => {
     const m = new Map();
     poolData.forEach((d, i) => { if (!m.has(d.issue)) m.set(d.issue, i); });
@@ -506,6 +509,8 @@ function FullDataTable({
   }, [poolData]);
   // 下期预留行：用最后一期往前200期建池，尚无开奖号故只出注数与复制，不出对错
   const tailAddSubNumbers = useMemo(() => getAddSubNumbers(poolData, poolData.length), [poolData]);
+  // 下期预留行：用最后一期往前300期建池
+  const tailAddSubNumbers300 = useMemo(() => getAddSubNumbers(poolData, poolData.length, ADD_SUB_LOOKBACK_300), [poolData]);
 
   const renderAddSubCell = (issue, index) => {
     if (!SHOW_ADDSUB_COL) return null;
@@ -531,6 +536,39 @@ function FullDataTable({
           <button
             style={btnStyle}
             onClick={() => handleCopy(issue, getAddSubNumbers(poolData, index))}
+          >
+            {copied ? '✓' : '复制'}
+          </button>
+        </div>
+      </td>
+    );
+  };
+
+  // 300期回溯列渲染
+  const renderAddSub300Cell = (issue, index) => {
+    if (!SHOW_ADDSUB_300_COL) return null;
+    const rec = addSubIndex300.get(issue);
+    const copied = copiedIssues.has('addSub300_' + issue);
+    const btnStyle = {
+      fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+      border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+      background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
+      fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+    };
+    if (!rec) {
+      return <td key="addSub300" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+    return (
+      <td key="addSub300" style={{ padding: '2px 4px', background: rec.hit ? '#e8f5e9' : '#ffebee' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+          <span style={{ fontWeight: 800, color: rec.hit ? '#1b5e20' : '#b71c1c' }}>{rec.size}注</span>
+          <span title={rec.hit ? '当期开奖号在300期候选池内' : '当期开奖号不在300期候选池内'}
+            style={{ fontWeight: 900, fontSize: 15, color: rec.hit ? '#2e7d32' : '#c62828' }}>
+            {rec.hit ? '✓' : '✗'}
+          </span>
+          <button
+            style={btnStyle}
+            onClick={() => handleCopy('addSub300_' + issue, getAddSubNumbers(poolData, index, ADD_SUB_LOOKBACK_300))}
           >
             {copied ? '✓' : '复制'}
           </button>
@@ -909,6 +947,7 @@ function FullDataTable({
                 {SHOW_SLBC_COLS && <th>连号</th>}
                 {SHOW_SLBC_COLS && <th>必出号</th>}
                 {SHOW_ADDSUB_COL && <th title={`用其前${ADD_SUB_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>加减号码</th>}
+                {SHOW_ADDSUB_300_COL && <th title={`用其前${ADD_SUB_LOOKBACK_300}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>300期</th>}
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_JJ_COL && <th title="智取容错10 ∩ 博众容错10（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
                 <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>
@@ -1001,6 +1040,8 @@ function FullDataTable({
                   )}
                   {/* 加减号码：前200期横相加∪横相减候选池注数 + 对错符号 + 复制 */}
                   {renderAddSubCell(item.issue, issueIndexMap.get(item.issue))}
+                  {/* 300期：前300期横相加∪横相减候选池注数 + 对错符号 + 复制 */}
+                  {renderAddSub300Cell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 容错10：智取分解容错10 ∪ 博众分解容错10 */}
                   {SHOW_RC10_COL && renderRongCuo10Cell(item.issue)}
                   {/* 交集号码：智取容错10 ∩ 博众容错10 */}
@@ -1062,6 +1103,29 @@ function FullDataTable({
                               fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
                             }}
                             onClick={() => handleCopy('next_' + nextIssue, tailAddSubNumbers)}
+                          >
+                            {cpd ? '✓' : '复制'}
+                          </button>
+                        </div>
+                      </td>
+                    );
+                  })()}
+                  {/* 300期 - 预留行：下期候选池注数 + 复制（尚未开奖，无对错） */}
+                  {SHOW_ADDSUB_300_COL && (() => {
+                    const cpd = copiedIssues.has('next300_' + nextIssue);
+                    return (
+                      <td key="addSub300Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{tailAddSubNumbers300.length}注</span>
+                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
+                          <button
+                            style={{
+                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
+                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+                            }}
+                            onClick={() => handleCopy('next300_' + nextIssue, tailAddSubNumbers300)}
                           >
                             {cpd ? '✓' : '复制'}
                           </button>

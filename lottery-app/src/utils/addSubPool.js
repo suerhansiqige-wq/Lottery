@@ -1,7 +1,8 @@
-// 加减号码：用回溯 L 期（默认200）的横相加∪横相减候选并集，验证当期开奖号是否命中
-// 与验证脚本 verify_add_sub_combined_sweep.js / review_26285_backtest200.js 同一套口径
+// 加减号码：用回溯 L 期的横相加∪横相减候选并集，验证当期开奖号是否命中
+// 支持两个回溯期数：200期（默认）和300期
 
 export const ADD_SUB_LOOKBACK = 200;
+export const ADD_SUB_LOOKBACK_300 = 300;
 
 const hAddKey = (d) => ((d.d1 + d.d2) % 10) * 100 + ((d.d2 + d.d3) % 10) * 10 + ((d.d1 + d.d3) % 10);
 const hSubKey = (d) => Math.abs(d.d1 - d.d2) * 100 + Math.abs(d.d2 - d.d3) * 10 + Math.abs(d.d1 - d.d3);
@@ -24,8 +25,12 @@ SUB_PAT.forEach(v => v.sort((x, y) => x - y));
 
 const toStr = (n) => String(n).padStart(3, '0');
 
-// 滑动窗口统计每个索引 i（i>=L）对应的候选池注数与命中情况
-export function buildAddSubIndex(data, L = ADD_SUB_LOOKBACK) {
+// 滑动窗口统计每个索引 i 对应的候选池注数与命中情况
+// 同时返回两个回溯期数（200期和300期）的索引
+export function buildAddSubIndex(data) {
+  const L200 = ADD_SUB_LOOKBACK;
+  const L300 = ADD_SUB_LOOKBACK_300;
+
   const cAdd = new Int32Array(1000);
   const cSub = new Int32Array(1000);
   const pAdd = new Int32Array(1000);
@@ -57,15 +62,20 @@ export function buildAddSubIndex(data, L = ADD_SUB_LOOKBACK) {
     if (--pSub[sk] === 0) for (const n of SUB_PAT.get(sk)) bumpSub(n, -1);
   };
 
-  const map = new Map();
+  const map200 = new Map();
+  const map300 = new Map();
   for (let i = 0; i < data.length; i++) {
     if (i >= 1) pushPeriod(data[i - 1]);
-    if (i - L - 1 >= 0) popPeriod(data[i - L - 1]);
-    if (i < L) continue;
+    if (i - L300 - 1 >= 0) popPeriod(data[i - L300 - 1]);
     const t = numKey(data[i]);
-    map.set(data[i].issue, { size: covered, hit: cAdd[t] + cSub[t] > 0 });
+    if (i >= L200) {
+      map200.set(data[i].issue, { size: covered, hit: cAdd[t] + cSub[t] > 0 });
+    }
+    if (i >= L300) {
+      map300.set(data[i].issue, { size: covered, hit: cAdd[t] + cSub[t] > 0 });
+    }
   }
-  return map;
+  return { map200, map300 };
 }
 
 // 单期候选池号码（点复制时才现算，避免全量存字符串）
