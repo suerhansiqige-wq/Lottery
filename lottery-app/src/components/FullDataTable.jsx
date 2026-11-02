@@ -300,9 +300,11 @@ export const expandZuxuanToZhixuan = (tokens) => {
   return out;
 };
 
+const BAOZI_NUMS = ['000','111','222','333','444','555','666','777','888','999'];
+
 /** 直选高倍 / 保本投注
  *  直选高倍 = （综合列 ∩ 直选大底 ∩ 组六 ∩ 加减号码） - 精选展开的组六号码 - 智取/博众无容错号码
- *  保本投注 = 直选大底 - 直选高倍
+ *  保本投注 = 综合列 - （综合列组六 ∩ 直选大底组六） + 无容错号码 + 所有豹子号
  */
 function ZhiXuanGaoBeiModule({ issue, selfPickValue = '', selfPickJxValue = '', addSubNumbers = [], zongHeNumbers = [], wuRongCuoNumbers = [] }) {
   const [copiedHigh, setCopiedHigh] = useState(false);
@@ -329,10 +331,13 @@ function ZhiXuanGaoBeiModule({ issue, selfPickValue = '', selfPickJxValue = '', 
       .filter(n => !wuSet.has(n))
       .sort((a, b) => Number(a) - Number(b));
 
-    const highSet = new Set(high);
-    const baoben = dadiNums
-      .filter(n => !highSet.has(n))
-      .sort((a, b) => Number(a) - Number(b));
+    const zongHeZuLiuInDadi = zongHeNumbers.filter(n => isZuLiu(n) && dadiSet.has(n));
+    const zongHeZuLiuInDadiSet = new Set(zongHeZuLiuInDadi);
+    const baoben = [...new Set([
+      ...zongHeNumbers.filter(n => !zongHeZuLiuInDadiSet.has(n)),
+      ...wuRongCuoNumbers,
+      ...BAOZI_NUMS,
+    ])].sort((a, b) => Number(a) - Number(b));
 
     return { highNums: high, baobenNums: baoben };
   }, [selfPickValue, selfPickJxValue, addSubNumbers, zongHeNumbers, wuRongCuoNumbers]);
@@ -386,7 +391,7 @@ function ZhiXuanGaoBeiModule({ issue, selfPickValue = '', selfPickJxValue = '', 
         </div>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px dashed #ef9a9a', borderRadius: 3, background: '#fff', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#ffebee', borderBottom: '1px solid #ffcdd2' }}
-            title="直选大底中剔除直选高倍后的号码">
+            title="综合列 - （综合列组六 ∩ 直选大底组六） + 无容错号码 + 所有豹子号">
             <span style={{ fontSize: 12, fontWeight: 700, color: '#c62828' }}>保本投注 {baobenNums.length} 注</span>
             <button
               onClick={() => handleCopy(baobenNums.join(' '), 'baoben')}
