@@ -782,8 +782,9 @@ function FullDataTable({
     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
     const bozhongRc10 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
 
-    // 容错10列的号码（并集）
-    const rc10Set = new Set([...decompRc10, ...bozhongRc10]);
+    // 容错10列的号码（交集：智取∩博众）
+    const bozhongSet = new Set(bozhongRc10);
+    const rc10Intersection = decompRc10.filter(n => bozhongSet.has(n));
 
     // 生成所有1000注号码，过滤出组六和组三（排除豹子），再排除容错10列中的号码
     const isZuLiu = (n) => new Set(n.split('')).size === 3;
@@ -791,7 +792,7 @@ function FullDataTable({
     const allNumbers = Array.from({ length: 1000 }, (_, i) => String(i).padStart(3, '0'));
     const filtered = allNumbers
       .filter(n => isZuLiu(n) || isZuSan(n))
-      .filter(n => !rc10Set.has(n))
+      .filter(n => !rc10Intersection.includes(n))
       .sort();
 
     if (filtered.length === 0) {
@@ -1069,7 +1070,7 @@ function FullDataTable({
                 {SHOW_SLBC_COLS && <th>必出号</th>}
                 {SHOW_ADDSUB_COL && <th title={`用其前${ADD_SUB_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>加减号码</th>}
                 <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>
-                <th title="1000注号码池中排除容错10列后的组六和组三号码；✓=在池内，✗=不在池内">容错</th>
+                <th title="1000注号码池中排除容错10列交集后的组六和组三号码；✓=在池内，✗=不在池内">容错</th>
                 {/* 参考一/参考二/胆码三列表头已彻底删除 - 用户要求 */}
                 {/* 智取分解 / 博众分解 两列（表格最右侧，与福彩3D 同位置逻辑） */}
                 {DECOMP_COLS.map(c => (
@@ -1164,7 +1165,7 @@ function FullDataTable({
                   {renderAddSubCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 容错10：智取分解容错10 ∪ 博众分解容错10 */}
                   {renderRongCuo10Cell(item.issue)}
-                  {/* 容错：1000注号码池中排除容错10列后的组六和组三号码 */}
+                  {/* 容错：1000注号码池中排除容错10列交集后的组六和组三号码 */}
                   {renderRongCuoCell(item.issue)}
                   {/* 参考一/参考二/胆码三列单元格已彻底删除 - 用户要求 */}
                   {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数（与福彩3D 一致） */}
@@ -1271,13 +1272,14 @@ function FullDataTable({
                     const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
                     const bozhongRc10 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
-                    const rc10Set = new Set([...decompRc10, ...bozhongRc10]);
+                    const bozhongSet = new Set(bozhongRc10);
+                    const rc10Intersection = decompRc10.filter(n => bozhongSet.has(n));
                     const isZuLiu = (n) => new Set(n.split('')).size === 3;
                     const isZuSan = (n) => new Set(n.split('')).size === 2;
                     const allNumbers = Array.from({ length: 1000 }, (_, i) => String(i).padStart(3, '0'));
                     const filtered = allNumbers
                       .filter(n => isZuLiu(n) || isZuSan(n))
-                      .filter(n => !rc10Set.has(n))
+                      .filter(n => !rc10Intersection.includes(n))
                       .sort();
                     return (
                       <td key="rcNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
