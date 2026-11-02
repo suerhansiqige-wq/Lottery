@@ -305,10 +305,10 @@ const BAOZI_NUMS = Array.from({ length: 10 }, (_, i) => `${i}${i}${i}`);
 const BAOZI_SET = new Set(BAOZI_NUMS);
 
 /** 直选高倍 / 保本投注
- *  直选高倍 = 直选大底中的组六、且在加减号码预留行候选池内，再剔除分解容错（智取/博众）的无容错号码，并剔除精选展开的直选号码
+ *  直选高倍 = 直选大底中的组六、且在加减号码预留行候选池内、且在综合列候选池内，再剔除分解容错（智取/博众）的无容错号码，并剔除精选展开的直选号码
  *  保本投注 = 直选大底中的组三 + 直选大底中不在加减号码预留行候选池的号码 + 分解容错（智取/博众）的无容错号码 + 精选组选展开的直选号码 + 10 个豹子号，合并去重；除豹子外只保留大底里有的号码
  */
-function ZhiXuanGaoBeiModule({ issue, value, jxValue = '', addSubNumbers = [], wuRongCuoNumbers = [] }) {
+function ZhiXuanGaoBeiModule({ issue, value, jxValue = '', addSubNumbers = [], zongHeNumbers = [], wuRongCuoNumbers = [] }) {
   const [copiedHigh, setCopiedHigh] = useState(false);
   const [copiedBaoben, setCopiedBaoben] = useState(false);
 
@@ -330,18 +330,19 @@ function ZhiXuanGaoBeiModule({ issue, value, jxValue = '', addSubNumbers = [], w
   const parsed = useMemo(() => {
     const nums = parsePickNumbers(value);
     const poolSet = new Set(addSubNumbers);
+    const zongHeSet = new Set(zongHeNumbers);
     const isZuSan = (n) => new Set(n.split('')).size !== 3;
     const zuSanNums = nums.filter(isZuSan);
     const wuSet = new Set(wuRongCuoNumbers);
     const jxNums = expandZuxuanToZhixuan(parsePickNumbers(jxValue));
     const dadiSet = new Set(nums);
-    const highNums = nums.filter(n => !isZuSan(n) && poolSet.has(n) && !wuSet.has(n) && !jxNums.has(n));
+    const highNums = nums.filter(n => !isZuSan(n) && poolSet.has(n) && zongHeSet.has(n) && !wuSet.has(n) && !jxNums.has(n));
     // 保本只收大底里有的号码：精选展开出但大底没有的排列不进框；豹子号是唯一的例外，每期必进
     const baobenNums = [...new Set([...zuSanNums, ...nums.filter(n => !poolSet.has(n)), ...wuRongCuoNumbers, ...jxNums, ...BAOZI_NUMS])]
       .filter(n => dadiSet.has(n) || BAOZI_SET.has(n))
       .sort((a, b) => Number(a) - Number(b));
     return { nums, highNums, baobenNums, high: highNums.length, baoben: baobenNums.length };
-  }, [value, jxValue, addSubNumbers, wuRongCuoNumbers]);
+  }, [value, jxValue, addSubNumbers, zongHeNumbers, wuRongCuoNumbers]);
 
   return (
     <div style={{ width: '100%', flex: 1, border: '2px solid #00838f', borderRadius: 6, background: '#e0f7fa', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -506,6 +507,45 @@ function FullDataTable({
   }, [poolData]);
   // 下期预留行：用最后一期往前200期建池，尚无开奖号故只出注数与复制，不出对错
   const tailAddSubNumbers = useMemo(() => getAddSubNumbers(poolData, poolData.length), [poolData]);
+
+  // 下期综合列候选池：交集号码 - 容错列（对称差集） - 容错10列
+  const tailZongHeNumbers = useMemo(() => {
+    const issue = appNextIssue;
+    if (!issue) return [];
+    const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
+    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+    const decompRc10 = [];
+    if (decompResult && decompResult.buckets) {
+      for (let i = 1; i <= 10; i++) {
+        if (decompResult.buckets[i]) decompRc10.push(...decompResult.buckets[i]);
+      }
+    }
+    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
+    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+    const bozhongRc10 = [];
+    if (bozhongResult && bozhongResult.buckets) {
+      for (let i = 1; i <= 10; i++) {
+        if (bozhongResult.buckets[i]) bozhongRc10.push(...bozhongResult.buckets[i]);
+      }
+    }
+    // 交集号码 = 智取容错1~10 ∩ 博众容错1~10
+    const bozhongSet = new Set(bozhongRc10);
+    const intersection = decompRc10.filter(n => bozhongSet.has(n));
+    // 容错列 = 对称差集 = (A ∪ B) - (A ∩ B)
+    const intersectionSet = new Set(intersection);
+    const union = [...new Set([...decompRc10, ...bozhongRc10])];
+    const symmetricDiff = union.filter(n => !intersectionSet.has(n));
+    const symmetricDiffSet = new Set(symmetricDiff);
+    // 容错10列 = 智取errorCount===10 ∪ 博众errorCount===10
+    const decompRc10Only = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
+    const bozhongRc10Only = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
+    const rc10UnionSet = new Set([...decompRc10Only, ...bozhongRc10Only]);
+    // 综合列 = 交集号码 - 容错列 - 容错10列
+    return intersection
+      .filter(n => !symmetricDiffSet.has(n))
+      .filter(n => !rc10UnionSet.has(n))
+      .sort();
+  }, [appNextIssue, decompTexts, bozhongTexts]);
 
   const renderAddSubCell = (issue, index) => {
     if (!SHOW_ADDSUB_COL) return null;
@@ -1230,7 +1270,7 @@ function FullDataTable({
             </div>
           </div>
           <div style={{ flex: '1 1 0', minHeight: 0, display: 'flex' }}>
-            <ZhiXuanGaoBeiModule issue={selfPickIssue} value={selfPickValue} jxValue={selfPickJxValue} addSubNumbers={tailAddSubNumbers} wuRongCuoNumbers={wuRongCuoNumbers} />
+            <ZhiXuanGaoBeiModule issue={selfPickIssue} value={selfPickValue} jxValue={selfPickJxValue} addSubNumbers={tailAddSubNumbers} zongHeNumbers={tailZongHeNumbers} wuRongCuoNumbers={wuRongCuoNumbers} />
           </div>
           <button
             onClick={onDecompSubmit}
