@@ -300,6 +300,92 @@ export const expandZuxuanToZhixuan = (tokens) => {
   return out;
 };
 
+/** 直选高倍 / 保本投注：手动输入框，不再自动组号 */
+function ZhiXuanGaoBeiModule({ issue }) {
+  const [highText, setHighText] = useState('');
+  const [baobenText, setBaobenText] = useState('');
+  const [copiedHigh, setCopiedHigh] = useState(false);
+  const [copiedBaoben, setCopiedBaoben] = useState(false);
+
+  const highNums = useMemo(() => parsePickNumbers(highText), [highText]);
+  const baobenNums = useMemo(() => parsePickNumbers(baobenText), [baobenText]);
+
+  const handleCopy = async (text, type) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch {}
+      document.body.removeChild(ta);
+    }
+    if (type === 'high') setCopiedHigh(true);
+    else setCopiedBaoben(true);
+  };
+
+  return (
+    <div style={{ width: '100%', flex: 1, border: '2px solid #00838f', borderRadius: 6, background: '#e0f7fa', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div style={{
+        padding: '6px 10px', background: '#00838f', color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8, flexWrap: 'wrap',
+      }}>
+        <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.95 }}>
+          {issue ? `${issue} 期（最新未开奖）` : '—'}
+        </span>
+        <span style={{ fontSize: 15, fontWeight: 800 }}>直选高倍</span>
+      </div>
+      <div style={{ padding: 8, display: 'flex', gap: 8, alignItems: 'stretch', flex: 1, minHeight: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px dashed #4dd0e1', borderRadius: 3, background: '#fff', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#e0f2f1', borderBottom: '1px solid #b2dfdb' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#00695c' }}>直选高倍 {highNums.length} 注</span>
+            <button
+              onClick={() => handleCopy(highText, 'high')}
+              style={{
+                fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+                border: `1px solid ${copiedHigh ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+                background: copiedHigh ? '#c8e6c9' : '#fff', color: copiedHigh ? '#1b5e20' : '#555',
+                fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+              }}
+            >
+              {copiedHigh ? '✓' : '复制'}
+            </button>
+          </div>
+          <textarea
+            value={highText}
+            onChange={(e) => { setHighText(e.target.value); setCopiedHigh(false); }}
+            placeholder="手动输入号码，空格/逗号/换行分隔"
+            style={{ flex: 1, minHeight: 0, border: 'none', outline: 'none', resize: 'none', padding: 4, fontSize: 12, fontFamily: 'Consolas,monospace', lineHeight: '18px', color: '#00695c' }}
+          />
+        </div>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px dashed #ef9a9a', borderRadius: 3, background: '#fff', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#ffebee', borderBottom: '1px solid #ffcdd2' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#c62828' }}>保本投注 {baobenNums.length} 注</span>
+            <button
+              onClick={() => handleCopy(baobenText, 'baoben')}
+              style={{
+                fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+                border: `1px solid ${copiedBaoben ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+                background: copiedBaoben ? '#c8e6c9' : '#fff', color: copiedBaoben ? '#1b5e20' : '#555',
+                fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+              }}
+            >
+              {copiedBaoben ? '✓' : '复制'}
+            </button>
+          </div>
+          <textarea
+            value={baobenText}
+            onChange={(e) => { setBaobenText(e.target.value); setCopiedBaoben(false); }}
+            placeholder="手动输入号码，空格/逗号/换行分隔"
+            style={{ flex: 1, minHeight: 0, border: 'none', outline: 'none', resize: 'none', padding: 4, fontSize: 12, fontFamily: 'Consolas,monospace', lineHeight: '18px', color: '#c62828' }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FullDataTable({
   data, showCount, setShowCount, trialDigits, onTrialChange,
   // 加减号码需要回溯200期历史，而 data 已被 enrichData 窗口化，故另传完整数据
@@ -1118,6 +1204,9 @@ function FullDataTable({
                 border="#ffb74d"
               />
             </div>
+          </div>
+          <div style={{ flex: '1 1 0', minHeight: 0, display: 'flex' }}>
+            <ZhiXuanGaoBeiModule issue={selfPickIssue} />
           </div>
           <button
             onClick={onDecompSubmit}
