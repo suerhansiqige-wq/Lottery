@@ -855,7 +855,7 @@ function FullDataTable({
       }
     }
 
-    // 交集号码 = 智取容错10 ∩ 博众容错10
+    // 交集号码 = 智取容错1~10 ∩ 博众容错1~10
     const bozhongSet = new Set(bozhongRc10);
     const intersection = decompRc10.filter(n => bozhongSet.has(n));
     
@@ -865,13 +865,15 @@ function FullDataTable({
     const symmetricDiff = union.filter(n => !intersectionSet.has(n));
     const symmetricDiffSet = new Set(symmetricDiff);
     
-    // 容错10列 = A ∪ B
-    const unionSet = new Set(union);
+    // 容错10列 = 智取errorCount===10 ∪ 博众errorCount===10
+    const decompRc10Only = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
+    const bozhongRc10Only = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
+    const rc10UnionSet = new Set([...decompRc10Only, ...bozhongRc10Only]);
     
     // 综合列 = 交集号码 - 容错列 - 容错10列
     const filtered = intersection
       .filter(n => !symmetricDiffSet.has(n))
-      .filter(n => !unionSet.has(n))
+      .filter(n => !rc10UnionSet.has(n))
       .sort();
 
     if (filtered.length === 0) {
@@ -1522,7 +1524,7 @@ function FullDataTable({
                         if (bozhongResult.buckets[i]) bozhongRc10.push(...bozhongResult.buckets[i]);
                       }
                     }
-                    // 交集号码 = 智取容错10 ∩ 博众容错10
+                    // 交集号码 = 智取容错1~10 ∩ 博众容错1~10
                     const bozhongSet = new Set(bozhongRc10);
                     const intersection = decompRc10.filter(n => bozhongSet.has(n));
                     
@@ -1532,13 +1534,15 @@ function FullDataTable({
                     const symmetricDiff = union.filter(n => !intersectionSet.has(n));
                     const symmetricDiffSet = new Set(symmetricDiff);
                     
-                    // 容错10列 = A ∪ B
-                    const unionSet = new Set(union);
+                    // 容错10列 = 智取errorCount===10 ∪ 博众errorCount===10
+                    const decompRc10Only = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
+                    const bozhongRc10Only = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
+                    const rc10UnionSet = new Set([...decompRc10Only, ...bozhongRc10Only]);
                     
                     // 综合列 = 交集号码 - 容错列 - 容错10列
                     const filtered = intersection
                       .filter(n => !symmetricDiffSet.has(n))
-                      .filter(n => !unionSet.has(n))
+                      .filter(n => !rc10UnionSet.has(n))
                       .sort();
                     return (
                       <td key="zhNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
