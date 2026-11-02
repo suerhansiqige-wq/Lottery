@@ -597,29 +597,29 @@ function FullDataTable({
       fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
     };
 
-    // 计算智取分解容错10
+    // 计算智取分解容错10（errorCount <= 10）
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-    const decompRc10 = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
+    const decompRc10 = [];
+    if (decompResult && decompResult.buckets) {
+      for (let i = 1; i <= 10; i++) {
+        if (decompResult.buckets[i]) decompRc10.push(...decompResult.buckets[i]);
+      }
+    }
 
-    // 计算博众分解容错10
+    // 计算博众分解容错10（errorCount <= 10）
     const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-    const bozhongRc10 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
+    const bozhongRc10 = [];
+    if (bozhongResult && bozhongResult.buckets) {
+      for (let i = 1; i <= 10; i++) {
+        if (bozhongResult.buckets[i]) bozhongRc10.push(...bozhongResult.buckets[i]);
+      }
+    }
 
-    // 容错10列的号码（交集：智取∩博众）
+    // 容错列 = 智取容错10 ∩ 博众容错10（交集）
     const bozhongSet = new Set(bozhongRc10);
-    const rc10Intersection = decompRc10.filter(n => bozhongSet.has(n));
-
-    // 生成所有1000注号码，过滤出组六和组三（排除豹子），再排除容错10列中的号码
-    const isZuLiu = (n) => new Set(n.split('')).size === 3;
-    const isZuSan = (n) => new Set(n.split('')).size === 2;
-
-    const allNumbers = Array.from({ length: 1000 }, (_, i) => String(i).padStart(3, '0'));
-    const filtered = allNumbers
-      .filter(n => isZuLiu(n) || isZuSan(n))
-      .filter(n => !rc10Intersection.includes(n))
-      .sort();
+    const filtered = decompRc10.filter(n => bozhongSet.has(n)).sort();
 
     if (filtered.length === 0) {
       return <td key="rc" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
@@ -759,7 +759,7 @@ function FullDataTable({
                 {SHOW_SLBC_COLS && <th>必出号</th>}
                 {SHOW_ADDSUB_COL && <th title={`用其前${ADD_SUB_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>加减号码</th>}
                 <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>
-                <th title="1000注号码池中排除容错10列交集后的组六和组三号码；✓=在池内，✗=不在池内">容错</th>
+                <th title="智取容错10 ∩ 博众容错10（交集）；✓=在池内，✗=不在池内">容错</th>
                 {/* 智取分解 / 博众分解 两列 */}
                 {DECOMP_COLS.map(c => (
                   <th key={'dcTh_' + c.kind} title={c.title}
@@ -851,7 +851,7 @@ function FullDataTable({
                   {renderAddSubCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 容错10：智取分解容错10 ∪ 博众分解容错10 */}
                   {renderRongCuo10Cell(item.issue)}
-                  {/* 容错：1000注号码池中排除容错10列交集后的组六和组三号码 */}
+                  {/* 容错：智取容错10 ∩ 博众容错10（交集） */}
                   {renderRongCuoCell(item.issue)}
                   {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数 */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, item.issue, c.title))}
@@ -950,19 +950,22 @@ function FullDataTable({
                     const cpd = copiedIssues.has('rc_next_' + nextIssue);
                     const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-                    const decompRc10 = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
+                    const decompRc10 = [];
+                    if (decompResult && decompResult.buckets) {
+                      for (let i = 1; i <= 10; i++) {
+                        if (decompResult.buckets[i]) decompRc10.push(...decompResult.buckets[i]);
+                      }
+                    }
                     const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-                    const bozhongRc10 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
+                    const bozhongRc10 = [];
+                    if (bozhongResult && bozhongResult.buckets) {
+                      for (let i = 1; i <= 10; i++) {
+                        if (bozhongResult.buckets[i]) bozhongRc10.push(...bozhongResult.buckets[i]);
+                      }
+                    }
                     const bozhongSet = new Set(bozhongRc10);
-                    const rc10Intersection = decompRc10.filter(n => bozhongSet.has(n));
-                    const isZuLiu = (n) => new Set(n.split('')).size === 3;
-                    const isZuSan = (n) => new Set(n.split('')).size === 2;
-                    const allNumbers = Array.from({ length: 1000 }, (_, i) => String(i).padStart(3, '0'));
-                    const filtered = allNumbers
-                      .filter(n => isZuLiu(n) || isZuSan(n))
-                      .filter(n => !rc10Intersection.includes(n))
-                      .sort();
+                    const filtered = decompRc10.filter(n => bozhongSet.has(n)).sort();
                     return (
                       <td key="rcNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
