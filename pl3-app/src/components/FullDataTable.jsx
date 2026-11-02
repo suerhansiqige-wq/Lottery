@@ -719,29 +719,29 @@ function FullDataTable({
       background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
       fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
     };
-    
+
     // 计算智取分解容错10
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
     const decompRc10 = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
-    
+
     // 计算博众分解容错10
     const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
     const bozhongRc10 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
-    
+
     // 合并去重
     const merged = [...new Set([...decompRc10, ...bozhongRc10])].sort();
-    
+
     if (merged.length === 0) {
       return <td key="rc10" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
     }
-    
+
     // 验证当期开奖号是否在容错10中
     const item = displayData.find(d => d.issue === issue);
     const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
     const hit = drawNum && merged.includes(drawNum);
-    
+
     return (
       <td key="rc10" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
@@ -755,6 +755,71 @@ function FullDataTable({
           <button
             style={btnStyle}
             onClick={() => handleCopy('rc10_' + issue, merged)}
+          >
+            {copied ? '✓' : '复制'}
+          </button>
+        </div>
+      </td>
+    );
+  };
+
+  const renderRongCuoCell = (issue) => {
+    const copied = copiedIssues.has('rc_' + issue);
+    const btnStyle = {
+      fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+      border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+      background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
+      fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+    };
+
+    // 计算智取分解容错10
+    const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
+    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+    const decompRc10 = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
+
+    // 计算博众分解容错10
+    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
+    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+    const bozhongRc10 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
+
+    // 容错10列的号码（并集）
+    const rc10Set = new Set([...decompRc10, ...bozhongRc10]);
+
+    // 生成所有1000注号码，过滤出组六和组三（排除豹子），再排除容错10列中的号码
+    const isZuLiu = (n) => new Set(n.split('')).size === 3;
+    const isZuSan = (n) => {
+      const digits = n.split('');
+      return new Set(digits).size === 2;
+    };
+
+    const allNumbers = Array.from({ length: 1000 }, (_, i) => String(i).padStart(3, '0'));
+    const filtered = allNumbers
+      .filter(n => isZuLiu(n) || isZuSan(n))
+      .filter(n => !rc10Set.has(n))
+      .sort();
+
+    if (filtered.length === 0) {
+      return <td key="rc" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+
+    // 验证当期开奖号是否在容错中
+    const item = displayData.find(d => d.issue === issue);
+    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
+    const hit = drawNum && filtered.includes(drawNum);
+
+    return (
+      <td key="rc" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+          <span style={{ fontWeight: 800, color: hit ? '#1b5e20' : (hit === false ? '#b71c1c' : '#666') }}>{filtered.length}注</span>
+          {hit !== null && (
+            <span title={hit ? '当期开奖号在容错内' : '当期开奖号不在容错内'}
+              style={{ fontWeight: 900, fontSize: 15, color: hit ? '#2e7d32' : '#c62828' }}>
+              {hit ? '✓' : '✗'}
+            </span>
+          )}
+          <button
+            style={btnStyle}
+            onClick={() => handleCopy('rc_' + issue, filtered)}
           >
             {copied ? '✓' : '复制'}
           </button>
@@ -1008,6 +1073,7 @@ function FullDataTable({
                 {SHOW_SLBC_COLS && <th>必出号</th>}
                 {SHOW_ADDSUB_COL && <th title={`用其前${ADD_SUB_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>加减号码</th>}
                 <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>
+                <th title="1000注号码池中排除容错10列后的组六和组三号码；✓=在池内，✗=不在池内">容错</th>
                 {/* 参考一/参考二/胆码三列表头已彻底删除 - 用户要求 */}
                 {/* 智取分解 / 博众分解 两列（表格最右侧，与福彩3D 同位置逻辑） */}
                 {DECOMP_COLS.map(c => (
@@ -1102,6 +1168,8 @@ function FullDataTable({
                   {renderAddSubCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 容错10：智取分解容错10 ∪ 博众分解容错10 */}
                   {renderRongCuo10Cell(item.issue)}
+                  {/* 容错：1000注号码池中排除容错10列后的组六和组三号码 */}
+                  {renderRongCuoCell(item.issue)}
                   {/* 参考一/参考二/胆码三列单元格已彻底删除 - 用户要求 */}
                   {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数（与福彩3D 一致） */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, item.issue, c.title))}
@@ -1191,6 +1259,43 @@ function FullDataTable({
                               fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
                             }}
                             onClick={() => handleCopy('rc10_next_' + nextIssue, merged)}
+                          >
+                            {cpd ? '✓' : '复制'}
+                          </button>
+                        </div>
+                      </td>
+                    );
+                  })()}
+                  {/* 容错 - 预留行：下期容错注数 + 复制（尚未开奖，无对错） */}
+                  {(() => {
+                    const cpd = copiedIssues.has('rc_next_' + nextIssue);
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
+                    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+                    const decompRc10 = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
+                    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+                    const bozhongRc10 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
+                    const rc10Set = new Set([...decompRc10, ...bozhongRc10]);
+                    const isZuLiu = (n) => new Set(n.split('')).size === 3;
+                    const isZuSan = (n) => new Set(n.split('')).size === 2;
+                    const allNumbers = Array.from({ length: 1000 }, (_, i) => String(i).padStart(3, '0'));
+                    const filtered = allNumbers
+                      .filter(n => isZuLiu(n) || isZuSan(n))
+                      .filter(n => !rc10Set.has(n))
+                      .sort();
+                    return (
+                      <td key="rcNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{filtered.length}注</span>
+                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
+                          <button
+                            style={{
+                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
+                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+                            }}
+                            onClick={() => handleCopy('rc_next_' + nextIssue, filtered)}
                           >
                             {cpd ? '✓' : '复制'}
                           </button>
