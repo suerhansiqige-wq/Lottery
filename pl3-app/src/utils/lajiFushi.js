@@ -118,10 +118,10 @@ export function findMostFrequent(sets) {
     countMap.set(num, (countMap.get(num) || 0) + 1);
   }
 
-  // 按出现次数降序排序，取前2个号码
+  // 按出现次数降序排序，取前3个号码
   const sorted = [...countMap.entries()].sort((a, b) => b[1] - a[1]);
   const result = new Set();
-  for (let i = 0; i < Math.min(2, sorted.length); i++) {
+  for (let i = 0; i < Math.min(3, sorted.length); i++) {
     result.add(sorted[i][0]);
   }
 
