@@ -53,9 +53,9 @@ export function parseLajiInput(input) {
 }
 
 /**
- * 找出多个号码集合中出现次数最多的号码
+ * 找出多个号码集合中出现2次或以上的号码
  * @param {Array<Set<string>>} sets - 多个号码集合
- * @returns {Set<string>} - 出现次数最多的号码集合
+ * @returns {Set<string>} - 出现2次或以上的号码集合
  */
 export function findMostFrequent(sets) {
   if (sets.length === 0) return new Set();
@@ -68,16 +68,10 @@ export function findMostFrequent(sets) {
     }
   }
 
-  // 找出最大出现次数
-  let maxCount = 0;
-  for (const count of countMap.values()) {
-    if (count > maxCount) maxCount = count;
-  }
-
-  // 收集出现次数等于最大次数的所有号码
+  // 收集出现次数 >= 2 的所有号码
   const result = new Set();
   for (const [num, count] of countMap.entries()) {
-    if (count === maxCount) {
+    if (count >= 2) {
       result.add(num);
     }
   }
