@@ -486,41 +486,12 @@ const BAOZI_NUMS = ['000','111','222','333','444','555','666','777','888','999']
  *  直选高倍 = （综合列 ∩ 直选大底 ∩ 组六 ∩ 加减号码） - 精选展开的组六号码 - 智取/博众无容错号码
  *  保本投注 = （综合列 ∩ 直选大底） - 直选高倍 + 无容错号码 + 所有豹子号
  */
-function ZhiXuanGaoBeiModule({ issue, selfPickValue = '', selfPickJxValue = '', addSubNumbers = [], zongHeNumbers = [], wuRongCuoNumbers = [] }) {
+function ZhiXuanGaoBeiModule({ issue }) {
   const [copiedHigh, setCopiedHigh] = useState(false);
   const [copiedBaoben, setCopiedBaoben] = useState(false);
 
-  const isZuLiu = (n) => new Set(n.split('')).size === 3;
-  const isZuSan = (n) => !isZuLiu(n);
-
-  const { highNums, baobenNums } = useMemo(() => {
-    const dadiNums = parsePickNumbers(selfPickValue);
-    const dadiSet = new Set(dadiNums);
-    const addSubSet = new Set(addSubNumbers);
-    const zongHeSet = new Set(zongHeNumbers);
-    const wuSet = new Set(wuRongCuoNumbers);
-    const jxExpanded = expandZuxuanToZhixuan(parsePickNumbers(selfPickJxValue));
-    const jxZuLiu = [...jxExpanded].filter(isZuLiu);
-    const jxZuLiuSet = new Set(jxZuLiu);
-
-    const high = dadiNums
-      .filter(n => isZuLiu(n))
-      .filter(n => zongHeSet.has(n))
-      .filter(n => addSubSet.has(n))
-      .filter(n => !jxZuLiuSet.has(n))
-      .filter(n => !wuSet.has(n))
-      .sort((a, b) => Number(a) - Number(b));
-
-    const highSet = new Set(high);
-    const zongHeInDadi = zongHeNumbers.filter(n => dadiSet.has(n));
-    const baoben = [...new Set([
-      ...zongHeInDadi.filter(n => !highSet.has(n)),
-      ...wuRongCuoNumbers,
-      ...BAOZI_NUMS,
-    ])].sort((a, b) => Number(a) - Number(b));
-
-    return { highNums: high, baobenNums: baoben };
-  }, [selfPickValue, selfPickJxValue, addSubNumbers, zongHeNumbers, wuRongCuoNumbers]);
+  const highNums = [];
+  const baobenNums = [];
 
   const handleCopy = async (text, type) => {
     try {
@@ -695,36 +666,36 @@ function FullDataTable({
     if (!issue) return [];
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-    const decompRc10 = [];
+    const decompRc9 = [];
     if (decompResult && decompResult.buckets) {
-      for (let i = 1; i <= 10; i++) {
-        if (decompResult.buckets[i]) decompRc10.push(...decompResult.buckets[i]);
+      for (let i = 1; i <= 9; i++) {
+        if (decompResult.buckets[i]) decompRc9.push(...decompResult.buckets[i]);
       }
     }
     const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-    const bozhongRc10 = [];
+    const bozhongRc9 = [];
     if (bozhongResult && bozhongResult.buckets) {
-      for (let i = 1; i <= 10; i++) {
-        if (bozhongResult.buckets[i]) bozhongRc10.push(...bozhongResult.buckets[i]);
+      for (let i = 1; i <= 9; i++) {
+        if (bozhongResult.buckets[i]) bozhongRc9.push(...bozhongResult.buckets[i]);
       }
     }
-    // 交集号码 = 智取容错1~10 ∩ 博众容错1~10
-    const bozhongSet = new Set(bozhongRc10);
-    const intersection = decompRc10.filter(n => bozhongSet.has(n));
+    // 交集号码 = 智取容错1~9 ∩ 博众容错1~9
+    const bozhongSet = new Set(bozhongRc9);
+    const intersection = decompRc9.filter(n => bozhongSet.has(n));
     // 容错列 = 对称差集 = (A ∪ B) - (A ∩ B)
     const intersectionSet = new Set(intersection);
-    const union = [...new Set([...decompRc10, ...bozhongRc10])];
+    const union = [...new Set([...decompRc9, ...bozhongRc9])];
     const symmetricDiff = union.filter(n => !intersectionSet.has(n));
     const symmetricDiffSet = new Set(symmetricDiff);
-    // 容错10列 = 智取errorCount===10 ∪ 博众errorCount===10
-    const decompRc10Only = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
-    const bozhongRc10Only = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
-    const rc10UnionSet = new Set([...decompRc10Only, ...bozhongRc10Only]);
-    // 综合列 = 交集号码 - 容错列 - 容错10列
+    // 容错9列 = 智取errorCount===9 ∪ 博众errorCount===9
+    const decompRc9Only = decompResult && decompResult.buckets && decompResult.buckets[9] ? decompResult.buckets[9] : [];
+    const bozhongRc9Only = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[9] ? bozhongResult.buckets[9] : [];
+    const rc9UnionSet = new Set([...decompRc9Only, ...bozhongRc9Only]);
+    // 综合列 = 交集号码 - 容错列 - 容错9列
     return intersection
       .filter(n => !symmetricDiffSet.has(n))
-      .filter(n => !rc10UnionSet.has(n))
+      .filter(n => !rc9UnionSet.has(n))
       .sort();
   };
 
