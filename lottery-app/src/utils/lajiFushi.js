@@ -87,6 +87,7 @@ export function findMostFrequent(sets) {
 
 /**
  * 处理完整的垃圾复式逻辑
+ * 16组输入 → 每4组一批生成125注 → 4批合并 → 取重复最多的号码
  * @param {string} input - 16组输入数据
  * @returns {Object} - { numbers: Set<string>, batches: Array<Set<string>> }
  */
@@ -96,24 +97,45 @@ export function processLajiFushi(input) {
     return { numbers: new Set(), batches: [] };
   }
 
-  // 每4组为一批
+  // 每4组为一批，生成所有号码（保留重复）
+  const allNumbers = [];
   const batches = [];
   for (let i = 0; i < groups.length; i += 4) {
     const batchGroups = groups.slice(i, i + 4);
     const batchSets = batchGroups.map(g => generateNumbers(g));
-    const batchResult = findMostFrequent(batchSets);
-    batches.push(batchResult);
+    // 每批的号码合并（保留重复用于后续统计）
+    const batchNumbers = [];
+    for (const set of batchSets) {
+      for (const num of set) {
+        batchNumbers.push(num);
+      }
+    }
+    allNumbers.push(...batchNumbers);
+    // 批次结果用于显示
+    batches.push(new Set(batchNumbers));
   }
 
-  // 合并所有批次的结果
-  const merged = new Set();
-  for (const batch of batches) {
-    for (const num of batch) {
-      merged.add(num);
+  // 统计所有号码出现的次数
+  const countMap = new Map();
+  for (const num of allNumbers) {
+    countMap.set(num, (countMap.get(num) || 0) + 1);
+  }
+
+  // 找出最大出现次数
+  let maxCount = 0;
+  for (const count of countMap.values()) {
+    if (count > maxCount) maxCount = count;
+  }
+
+  // 收集出现次数等于最大次数的所有号码
+  const result = new Set();
+  for (const [num, count] of countMap.entries()) {
+    if (count === maxCount) {
+      result.add(num);
     }
   }
 
-  return { numbers: merged, batches };
+  return { numbers: result, batches };
 }
 
 /**
