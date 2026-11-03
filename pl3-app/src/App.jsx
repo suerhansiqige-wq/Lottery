@@ -55,8 +55,10 @@ function App() {
 
   const [decompTexts, setDecompTextsState] = useState(() => normalizeTexts({ ...DECOMP_BASELINE, ...loadOverrides('pl3_decompTexts') }));
   const [bozhongTexts, setBozhongTextsState] = useState(() => normalizeTexts({ ...BOZHONG_BASELINE, ...loadOverrides('pl3_bozhongTexts') }));
+  const [lajiTexts, setLajiTextsState] = useState(() => normalizeTexts({ ...loadOverrides('pl3_lajiTexts') }));
   const [lockedDecomp, setLockedDecompState] = useState(() => loadLockSet('pl3_lockedDecomp'));
   const [lockedBozhong, setLockedBozhongState] = useState(() => loadLockSet('pl3_lockedBozhong'));
+  const [lockedLaji, setLockedLajiState] = useState(() => loadLockSet('pl3_lockedLaji'));
   const [pwdDialog, setPwdDialog] = useState(false);
   const [pwdTarget, setPwdTarget] = useState(null); // { kind: 'decomp'|'bozhong', issue }
   const [pwdInput, setPwdInput] = useState('');
@@ -75,8 +77,10 @@ function App() {
       // 编辑后立即同步到 Gist，确保云端数据是最新的
       if (getGistToken() && gistKey) {
         const gistData = gistKey === 'decomp'
-          ? { decompTexts: next, bozhongTexts: bozhongTexts }
-          : { decompTexts: decompTexts, bozhongTexts: next };
+          ? { decompTexts: next, bozhongTexts: bozhongTexts, lajiTexts: lajiTexts }
+          : gistKey === 'bozhong'
+          ? { decompTexts: decompTexts, bozhongTexts: next, lajiTexts: lajiTexts }
+          : { decompTexts: decompTexts, bozhongTexts: bozhongTexts, lajiTexts: next };
         saveToGist(gistData).then(ok => {
           if (ok) {
             setGistSyncStatus('✅ 已同步到云端');
@@ -89,6 +93,7 @@ function App() {
   };
   const setDecompText = makeTextSetter(setDecompTextsState, 'pl3_decompTexts', 'decomp');
   const setBozhongText = makeTextSetter(setBozhongTextsState, 'pl3_bozhongTexts', 'bozhong');
+  const setLajiText = makeTextSetter(setLajiTextsState, 'pl3_lajiTexts', 'laji');
 
   // 自选号码：按「最新未开奖期」存储，键 pl3_selfPick（仅存非空期）
   // 这是右侧「直选大底」框，同时也是分解容错与直选高倍/保本投注的号码源
@@ -121,6 +126,7 @@ function App() {
   };
   const setLockedDecomp = makeLockSetter(setLockedDecompState, 'pl3_lockedDecomp');
   const setLockedBozhong = makeLockSetter(setLockedBozhongState, 'pl3_lockedBozhong');
+  const setLockedLaji = makeLockSetter(setLockedLajiState, 'pl3_lockedLaji');
 
   const requestUnlock = (kind, issue) => {
     setPwdTarget({ kind, issue });
@@ -133,7 +139,9 @@ function App() {
     if (pwdInput.trim() !== DECOMP_PWD) { setPwdError('密码错误'); return; }
     const { kind, issue } = pwdTarget;
     const remover = (prev) => { const n = new Set(prev); n.delete(issue); return n; };
-    if (kind === 'decomp') setLockedDecomp(remover); else setLockedBozhong(remover);
+    if (kind === 'decomp') setLockedDecomp(remover);
+    else if (kind === 'bozhong') setLockedBozhong(remover);
+    else if (kind === 'laji') setLockedLaji(remover);
     setPwdDialog(false);
     setPwdTarget(null);
     setPwdInput('');
@@ -245,6 +253,11 @@ function App() {
         setBozhongTextsState(merged);
         safeSetItem('pl3_bozhongTexts', JSON.stringify(merged));
       }
+      if (data.lajiTexts && Object.keys(data.lajiTexts).length > 0) {
+        const merged = merge({}, data.lajiTexts);
+        setLajiTextsState(merged);
+        safeSetItem('pl3_lajiTexts', JSON.stringify(merged));
+      }
     }).catch(() => {});
     // GitHub Gist（跨设备，静态托管也可用）—— 云端数据为准，直接覆盖本地
     console.log('[Gist] 初始化同步，检查 token...');
@@ -254,7 +267,8 @@ function App() {
       if (!data) return;
       console.log('[Gist] 云端数据:', {
         decompTexts: data.decompTexts ? Object.keys(data.decompTexts).length + ' 期' : '无',
-        bozhongTexts: data.bozhongTexts ? Object.keys(data.bozhongTexts).length + ' 期' : '无'
+        bozhongTexts: data.bozhongTexts ? Object.keys(data.bozhongTexts).length + ' 期' : '无',
+        lajiTexts: data.lajiTexts ? Object.keys(data.lajiTexts).length + ' 期' : '无'
       });
       if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
         setDecompTextsState(prev => {
@@ -286,6 +300,20 @@ function App() {
         });
         console.log('[Gist] ✓ 博众分解数据已同步到本地并锁定');
       }
+      if (data.lajiTexts && Object.keys(data.lajiTexts).length > 0) {
+        setLajiTextsState(prev => {
+          const merged = { ...prev, ...data.lajiTexts };
+          safeSetItem('pl3_lajiTexts', JSON.stringify(merged));
+          return merged;
+        });
+        setLockedLaji(prev => {
+          const next = new Set(prev);
+          Object.keys(data.lajiTexts).forEach(i => next.add(i));
+          safeSetItem('pl3_lockedLaji', JSON.stringify([...next]));
+          return next;
+        });
+        console.log('[Gist] ✓ 垃圾复式数据已同步到本地并锁定');
+      }
     }).catch(err => {
       console.error('[Gist] 同步出错:', err);
     });
@@ -316,10 +344,11 @@ function App() {
     if (!nextIssue) return;
     setLockedDecomp(prev => { const n = new Set(prev).add(nextIssue); safeSetItem('pl3_lockedDecomp', JSON.stringify([...n])); return n; });
     setLockedBozhong(prev => { const n = new Set(prev).add(nextIssue); safeSetItem('pl3_lockedBozhong', JSON.stringify([...n])); return n; });
+    setLockedLaji(prev => { const n = new Set(prev).add(nextIssue); safeSetItem('pl3_lockedLaji', JSON.stringify([...n])); return n; });
     fetch('/api/save-decomp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ decompTexts, bozhongTexts })
+      body: JSON.stringify({ decompTexts, bozhongTexts, lajiTexts })
     }).catch(() => {});
     
     // 明显的操作反馈动画
@@ -330,11 +359,13 @@ function App() {
       const cloudData = await loadFromGist();
       let mergedD = { ...decompTexts };
       let mergedB = { ...bozhongTexts };
+      let mergedL = { ...lajiTexts };
       if (cloudData) {
         if (cloudData.decompTexts) mergedD = { ...mergedD, ...cloudData.decompTexts };
         if (cloudData.bozhongTexts) mergedB = { ...mergedB, ...cloudData.bozhongTexts };
+        if (cloudData.lajiTexts) mergedL = { ...mergedL, ...cloudData.lajiTexts };
       }
-      const ok = await saveToGist({ decompTexts: mergedD, bozhongTexts: mergedB });
+      const ok = await saveToGist({ decompTexts: mergedD, bozhongTexts: mergedB, lajiTexts: mergedL });
       setGistSyncStatus(ok ? '✅ Gist 同步成功' : '❌ Gist 同步失败');
       setTimeout(() => setGistSyncStatus(''), 3000);
     }
@@ -462,17 +493,21 @@ function App() {
   const clearDecompData = () => {
     const pwd = prompt('请输入密码：');
     if (pwd !== '265047') { alert('密码错误'); return; }
-    if (!confirm('确定要清空所有智取分解和博众分解数据吗？此操作不可恢复。')) return;
+    if (!confirm('确定要清空所有智取分解、博众分解和垃圾复式数据吗？此操作不可恢复。')) return;
     setDecompTextsState({});
     setBozhongTextsState({});
+    setLajiTextsState({});
     setLockedDecomp(new Set());
     setLockedBozhong(new Set());
+    setLockedLaji(new Set());
     safeSetItem('pl3_decompTexts', '{}');
     safeSetItem('pl3_bozhongTexts', '{}');
+    safeSetItem('pl3_lajiTexts', '{}');
     safeSetItem('pl3_lockedDecomp', '[]');
     safeSetItem('pl3_lockedBozhong', '[]');
+    safeSetItem('pl3_lockedLaji', '[]');
     if (getGistToken()) {
-      saveToGist({ decompTexts: {}, bozhongTexts: {} }).then(ok => {
+      saveToGist({ decompTexts: {}, bozhongTexts: {}, lajiTexts: {} }).then(ok => {
         setGistSyncStatus(ok ? '✅ 已清空并同步到云端' : ' 清空失败');
         setTimeout(() => setGistSyncStatus(''), 3000);
       });
@@ -537,6 +572,7 @@ function App() {
                 console.log('[Gist 按钮] 云端数据:', data ? '✓' : '✗');
                 let mergedD = { ...decompTexts };
                 let mergedB = { ...bozhongTexts };
+                let mergedL = { ...lajiTexts };
                 if (data) {
                   if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
                     mergedD = { ...mergedD, ...data.decompTexts };
@@ -548,9 +584,14 @@ function App() {
                     console.log('[Gist 按钮] 合并博众分解:', Object.keys(data.bozhongTexts).length, '期');
                     setBozhongTextsState(prev => { const m = { ...prev, ...data.bozhongTexts }; safeSetItem('pl3_bozhongTexts', JSON.stringify(m)); return m; });
                   }
+                  if (data.lajiTexts && Object.keys(data.lajiTexts).length > 0) {
+                    mergedL = { ...mergedL, ...data.lajiTexts };
+                    console.log('[Gist 按钮] 合并垃圾复式:', Object.keys(data.lajiTexts).length, '期');
+                    setLajiTextsState(prev => { const m = { ...prev, ...data.lajiTexts }; safeSetItem('pl3_lajiTexts', JSON.stringify(m)); return m; });
+                  }
                 }
-                console.log('[Gist 按钮] 准备上传到云端，智取:', Object.keys(mergedD).length, '期，博众:', Object.keys(mergedB).length, '期');
-                const ok = await saveToGist({ decompTexts: mergedD, bozhongTexts: mergedB });
+                console.log('[Gist 按钮] 准备上传到云端，智取:', Object.keys(mergedD).length, '期，博众:', Object.keys(mergedB).length, '期，垃圾复式:', Object.keys(mergedL).length, '期');
+                const ok = await saveToGist({ decompTexts: mergedD, bozhongTexts: mergedB, lajiTexts: mergedL });
                 console.log('[Gist 按钮] 上传结果:', ok ? '✓ 成功' : '✗ 失败');
                 setGistSyncStatus(ok ? '✅ 同步完成' : '❌ 同步失败');
                 setGistTesting(false);
@@ -599,10 +640,13 @@ function App() {
             onTrialChange={setTrialDigits}
             decompTexts={decompTexts}
             bozhongTexts={bozhongTexts}
+            lajiTexts={lajiTexts}
             setDecompText={setDecompText}
             setBozhongText={setBozhongText}
+            setLajiText={setLajiText}
             lockedDecomp={lockedDecomp}
             lockedBozhong={lockedBozhong}
+            lockedLaji={lockedLaji}
             onRequestUnlock={requestUnlock}
             nextIssue={nextIssue}
             onDecompSubmit={onDecompSubmit}
@@ -648,7 +692,7 @@ function App() {
             }}
           >
             <div style={{ fontSize: 16, fontWeight: 800, color: '#333', marginBottom: 4 }}>
-              解锁{pwdTarget && pwdTarget.kind === 'decomp' ? '智取' : '博众'}分解编辑框
+              解锁{pwdTarget && (pwdTarget.kind === 'decomp' ? '智取' : pwdTarget.kind === 'bozhong' ? '博众' : '垃圾复式')}编辑框
             </div>
             <div style={{ fontSize: 12, color: '#888', marginBottom: 12 }}>
               期号 {pwdTarget ? pwdTarget.issue : '—'}，请输入密码
@@ -761,6 +805,7 @@ function App() {
                   const data = await loadFromGist();
                   let mergedD = { ...decompTexts };
                   let mergedB = { ...bozhongTexts };
+                  let mergedL = { ...lajiTexts };
                   if (data) {
                     if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
                       mergedD = { ...mergedD, ...data.decompTexts };
@@ -770,8 +815,12 @@ function App() {
                       mergedB = { ...mergedB, ...data.bozhongTexts };
                       setBozhongTextsState(prev => { const m = { ...prev, ...data.bozhongTexts }; safeSetItem('pl3_bozhongTexts', JSON.stringify(m)); return m; });
                     }
+                    if (data.lajiTexts && Object.keys(data.lajiTexts).length > 0) {
+                      mergedL = { ...mergedL, ...data.lajiTexts };
+                      setLajiTextsState(prev => { const m = { ...prev, ...data.lajiTexts }; safeSetItem('pl3_lajiTexts', JSON.stringify(m)); return m; });
+                    }
                   }
-                  await saveToGist({ decompTexts: mergedD, bozhongTexts: mergedB });
+                  await saveToGist({ decompTexts: mergedD, bozhongTexts: mergedB, lajiTexts: mergedL });
                   setGistTestResult('✅ 同步完成');
                   setGistTesting(false);
                   setTimeout(() => setGistDialog(false), 800);
