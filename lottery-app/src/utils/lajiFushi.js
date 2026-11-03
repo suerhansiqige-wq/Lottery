@@ -53,9 +53,9 @@ export function parseLajiInput(input) {
 }
 
 /**
- * 找出多个号码集合中出现2次或以上的号码
+ * 找出多个号码集合中重复最多的前2个取值对应的所有号码
  * @param {Array<Set<string>>} sets - 多个号码集合
- * @returns {Set<string>} - 出现2次或以上的号码集合
+ * @returns {Set<string>} - 重复最多的前2个取值对应的号码集合
  */
 export function findMostFrequent(sets) {
   if (sets.length === 0) return new Set();
@@ -68,10 +68,16 @@ export function findMostFrequent(sets) {
     }
   }
 
-  // 收集出现次数 >= 2 的所有号码
+  // 收集所有不同的出现次数，降序排序
+  const counts = [...new Set(countMap.values())].sort((a, b) => b - a);
+
+  // 取前2个不同的出现次数
+  const topCounts = counts.slice(0, 2);
+
+  // 收集出现次数在前2个取值中的所有号码
   const result = new Set();
   for (const [num, count] of countMap.entries()) {
-    if (count >= 2) {
+    if (topCounts.includes(count)) {
       result.add(num);
     }
   }
