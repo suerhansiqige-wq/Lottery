@@ -87,7 +87,7 @@ export function findMostFrequent(sets) {
 
 /**
  * 处理完整的垃圾复式逻辑
- * 16组输入 → 每4组一批生成125注 → 4批合并 → 取重复最多的号码
+ * 16组输入 → 每4组一批生成125注 → 4批合并 → 取重复最多的前2个号码
  * @param {string} input - 16组输入数据
  * @returns {Object} - { numbers: Set<string>, batches: Array<Set<string>> }
  */
@@ -121,18 +121,11 @@ export function processLajiFushi(input) {
     countMap.set(num, (countMap.get(num) || 0) + 1);
   }
 
-  // 找出最大出现次数
-  let maxCount = 0;
-  for (const count of countMap.values()) {
-    if (count > maxCount) maxCount = count;
-  }
-
-  // 收集出现次数等于最大次数的所有号码
+  // 按出现次数降序排序，取前2个号码
+  const sorted = [...countMap.entries()].sort((a, b) => b[1] - a[1]);
   const result = new Set();
-  for (const [num, count] of countMap.entries()) {
-    if (count === maxCount) {
-      result.add(num);
-    }
+  for (let i = 0; i < Math.min(2, sorted.length); i++) {
+    result.add(sorted[i][0]);
   }
 
   return { numbers: result, batches };
