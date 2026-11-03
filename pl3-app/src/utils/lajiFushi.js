@@ -121,10 +121,10 @@ export function processLajiFushi(input) {
     countMap.set(num, (countMap.get(num) || 0) + 1);
   }
 
-  // 收集出现次数在4~16次之间的所有号码
+  // 收集出现次数在5~16次之间的所有号码
   const result = new Set();
   for (const [num, count] of countMap.entries()) {
-    if (count >= 4 && count <= 16) {
+    if (count >= 5 && count <= 16) {
       result.add(num);
     }
   }
