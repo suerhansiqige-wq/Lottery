@@ -87,7 +87,7 @@ export function findMostFrequent(sets) {
 
 /**
  * 处理完整的垃圾复式逻辑
- * 16组输入 → 每4组一批生成125注 → 4批合并 → 取重复8~16次的号码
+ * 16组输入 → 每4组一批 → 每批取出现2次或以上的号码 → 合并4批结果
  * @param {string} input - 16组输入数据
  * @returns {Object} - { numbers: Set<string>, batches: Array<Set<string>> }
  */
@@ -97,34 +97,34 @@ export function processLajiFushi(input) {
     return { numbers: new Set(), batches: [] };
   }
 
-  // 每4组为一批，生成所有号码（保留重复）
-  const allNumbers = [];
+  // 每4组为一批
   const batches = [];
   for (let i = 0; i < groups.length; i += 4) {
     const batchGroups = groups.slice(i, i + 4);
     const batchSets = batchGroups.map(g => generateNumbers(g));
-    // 每批的号码合并（保留重复用于后续统计）
-    const batchNumbers = [];
+
+    // 统计该批内每个号码出现的次数
+    const countMap = new Map();
     for (const set of batchSets) {
       for (const num of set) {
-        batchNumbers.push(num);
+        countMap.set(num, (countMap.get(num) || 0) + 1);
       }
     }
-    allNumbers.push(...batchNumbers);
-    // 批次结果用于显示
-    batches.push(new Set(batchNumbers));
+
+    // 取出现2次或以上的号码
+    const batchResult = new Set();
+    for (const [num, count] of countMap.entries()) {
+      if (count >= 2) {
+        batchResult.add(num);
+      }
+    }
+    batches.push(batchResult);
   }
 
-  // 统计所有号码出现的次数
-  const countMap = new Map();
-  for (const num of allNumbers) {
-    countMap.set(num, (countMap.get(num) || 0) + 1);
-  }
-
-  // 收集出现次数在6~16次之间的所有号码
+  // 合并4批的结果
   const result = new Set();
-  for (const [num, count] of countMap.entries()) {
-    if (count >= 6 && count <= 16) {
+  for (const batch of batches) {
+    for (const num of batch) {
       result.add(num);
     }
   }
