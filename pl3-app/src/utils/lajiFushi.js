@@ -87,7 +87,7 @@ export function findMostFrequent(sets) {
 
 /**
  * 处理完整的垃圾复式逻辑
- * 16组输入 → 每4组一批生成125注 → 4批合并 → 取重复8次的号码
+ * 16组输入 → 每4组一批生成125注 → 4批合并 → 取重复8~16次的号码
  * @param {string} input - 16组输入数据
  * @returns {Object} - { numbers: Set<string>, batches: Array<Set<string>> }
  */
@@ -121,10 +121,10 @@ export function processLajiFushi(input) {
     countMap.set(num, (countMap.get(num) || 0) + 1);
   }
 
-  // 收集出现次数等于8的所有号码
+  // 收集出现次数在8~16次之间的所有号码
   const result = new Set();
   for (const [num, count] of countMap.entries()) {
-    if (count === 8) {
+    if (count >= 8 && count <= 16) {
       result.add(num);
     }
   }
