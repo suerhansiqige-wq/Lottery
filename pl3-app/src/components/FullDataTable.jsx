@@ -1388,7 +1388,7 @@ function FullDataTable({
             color: v.type === '组三' ? '#c62828' : '#000',
             fontWeight: v.type === '组三' ? 700 : 600,
           }} title={`${issue} 期开奖最小容错等级（${v.type}）`}>
-            {(kind === 'duanzuZQ' || kind === 'duanzuBZ') && v.type === '组三' ? '组三' : `${v.type}（容错${v.level}）`}
+            {v.type === '组三' ? '组三' : `容错${v.level}`}
           </span>
         )}
         </div>
