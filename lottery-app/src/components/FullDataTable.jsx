@@ -172,24 +172,24 @@ const HJS_COLS = [
 
 // 横相减/横相加/竖相减/竖相加 四列开关：2026-11-01 用户要求隐藏。
 // 只隐藏表格展示，数据照常计算（加减号码候选池依赖横相加与横相减）；改回 true 即恢复显示
-const SHOW_HJS_COLS = false;
+const SHOW_HJS_COLS = true;
 
 // 生号/连号/必出号 三列开关：2026-11-04 用户要求隐藏
-const SHOW_SLBC_COLS = false;
+const SHOW_SLBC_COLS = true;
 
 // 加减号码列开关：2026-11-04 用户要求删除
-const SHOW_ADDSUB_COL = false;
+const SHOW_ADDSUB_COL = true;
 
 // 容错10 / 容错 / 交集号码 三列开关：2026-11-04 用户要求隐藏
-const SHOW_RC10_COL = false;
-const SHOW_RC_COL = false;
-const SHOW_JJ_COL = false;
+const SHOW_RC10_COL = true;
+const SHOW_RC_COL = true;
+const SHOW_JJ_COL = true;
 
 // 综合列开关：2026-11-04 用户要求删除
-const SHOW_ZONGHE_COL = false;
+const SHOW_ZONGHE_COL = true;
 
 // 交集列开关：2026-11-04 用户要求删除
-const SHOW_JIAOJI_COL = false;
+const SHOW_JIAOJI_COL = true;
 
 // 祝君中奖列开关：2026-11-04 用户要求新增
 const SHOW_ZJZJ_COL = true;
@@ -198,7 +198,7 @@ const SHOW_ZJZJ_COL = true;
 const SHOW_DUANZU_RC_COL = true;
 
 // 断组334列开关：2026-11-04 用户要求新增
-const SHOW_DUANZU_COL = false; // 已迁移到 DECOMP_COLS 的 duanzuZQ/duanzuBZ
+const SHOW_DUANZU_COL = true; // 已迁移到 DECOMP_COLS 的 duanzuZQ/duanzuBZ
 
 // 渲染横加减/竖加减4个合并单元格；src 为空或该组无上期数据（全 null）时显示 -
 function renderHjsCells(src) {
