@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { parseDecompGroups, verifyDraw, computeRongCuo } from '../utils/decompRongCuo.js'
 import { ADD_SUB_LOOKBACK, buildAddSubIndex, getAddSubNumbers } from '../utils/addSubPool.js'
 import { processLajiFushi, verifyLajiDraw } from '../utils/lajiFushi.js'
-import { DEFAULT_GROUPS, generateByBrokenGroups, verifyBrokenGroupDraw } from '../utils/brokenGroup.js'
+import { generateByBrokenGroups } from '../utils/brokenGroup.js'
 
 // ============================================================
 // 遗漏策略：三组并集
@@ -582,8 +582,8 @@ function FullDataTable({
   data, showCount, setShowCount, trialDigits, onTrialChange,
   // 加减号码回溯200期需要完整历史（与福彩3D 保持同一接口）
   fullData,
-  decompTexts = {}, bozhongTexts = {}, lajiTexts = {},
-  setDecompText, setBozhongText, setLajiText,
+  decompTexts = {}, bozhongTexts = {}, lajiTexts = {}, duanZuTexts = {},
+  setDecompText, setBozhongText, setLajiText, setDuanZuText,
   lockedDecomp, lockedBozhong, lockedLaji,
   onRequestUnlock,
   // App.jsx 基于 baseData 算出的下期待开奖期号；分解录入框必须用它，
@@ -1067,54 +1067,73 @@ function FullDataTable({
     );
   };
 
-  // 断组334列：默认分组012/345/6789，断1组
+  // 解析用户输入的断组分组：'012/345/6789' -> {group1:Set(0,1,2), group2:Set(3,4,5), group3:Set(6,7,8,9)}
+  const parseDuanZuGroups = (text) => {
+    if (!text || !text.trim()) return null;
+    const parts = text.trim().split('/').map(s => s.trim()).filter(Boolean);
+    if (parts.length !== 3) return null;
+    const groups = {};
+    for (let i = 0; i < 3; i++) {
+      const digits = parts[i].split('').map(c => parseInt(c, 10)).filter(n => !isNaN(n) && n >= 0 && n <= 9);
+      if (digits.length === 0) return null;
+      groups[`group${i + 1}`] = new Set(digits);
+    }
+    return groups;
+  };
+
+  // 断组334列：用户录入分组（如 012/345/6789），系统计算断1组注数
   const renderDuanZuCell = (issue) => {
     if (!SHOW_DUANZU_COL) return null;
-    const copied = copiedIssues.has('duanzu_' + issue);
-    const btnStyle = {
-      fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-      border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-      background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
-      fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-    };
+    const value = (duanZuTexts && duanZuTexts[issue]) || '';
+    const hasData = value.trim().length > 0;
+    const groups = parseDuanZuGroups(value);
 
-    // 默认分组：012 / 345 / 6789
-    const groups = DEFAULT_GROUPS;
-
-    // 生成断1组的所有号码（断第1组、断第2组、断第3组）
-    const broken1 = generateByBrokenGroups(groups, [1]); // 断第1组，用3456789
-    const broken2 = generateByBrokenGroups(groups, [2]); // 断第2组，用0126789
-    const broken3 = generateByBrokenGroups(groups, [3]); // 断第3组，用012345
-
-    // 合并所有断1组的号码
-    const allNumbers = new Set([...broken1, ...broken2, ...broken3]);
-    const filtered = Array.from(allNumbers).sort();
-
-    if (filtered.length === 0) {
-      return <td key="duanzu" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    // 计算断1组注数：合并断第1/2/3组的号码池
+    let filtered = [];
+    if (groups) {
+      const broken1 = generateByBrokenGroups(groups, [1]);
+      const broken2 = generateByBrokenGroups(groups, [2]);
+      const broken3 = generateByBrokenGroups(groups, [3]);
+      const allNumbers = new Set([...broken1, ...broken2, ...broken3]);
+      filtered = Array.from(allNumbers).sort();
     }
 
     // 验证当期开奖号是否在断组预测中
     const item = displayData.find(d => d.issue === issue);
     const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
-    const hit = drawNum && filtered.includes(drawNum);
+    const hit = hasData && drawNum && filtered.length > 0 ? filtered.includes(drawNum) : null;
 
     return (
-      <td key="duanzu" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-          <span style={{ fontWeight: 800, color: hit ? '#1b5e20' : (hit === false ? '#b71c1c' : '#666') }}>{filtered.length}注</span>
-          {hit !== null && (
-            <span title={hit ? '当期开奖号在断组预测内' : '当期开奖号不在断组预测内'}
-              style={{ fontWeight: 900, fontSize: 15, color: hit ? '#2e7d32' : '#c62828' }}>
-              {hit ? '✓' : '✗'}
+      <td key="duanzu" style={{ padding: 2, background: hasData ? '#fff' : '#e0e0e0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <textarea
+            value={value}
+            placeholder="如 012/345/6789"
+            onChange={e => { if (setDuanZuText) setDuanZuText(issue, e.target.value); }}
+            style={{
+              width: 110, minWidth: 110, flex: '1 1 auto', height: 40, resize: 'none', overflow: 'hidden', display: 'block',
+              fontSize: 11, lineHeight: '19px', fontFamily: 'Consolas,Menlo,monospace',
+              padding: '0 3px', boxSizing: 'border-box', borderRadius: 3,
+              border: `1px solid ${hasData ? '#90caf9' : '#bdbdbd'}`,
+              background: hasData ? '#fff' : '#eee',
+              color: '#222', cursor: 'text', whiteSpace: 'pre',
+            }}
+          />
+          {hasData && filtered.length > 0 && (
+            <span style={{
+              fontSize: 13, padding: '2px 6px', borderRadius: 3, border: '1px solid #e0e0e0',
+              background: '#fff', whiteSpace: 'nowrap', minWidth: 60, textAlign: 'left',
+              color: hit === true ? '#1b5e20' : (hit === false ? '#b71c1c' : '#000'),
+              fontWeight: 600,
+            }} title={`${issue} 期断组预测号码（${filtered.length}注）`}>
+              {filtered.length}注
+              {hit !== null && (
+                <span style={{ marginLeft: 4, color: hit ? '#2e7d32' : '#c62828', fontWeight: 700 }}>
+                  {hit ? '✓' : '✗'}
+                </span>
+              )}
             </span>
           )}
-          <button
-            style={btnStyle}
-            onClick={() => handleCopy('duanzu_' + issue, filtered)}
-          >
-            {copied ? '✓' : '复制'}
-          </button>
         </div>
       </td>
     );
@@ -1936,31 +1955,46 @@ function FullDataTable({
                       </td>
                     );
                   })()}
-                  {/* 断组334 - 预留行：下期断组注数 + 复制（尚未开奖，无对错） */}
+                  {/* 断组334 - 预留行：录入框（与数据行一致） */}
                   {SHOW_DUANZU_COL && (() => {
-                    const cpd = copiedIssues.has('duanzu_next_' + nextIssue);
-                    const groups = DEFAULT_GROUPS;
-                    const broken1 = generateByBrokenGroups(groups, [1]);
-                    const broken2 = generateByBrokenGroups(groups, [2]);
-                    const broken3 = generateByBrokenGroups(groups, [3]);
-                    const allNumbers = new Set([...broken1, ...broken2, ...broken3]);
-                    const filtered = Array.from(allNumbers).sort();
+                    const nextDzIssue = appNextIssue || nextIssue;
+                    const value = (duanZuTexts && duanZuTexts[nextDzIssue]) || '';
+                    const hasData = value.trim().length > 0;
+                    const groups = parseDuanZuGroups(value);
+                    let filtered = [];
+                    if (groups) {
+                      const broken1 = generateByBrokenGroups(groups, [1]);
+                      const broken2 = generateByBrokenGroups(groups, [2]);
+                      const broken3 = generateByBrokenGroups(groups, [3]);
+                      const allNumbers = new Set([...broken1, ...broken2, ...broken3]);
+                      filtered = Array.from(allNumbers).sort();
+                    }
                     return (
-                      <td key="duanzuNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{filtered.length}注</span>
-                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
-                          <button
+                      <td key="duanzuNext" style={{ padding: 2, background: hasData ? '#f0f8ff' : '#e8f0f5' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <textarea
+                            value={value}
+                            placeholder="如 012/345/6789"
+                            onChange={e => { if (setDuanZuText) setDuanZuText(nextDzIssue, e.target.value); }}
                             style={{
-                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
-                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+                              width: 110, minWidth: 110, flex: '1 1 auto', height: 40, resize: 'none', overflow: 'hidden', display: 'block',
+                              fontSize: 11, lineHeight: '19px', fontFamily: 'Consolas,Menlo,monospace',
+                              padding: '0 3px', boxSizing: 'border-box', borderRadius: 3,
+                              border: `1px solid ${hasData ? '#90caf9' : '#bdbdbd'}`,
+                              background: hasData ? '#fff' : '#eee',
+                              color: '#222', cursor: 'text', whiteSpace: 'pre',
                             }}
-                            onClick={() => handleCopy('duanzu_next_' + nextIssue, filtered)}
-                          >
-                            {cpd ? '✓' : '复制'}
-                          </button>
+                          />
+                          {hasData && filtered.length > 0 && (
+                            <span style={{
+                              fontSize: 13, padding: '2px 6px', borderRadius: 3, border: '1px solid #e0e0e0',
+                              background: '#fff', whiteSpace: 'nowrap', minWidth: 60, textAlign: 'left',
+                              color: '#1b5e20', fontWeight: 600,
+                            }} title={`${nextDzIssue} 期断组预测号码（${filtered.length}注，待开奖）`}>
+                              {filtered.length}注
+                              <span style={{ marginLeft: 4, color: '#78909c', fontWeight: 700, fontSize: 12 }}>待开奖</span>
+                            </span>
+                          )}
                         </div>
                       </td>
                     );

@@ -68,7 +68,7 @@ function saveDrawsPlugin() {
           req.on('data', chunk => { body += chunk })
           req.on('end', () => {
             try {
-              const { decompTexts, bozhongTexts } = JSON.parse(body)
+              const { decompTexts, bozhongTexts, lajiTexts, duanZuTexts } = JSON.parse(body)
               const dataDir = path.join(process.cwd(), 'src', 'data')
               if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true })
               // 保存智取分解数据
@@ -80,6 +80,16 @@ function saveDrawsPlugin() {
               if (bozhongTexts !== undefined) {
                 const bozhongPath = path.join(dataDir, 'bozhongTexts.json')
                 fs.writeFileSync(bozhongPath, JSON.stringify(bozhongTexts, null, 2), 'utf-8')
+              }
+              // 保存垃圾复式数据
+              if (lajiTexts !== undefined) {
+                const lajiPath = path.join(dataDir, 'lajiTexts.json')
+                fs.writeFileSync(lajiPath, JSON.stringify(lajiTexts, null, 2), 'utf-8')
+              }
+              // 保存断组数据
+              if (duanZuTexts !== undefined) {
+                const duanZuPath = path.join(dataDir, 'duanZuTexts.json')
+                fs.writeFileSync(duanZuPath, JSON.stringify(duanZuTexts, null, 2), 'utf-8')
               }
               res.writeHead(200, { 'Content-Type': 'application/json' })
               res.end(JSON.stringify({ success: true, message: '分解数据已保存' }))
@@ -93,10 +103,14 @@ function saveDrawsPlugin() {
             const dataDir = path.join(process.cwd(), 'src', 'data')
             const decompPath = path.join(dataDir, 'decompTexts.json')
             const bozhongPath = path.join(dataDir, 'bozhongTexts.json')
+            const lajiPath = path.join(dataDir, 'lajiTexts.json')
+            const duanZuPath = path.join(dataDir, 'duanZuTexts.json')
             const decompTexts = fs.existsSync(decompPath) ? JSON.parse(fs.readFileSync(decompPath, 'utf-8')) : {}
             const bozhongTexts = fs.existsSync(bozhongPath) ? JSON.parse(fs.readFileSync(bozhongPath, 'utf-8')) : {}
+            const lajiTexts = fs.existsSync(lajiPath) ? JSON.parse(fs.readFileSync(lajiPath, 'utf-8')) : {}
+            const duanZuTexts = fs.existsSync(duanZuPath) ? JSON.parse(fs.readFileSync(duanZuPath, 'utf-8')) : {}
             res.writeHead(200, { 'Content-Type': 'application/json' })
-            res.end(JSON.stringify({ success: true, decompTexts, bozhongTexts }))
+            res.end(JSON.stringify({ success: true, decompTexts, bozhongTexts, lajiTexts, duanZuTexts }))
           } catch (err) {
             res.writeHead(500, { 'Content-Type': 'application/json' })
             res.end(JSON.stringify({ success: false, message: err.message }))
