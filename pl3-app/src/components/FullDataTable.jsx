@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react'
 import { parseDecompGroups, verifyDraw, computeRongCuo } from '../utils/decompRongCuo.js'
 import { ADD_SUB_LOOKBACK, buildAddSubIndex, getAddSubNumbers } from '../utils/addSubPool.js'
-import { processLajiFushi, verifyLajiDraw } from '../utils/lajiFushi.js'
 import { generateByBrokenGroups } from '../utils/brokenGroup.js'
 
 // ============================================================
@@ -399,7 +398,6 @@ function renderHjsCells(src) {
 const DECOMP_COLS = [
   { kind: 'decomp', th: '智取分解', title: '智取分解：每期 20 组 5-5 分解，格式 XXXXX,XXXXX，组间换行' },
   { kind: 'bozhong', th: '博众分解', title: '博众分解：每期 20 组 5-5 分解，格式 XXXXX,XXXXX，组间换行' },
-  { kind: 'laji', th: '垃圾复式', title: '垃圾复式：手动输入复式号码' },
 ];
 
 // 【格宽随内容自适应】用户要求“每一个格宽度要与数据参数紧挨着”：
@@ -582,9 +580,9 @@ function FullDataTable({
   data, showCount, setShowCount, trialDigits, onTrialChange,
   // 加减号码回溯200期需要完整历史（与福彩3D 保持同一接口）
   fullData,
-  decompTexts = {}, bozhongTexts = {}, lajiTexts = {}, duanZuTexts = {},
-  setDecompText, setBozhongText, setLajiText, setDuanZuText,
-  lockedDecomp, lockedBozhong, lockedLaji,
+  decompTexts = {}, bozhongTexts = {}, duanZuTexts = {},
+  setDecompText, setBozhongText, setDuanZuText,
+  lockedDecomp, lockedBozhong,
   onRequestUnlock,
   // App.jsx 基于 baseData 算出的下期待开奖期号；分解录入框必须用它，
   // 不能用本文件预留行内部的 nextIssue（后者基于 enrichedData，测试行时会多算一期）
@@ -1284,7 +1282,6 @@ function FullDataTable({
   const verifyMaps = useMemo(() => {
     const dm = new Map();
     const bz = new Map();
-    const lj = new Map();
     for (const item of displayData) {
       if (item.d1 === undefined || item.d2 === undefined || item.d3 === undefined) continue;
       const gd = parseDecompGroups((decompTexts && decompTexts[item.issue]) || '');
@@ -1292,38 +1289,8 @@ function FullDataTable({
       const gb = parseDecompGroups((bozhongTexts && bozhongTexts[item.issue]) || '');
       if (gb.length > 0) { const v = verifyDraw(item, gb); if (v) bz.set(item.issue, v); }
     }
-    return { dm, bz, lj };
+    return { dm, bz };
   }, [displayData, decompTexts, bozhongTexts]);
-
-  // 垃圾复式：计算每期的合并号码集合与验证结果
-  const lajiDataMap = useMemo(() => {
-    const result = new Map();
-    // 处理所有展示行
-    for (const item of displayData) {
-      const text = (lajiTexts && lajiTexts[item.issue]) || '';
-      if (!text.trim()) continue;
-      const { numbers } = processLajiFushi(text);
-      if (!numbers || numbers.size === 0) continue;
-      // 验证：已开奖期才判断对错
-      let verified = null;
-      if (item.d1 !== undefined && item.d2 !== undefined && item.d3 !== undefined) {
-        const isError = verifyLajiDraw(numbers, item);
-        verified = { isError };
-      }
-      result.set(item.issue, { numbers, verified });
-    }
-    // 处理下期预留行
-    if (appNextIssue) {
-      const text = (lajiTexts && lajiTexts[appNextIssue]) || '';
-      if (text.trim()) {
-        const { numbers } = processLajiFushi(text);
-        if (numbers && numbers.size > 0) {
-          result.set(appNextIssue, { numbers, verified: null });
-        }
-      }
-    }
-    return result;
-  }, [displayData, lajiTexts, appNextIssue]);
 
   // 参与列宽计算的期号：所有展示行 + 下期预留行（预留行也可能已录入分解）
   const decompIssues = useMemo(() => {
@@ -1334,21 +1301,17 @@ function FullDataTable({
   }, [displayData, data, appNextIssue]);
   const decompBoxW = useMemo(() => calcDecompBoxWidth(decompTexts, decompIssues), [decompTexts, decompIssues]);
   const bozhongBoxW = useMemo(() => calcDecompBoxWidth(bozhongTexts, decompIssues), [bozhongTexts, decompIssues]);
-  const lajiBoxW = useMemo(() => calcDecompBoxWidth(lajiTexts, decompIssues), [lajiTexts, decompIssues]);
 
   // 渲染一个分解文本框单元格；hasData 决定白底/灰底，locked 决定只读与点击解锁（与福彩3D 完全一致）
   const renderDecompCell = (kind, issue, title) => {
-    const texts = kind === 'decomp' ? decompTexts : (kind === 'bozhong' ? bozhongTexts : lajiTexts);
-    const setText = kind === 'decomp' ? setDecompText : (kind === 'bozhong' ? setBozhongText : setLajiText);
-    const lockedSet = kind === 'decomp' ? lockedDecomp : (kind === 'bozhong' ? lockedBozhong : lockedLaji);
+    const texts = kind === 'decomp' ? decompTexts : bozhongTexts;
+    const setText = kind === 'decomp' ? setDecompText : setBozhongText;
+    const lockedSet = kind === 'decomp' ? lockedDecomp : lockedBozhong;
     const value = (texts && texts[issue]) || '';
     const hasData = value.trim().length > 0;
     const locked = !!(lockedSet && lockedSet.has(issue));
-    const v = (kind === 'decomp' ? verifyMaps.dm : (kind === 'bozhong' ? verifyMaps.bz : verifyMaps.lj)).get(issue);
-    const boxW = kind === 'decomp' ? decompBoxW : (kind === 'bozhong' ? bozhongBoxW : lajiBoxW);
-
-    // 垃圾复式特殊处理：显示计算的合并号码与验证结果
-    const lajiData = kind === 'laji' ? lajiDataMap.get(issue) : null;
+    const v = (kind === 'decomp' ? verifyMaps.dm : verifyMaps.bz).get(issue);
+    const boxW = kind === 'decomp' ? decompBoxW : bozhongBoxW;
 
     return (
       <td key={'dc_' + kind} style={{ padding: 2, background: locked ? '#eceff1' : (hasData ? '#fff' : '#e0e0e0') }}>
@@ -1379,38 +1342,6 @@ function FullDataTable({
             fontWeight: v.type === '组三' ? 700 : 600,
           }} title={`${issue} 期开奖最小容错等级（${v.type}）`}>
             {v.type}（容错{v.level}）
-          </span>
-        )}
-        {lajiData && lajiData.numbers && lajiData.numbers.size > 0 && (
-          <span style={{
-            fontSize: 13, padding: '2px 6px', borderRadius: 3, border: '1px solid #e0e0e0',
-            background: '#fff', whiteSpace: 'nowrap', minWidth: 70, textAlign: 'left',
-            color: '#000', fontWeight: 600,
-          }} title={`${issue} 期垃圾复式合并号码（${lajiData.numbers.size}注）`}>
-            {lajiData.numbers.size}注
-            {lajiData.verified && (
-              <span style={{ marginLeft: 4, color: lajiData.verified.isError ? '#c62828' : '#2e7d32', fontWeight: 700 }}>
-                {lajiData.verified.isError ? '✗' : '✓'}
-              </span>
-            )}
-            <button
-              onClick={() => {
-                const text = Array.from(lajiData.numbers).join(',');
-                navigator.clipboard.writeText(text);
-                setCopiedIssues(prev => {
-                  const next = new Set(prev);
-                  next.add('lj_' + issue);
-                  return next;
-                });
-              }}
-              style={{
-                marginLeft: 4, padding: '1px 6px', fontSize: 11, border: '1px solid #90caf9',
-                borderRadius: 3, background: copiedIssues.has('lj_' + issue) ? '#c8e6c9' : '#e3f2fd',
-                cursor: 'pointer', color: copiedIssues.has('lj_' + issue) ? '#2e7d32' : '#1565c0',
-              }}
-            >
-              {copiedIssues.has('lj_' + issue) ? '✓' : '复制'}
-            </button>
           </span>
         )}
         </div>

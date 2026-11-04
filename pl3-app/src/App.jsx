@@ -668,15 +668,12 @@ function App() {
             onTrialChange={setTrialDigits}
             decompTexts={decompTexts}
             bozhongTexts={bozhongTexts}
-            lajiTexts={lajiTexts}
             duanZuTexts={duanZuTexts}
             setDecompText={setDecompText}
             setBozhongText={setBozhongText}
-            setLajiText={setLajiText}
             setDuanZuText={setDuanZuText}
             lockedDecomp={lockedDecomp}
             lockedBozhong={lockedBozhong}
-            lockedLaji={lockedLaji}
             onRequestUnlock={requestUnlock}
             nextIssue={nextIssue}
             onDecompSubmit={onDecompSubmit}
