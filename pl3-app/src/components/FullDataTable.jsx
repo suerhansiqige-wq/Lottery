@@ -1202,7 +1202,8 @@ function FullDataTable({
   // 断组334列：用户录入分组（支持多组），系统计算每组断1组注数并合并
   const renderDuanZuCell = (issue) => {
     if (!SHOW_DUANZU_COL) return null;
-    const value = (duanZuTexts && duanZuTexts[issue]) || '';
+    // 兼容旧代码：duanZuTexts 已废弃，实际使用 duanZuZQTexts / duanZuBZTexts
+    const value = '';
     const hasData = value.trim().length > 0;
     const allGroupsList = parseDuanZuGroups(value);
 
@@ -2082,7 +2083,8 @@ function FullDataTable({
                   {/* 断组334 - 预留行：录入框（与数据行一致，支持多组） */}
                   {SHOW_DUANZU_COL && (() => {
                     const nextDzIssue = appNextIssue || nextIssue;
-                    const value = (duanZuTexts && duanZuTexts[nextDzIssue]) || '';
+                    // 兼容旧代码：duanZuTexts 已废弃，实际使用 duanZuZQTexts / duanZuBZTexts
+                    const value = '';
                     const hasData = value.trim().length > 0;
                     const allGroupsList = parseDuanZuGroups(value);
                     let filtered = [];
