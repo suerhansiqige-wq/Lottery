@@ -892,34 +892,47 @@ function FullDataTable({
     );
   };
 
-  // 解析用户输入的断组分组：'012/345/6789' -> {group1:Set(0,1,2), group2:Set(3,4,5), group3:Set(6,7,8,9)}
+  // 解析用户输入的断组分组（支持多组，每行一组）
+  // 格式：'012/345/6789' 或多行 '012/345/6789\n123/456/7890'
+  // 返回：[{group1:Set, group2:Set, group3:Set}, ...]
   const parseDuanZuGroups = (text) => {
-    if (!text || !text.trim()) return null;
-    const parts = text.trim().split('/').map(s => s.trim()).filter(Boolean);
-    if (parts.length !== 3) return null;
-    const groups = {};
-    for (let i = 0; i < 3; i++) {
-      const digits = parts[i].split('').map(c => parseInt(c, 10)).filter(n => !isNaN(n) && n >= 0 && n <= 9);
-      if (digits.length === 0) return null;
-      groups[`group${i + 1}`] = new Set(digits);
+    if (!text || !text.trim()) return [];
+    const lines = text.trim().split('\n').map(l => l.trim()).filter(Boolean);
+    const result = [];
+    for (const line of lines) {
+      const parts = line.split('/').map(s => s.trim()).filter(Boolean);
+      if (parts.length !== 3) continue;
+      const groups = {};
+      let valid = true;
+      for (let i = 0; i < 3; i++) {
+        const digits = parts[i].split('').map(c => parseInt(c, 10)).filter(n => !isNaN(n) && n >= 0 && n <= 9);
+        if (digits.length === 0) { valid = false; break; }
+        groups[`group${i + 1}`] = new Set(digits);
+      }
+      if (valid) result.push(groups);
     }
-    return groups;
+    return result;
   };
 
-  // 断组334列：用户录入分组（如 012/345/6789），系统计算断1组注数
+  // 断组334列：用户录入分组（支持多组），系统计算每组断1组注数并合并
   const renderDuanZuCell = (issue) => {
     if (!SHOW_DUANZU_COL) return null;
     const value = (duanZuTexts && duanZuTexts[issue]) || '';
     const hasData = value.trim().length > 0;
-    const groups = parseDuanZuGroups(value);
+    const allGroupsList = parseDuanZuGroups(value);
 
-    // 计算断1组注数：合并断第1/2/3组的号码池
+    // 计算所有组的断1组注数：合并所有组的断第1/2/3组号码池
     let filtered = [];
-    if (groups) {
-      const broken1 = generateByBrokenGroups(groups, [1]);
-      const broken2 = generateByBrokenGroups(groups, [2]);
-      const broken3 = generateByBrokenGroups(groups, [3]);
-      const allNumbers = new Set([...broken1, ...broken2, ...broken3]);
+    if (allGroupsList.length > 0) {
+      const allNumbers = new Set();
+      for (const groups of allGroupsList) {
+        const broken1 = generateByBrokenGroups(groups, [1]);
+        const broken2 = generateByBrokenGroups(groups, [2]);
+        const broken3 = generateByBrokenGroups(groups, [3]);
+        for (const n of broken1) allNumbers.add(n);
+        for (const n of broken2) allNumbers.add(n);
+        for (const n of broken3) allNumbers.add(n);
+      }
       filtered = Array.from(allNumbers).sort();
     }
 
@@ -928,12 +941,14 @@ function FullDataTable({
     const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
     const hit = hasData && drawNum && filtered.length > 0 ? filtered.includes(drawNum) : null;
 
+    const copied = copiedIssues.has('duanzu_' + issue);
+
     return (
       <td key="duanzu" style={{ padding: 2, background: hasData ? '#fff' : '#e0e0e0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <textarea
             value={value}
-            placeholder="如 012/345/6789"
+            placeholder={"如 012/345/6789\n多组换行"}
             onChange={e => { if (setDuanZuText) setDuanZuText(issue, e.target.value); }}
             style={{
               width: 110, minWidth: 110, flex: '1 1 auto', height: 40, resize: 'none', overflow: 'hidden', display: 'block',
@@ -945,19 +960,32 @@ function FullDataTable({
             }}
           />
           {hasData && filtered.length > 0 && (
-            <span style={{
-              fontSize: 13, padding: '2px 6px', borderRadius: 3, border: '1px solid #e0e0e0',
-              background: '#fff', whiteSpace: 'nowrap', minWidth: 60, textAlign: 'left',
-              color: hit === true ? '#1b5e20' : (hit === false ? '#b71c1c' : '#000'),
-              fontWeight: 600,
-            }} title={`${issue} 期断组预测号码（${filtered.length}注）`}>
-              {filtered.length}注
-              {hit !== null && (
-                <span style={{ marginLeft: 4, color: hit ? '#2e7d32' : '#c62828', fontWeight: 700 }}>
-                  {hit ? '✓' : '✗'}
-                </span>
-              )}
-            </span>
+            <>
+              <span style={{
+                fontSize: 13, padding: '2px 6px', borderRadius: 3, border: '1px solid #e0e0e0',
+                background: '#fff', whiteSpace: 'nowrap', minWidth: 60, textAlign: 'left',
+                color: hit === true ? '#1b5e20' : (hit === false ? '#b71c1c' : '#000'),
+                fontWeight: 600,
+              }} title={`${issue} 期断组预测号码（${filtered.length}注，${allGroupsList.length}组）`}>
+                {filtered.length}注
+                {hit !== null && (
+                  <span style={{ marginLeft: 4, color: hit ? '#2e7d32' : '#c62828', fontWeight: 700 }}>
+                    {hit ? '✓' : '✗'}
+                  </span>
+                )}
+              </span>
+              <button
+                style={{
+                  fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+                  border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+                  background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
+                  fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+                }}
+                onClick={() => handleCopy('duanzu_' + issue, filtered)}
+              >
+                {copied ? '✓' : '复制'}
+              </button>
+            </>
           )}
         </div>
       </td>
@@ -1636,26 +1664,32 @@ function FullDataTable({
                       </td>
                     );
                   })()}
-                  {/* 断组334 - 预留行：录入框（与数据行一致） */}
+                  {/* 断组334 - 预留行：录入框（与数据行一致，支持多组） */}
                   {SHOW_DUANZU_COL && (() => {
                     const nextDzIssue = appNextIssue || nextIssue;
                     const value = (duanZuTexts && duanZuTexts[nextDzIssue]) || '';
                     const hasData = value.trim().length > 0;
-                    const groups = parseDuanZuGroups(value);
+                    const allGroupsList = parseDuanZuGroups(value);
                     let filtered = [];
-                    if (groups) {
-                      const broken1 = generateByBrokenGroups(groups, [1]);
-                      const broken2 = generateByBrokenGroups(groups, [2]);
-                      const broken3 = generateByBrokenGroups(groups, [3]);
-                      const allNumbers = new Set([...broken1, ...broken2, ...broken3]);
+                    if (allGroupsList.length > 0) {
+                      const allNumbers = new Set();
+                      for (const groups of allGroupsList) {
+                        const broken1 = generateByBrokenGroups(groups, [1]);
+                        const broken2 = generateByBrokenGroups(groups, [2]);
+                        const broken3 = generateByBrokenGroups(groups, [3]);
+                        for (const n of broken1) allNumbers.add(n);
+                        for (const n of broken2) allNumbers.add(n);
+                        for (const n of broken3) allNumbers.add(n);
+                      }
                       filtered = Array.from(allNumbers).sort();
                     }
+                    const cpd = copiedIssues.has('duanzu_next_' + nextDzIssue);
                     return (
                       <td key="duanzuNext" style={{ padding: 2, background: hasData ? '#f0f8ff' : '#e8f0f5' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           <textarea
                             value={value}
-                            placeholder="如 012/345/6789"
+                            placeholder={"如 012/345/6789\n多组换行"}
                             onChange={e => { if (setDuanZuText) setDuanZuText(nextDzIssue, e.target.value); }}
                             style={{
                               width: 110, minWidth: 110, flex: '1 1 auto', height: 40, resize: 'none', overflow: 'hidden', display: 'block',
@@ -1667,14 +1701,27 @@ function FullDataTable({
                             }}
                           />
                           {hasData && filtered.length > 0 && (
-                            <span style={{
-                              fontSize: 13, padding: '2px 6px', borderRadius: 3, border: '1px solid #e0e0e0',
-                              background: '#fff', whiteSpace: 'nowrap', minWidth: 60, textAlign: 'left',
-                              color: '#1b5e20', fontWeight: 600,
-                            }} title={`${nextDzIssue} 期断组预测号码（${filtered.length}注，待开奖）`}>
-                              {filtered.length}注
-                              <span style={{ marginLeft: 4, color: '#78909c', fontWeight: 700, fontSize: 12 }}>待开奖</span>
-                            </span>
+                            <>
+                              <span style={{
+                                fontSize: 13, padding: '2px 6px', borderRadius: 3, border: '1px solid #e0e0e0',
+                                background: '#fff', whiteSpace: 'nowrap', minWidth: 60, textAlign: 'left',
+                                color: '#1b5e20', fontWeight: 600,
+                              }} title={`${nextDzIssue} 期断组预测号码（${filtered.length}注，${allGroupsList.length}组，待开奖）`}>
+                                {filtered.length}注
+                                <span style={{ marginLeft: 4, color: '#78909c', fontWeight: 700, fontSize: 12 }}>待开奖</span>
+                              </span>
+                              <button
+                                style={{
+                                  fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+                                  border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+                                  background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
+                                  fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+                                }}
+                                onClick={() => handleCopy('duanzu_next_' + nextDzIssue, filtered)}
+                              >
+                                {cpd ? '✓' : '复制'}
+                              </button>
+                            </>
                           )}
                         </div>
                       </td>
