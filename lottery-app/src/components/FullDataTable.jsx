@@ -1023,7 +1023,7 @@ function FullDataTable({
     for (const item of displayData) {
       const text = (lajiTexts && lajiTexts[item.issue]) || '';
       if (!text.trim()) continue;
-      const { numbers, batches } = processLajiFushi(text);
+      const { numbers } = processLajiFushi(text);
       if (!numbers || numbers.size === 0) continue;
       // 验证：已开奖期才判断对错
       let verified = null;
@@ -1031,15 +1031,15 @@ function FullDataTable({
         const isError = verifyLajiDraw(numbers, item);
         verified = { isError };
       }
-      result.set(item.issue, { numbers, batches, verified });
+      result.set(item.issue, { numbers, verified });
     }
     // 处理下期预留行
     if (appNextIssue) {
       const text = (lajiTexts && lajiTexts[appNextIssue]) || '';
       if (text.trim()) {
-        const { numbers, batches } = processLajiFushi(text);
+        const { numbers } = processLajiFushi(text);
         if (numbers && numbers.size > 0) {
-          result.set(appNextIssue, { numbers, batches, verified: null });
+          result.set(appNextIssue, { numbers, verified: null });
         }
       }
     }
@@ -1103,28 +1103,17 @@ function FullDataTable({
           </span>
         )}
         {lajiData && lajiData.numbers && lajiData.numbers.size > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 11 }}>
-            {/* 显示每批的注数 */}
-            {lajiData.batches && lajiData.batches.map((batch, idx) => (
-              <span key={idx} style={{
-                padding: '1px 4px', borderRadius: 2, background: '#f5f5f5',
-                whiteSpace: 'nowrap', color: '#555', fontWeight: 600,
-              }} title={`第${idx + 1}批号码`}>
-                批{idx + 1}: {batch.size}注
+          <span style={{
+            fontSize: 13, padding: '2px 6px', borderRadius: 3, border: '1px solid #e0e0e0',
+            background: '#fff', whiteSpace: 'nowrap', minWidth: 70, textAlign: 'left',
+            color: '#000', fontWeight: 600,
+          }} title={`${issue} 期垃圾复式合并号码（${lajiData.numbers.size}注）`}>
+            {lajiData.numbers.size}注
+            {lajiData.verified && (
+              <span style={{ marginLeft: 4, color: lajiData.verified.isError ? '#c62828' : '#2e7d32', fontWeight: 700 }}>
+                {lajiData.verified.isError ? '✗' : '✓'}
               </span>
-            ))}
-            {/* 合并总数 */}
-            <span style={{
-              padding: '1px 4px', borderRadius: 2, background: '#e3f2fd',
-              whiteSpace: 'nowrap', color: '#1565c0', fontWeight: 700,
-            }} title={`${issue} 期垃圾复式合并号码（${lajiData.numbers.size}注）`}>
-              合计: {lajiData.numbers.size}注
-              {lajiData.verified && (
-                <span style={{ marginLeft: 4, color: lajiData.verified.isError ? '#c62828' : '#2e7d32', fontWeight: 700 }}>
-                  {lajiData.verified.isError ? '✗' : '✓'}
-                </span>
-              )}
-            </span>
+            )}
             <button
               onClick={() => {
                 const text = Array.from(lajiData.numbers).join(',');
@@ -1136,14 +1125,14 @@ function FullDataTable({
                 });
               }}
               style={{
-                padding: '1px 6px', fontSize: 11, border: '1px solid #90caf9',
+                marginLeft: 4, padding: '1px 6px', fontSize: 11, border: '1px solid #90caf9',
                 borderRadius: 3, background: copiedIssues.has('lj_' + issue) ? '#c8e6c9' : '#e3f2fd',
                 cursor: 'pointer', color: copiedIssues.has('lj_' + issue) ? '#2e7d32' : '#1565c0',
               }}
             >
               {copiedIssues.has('lj_' + issue) ? '✓' : '复制'}
             </button>
-          </div>
+          </span>
         )}
         </div>
       </td>
