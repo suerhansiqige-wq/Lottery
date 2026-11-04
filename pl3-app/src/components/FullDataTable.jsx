@@ -378,7 +378,7 @@ const SHOW_ZJZJ_COL = true;
 const SHOW_DUANZU_RC_COL = true;
 
 // 断组334列开关：2026-11-04 用户要求新增
-const SHOW_DUANZU_COL = true; // 已迁移到 DECOMP_COLS 的 duanzuZQ/duanzuBZ
+const SHOW_DUANZU_COL = false; // 已迁移到 DECOMP_COLS 的 duanzuZQ/duanzuBZ
 
 function renderHjsCells(src) {
   if (!SHOW_HJS_COLS) return [];
