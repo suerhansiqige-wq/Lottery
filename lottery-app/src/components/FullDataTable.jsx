@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { parseDecompGroups, verifyDraw, computeRongCuo } from '../utils/decompRongCuo.js'
+import { verifyDuanZuDraw, computeDuanZuRongCuo } from '../utils/duanZuRongCuo.js'
 import { ADD_SUB_LOOKBACK, buildAddSubIndex, getAddSubNumbers } from '../utils/addSubPool.js'
 import { generateByBrokenGroups } from '../utils/brokenGroup.js'
 
@@ -194,7 +195,7 @@ const SHOW_JIAOJI_COL = false;
 const SHOW_ZJZJ_COL = true;
 
 // 断组334列开关：2026-11-04 用户要求新增
-const SHOW_DUANZU_COL = true;
+const SHOW_DUANZU_COL = false; // 已迁移到 DECOMP_COLS 的 duanzuZQ/duanzuBZ
 
 // 渲染横加减/竖加减4个合并单元格；src 为空或该组无上期数据（全 null）时显示 -
 function renderHjsCells(src) {
@@ -221,6 +222,8 @@ function renderHjsCells(src) {
 const DECOMP_COLS = [
   { kind: 'decomp', th: '智取分解', title: '智取分解：每期 20 组 5-5 分解，格式 XXXXX,XXXXX，组间换行' },
   { kind: 'bozhong', th: '博众分解', title: '博众分解：每期 20 组 5-5 分解，格式 XXXXX,XXXXX，组间换行' },
+  { kind: 'duanzuZQ', th: '智取断组', title: '智取断组：每期 20 组 334 断组，格式 307,189,6245（简化）或 012/345/6789,013/245/6789,014/235/6789（完整），组间换行' },
+  { kind: 'duanzuBZ', th: '博众断组', title: '博众断组：每期 20 组 334 断组，格式 307,189,6245（简化）或 012/345/6789,013/245/6789,014/235/6789（完整），组间换行' },
 ];
 
 // 【格宽随内容自适应】用户要求“每一个格宽度要与数据参数紧挨着”：
@@ -403,9 +406,9 @@ function FullDataTable({
   data, showCount, setShowCount, trialDigits, onTrialChange,
   // 加减号码需要回溯200期历史，而 data 已被 enrichData 窗口化，故另传完整数据
   fullData,
-  decompTexts = {}, bozhongTexts = {}, duanZuTexts = {},
-  setDecompText, setBozhongText, setDuanZuText,
-  lockedDecomp, lockedBozhong,
+  decompTexts = {}, bozhongTexts = {}, duanZuZQTexts = {}, duanZuBZTexts = {},
+  setDecompText, setBozhongText, setDuanZuZQText, setDuanZuBZText,
+  lockedDecomp, lockedBozhong, lockedDuanZuZQ, lockedDuanZuBZ,
   onRequestUnlock,
   // App.jsx 基于 baseData 算出的下期待开奖期号；分解录入框必须用它，
   // 不能用本文件预留行内部的 nextIssue——后者基于 enrichedData，
@@ -891,23 +894,47 @@ function FullDataTable({
   };
 
   // 解析用户输入的断组分组（支持多组，每行一组）
-  // 格式：'012/345/6789' 或多行 '012/345/6789\n123/456/7890'
-  // 返回：[{group1:Set, group2:Set, group3:Set}, ...]
+  // 支持两种格式：
+  // 格式1（逗号分隔）：'307,189,6245'（3位+3位+4位数字串）
+  // 格式2（斜杠分隔）：'012/345/6789,013/245/6789,014/235/6789'（逗号分隔3个分组）
+  // 返回：[{groups: [{a:Set, b:Set, c:Set}], raw:string}, ...]
   const parseDuanZuGroups = (text) => {
     if (!text || !text.trim()) return [];
     const lines = text.trim().split('\n').map(l => l.trim()).filter(Boolean);
     const result = [];
     for (const line of lines) {
-      const parts = line.split('/').map(s => s.trim()).filter(Boolean);
-      if (parts.length !== 3) continue;
-      const groups = {};
-      let valid = true;
-      for (let i = 0; i < 3; i++) {
-        const digits = parts[i].split('').map(c => parseInt(c, 10)).filter(n => !isNaN(n) && n >= 0 && n <= 9);
-        if (digits.length === 0) { valid = false; break; }
-        groups[`group${i + 1}`] = new Set(digits);
+      // 尝试格式1：逗号分隔的3个数字串（整行只有3个纯数字部分）
+      const commaParts = line.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+      if (commaParts.length === 3 && commaParts.every(p => /^\d+$/.test(p))) {
+        const groups = [{
+          a: new Set(commaParts[0].split('').map(Number)),
+          b: new Set(commaParts[1].split('').map(Number)),
+          c: new Set(commaParts[2].split('').map(Number))
+        }];
+        result.push({ groups, raw: line });
+        continue;
       }
-      if (valid) result.push(groups);
+      // 尝试格式2：斜杠+逗号混合格式（逗号分隔3个分组，每个分组用斜杠分隔3个集合）
+      if (commaParts.length === 3) {
+        const groups = [];
+        let valid = true;
+        for (const part of commaParts) {
+          const subParts = part.split('/').map(s => s.trim()).filter(Boolean);
+          if (subParts.length !== 3) { valid = false; break; }
+          const digits = subParts.map(sp => {
+            const ds = sp.split('').map(c => parseInt(c, 10)).filter(n => !isNaN(n) && n >= 0 && n <= 9);
+            return new Set(ds);
+          });
+          if (digits[0].size === 0 || digits[1].size === 0 || digits[2].size === 0) {
+            valid = false;
+            break;
+          }
+          groups.push({ a: digits[0], b: digits[1], c: digits[2] });
+        }
+        if (valid && groups.length === 3) {
+          result.push({ groups, raw: line });
+        }
+      }
     }
     return result;
   };
@@ -1107,15 +1134,21 @@ function FullDataTable({
   const verifyMaps = useMemo(() => {
     const dm = new Map();
     const bz = new Map();
+    const dzq = new Map();
+    const dzbz = new Map();
     for (const item of displayData) {
       if (item.d1 === undefined || item.d2 === undefined || item.d3 === undefined) continue;
       const gd = parseDecompGroups((decompTexts && decompTexts[item.issue]) || '');
       if (gd.length > 0) { const v = verifyDraw(item, gd); if (v) dm.set(item.issue, v); }
       const gb = parseDecompGroups((bozhongTexts && bozhongTexts[item.issue]) || '');
       if (gb.length > 0) { const v = verifyDraw(item, gb); if (v) bz.set(item.issue, v); }
+      const gdzq = parseDuanZuGroups((duanZuZQTexts && duanZuZQTexts[item.issue]) || '');
+      if (gdzq.length > 0 && gdzq[0].groups.length > 0) { const v = verifyDuanZuDraw(item, gdzq); if (v) dzq.set(item.issue, v); }
+      const gdzbz = parseDuanZuGroups((duanZuBZTexts && duanZuBZTexts[item.issue]) || '');
+      if (gdzbz.length > 0 && gdzbz[0].groups.length > 0) { const v = verifyDuanZuDraw(item, gdzbz); if (v) dzbz.set(item.issue, v); }
     }
-    return { dm, bz };
-  }, [displayData, decompTexts, bozhongTexts]);
+    return { dm, bz, dzq, dzbz };
+  }, [displayData, decompTexts, bozhongTexts, duanZuZQTexts, duanZuBZTexts]);
 
   // 参与列宽计算的期号：所有展示行 + 下期预留行（预留行也可能已录入分解）
   const decompIssues = useMemo(() => {
@@ -1126,17 +1159,19 @@ function FullDataTable({
   }, [displayData, data, appNextIssue]);
   const decompBoxW = useMemo(() => calcDecompBoxWidth(decompTexts, decompIssues), [decompTexts, decompIssues]);
   const bozhongBoxW = useMemo(() => calcDecompBoxWidth(bozhongTexts, decompIssues), [bozhongTexts, decompIssues]);
+  const duanZuZQBoxW = useMemo(() => calcDecompBoxWidth(duanZuZQTexts, decompIssues), [duanZuZQTexts, decompIssues]);
+  const duanZuBZBoxW = useMemo(() => calcDecompBoxWidth(duanZuBZTexts, decompIssues), [duanZuBZTexts, decompIssues]);
 
   // 渲染一个分解文本框单元格；hasData 决定白底/灰底，locked 决定只读与点击解锁
   const renderDecompCell = (kind, issue, title) => {
-    const texts = kind === 'decomp' ? decompTexts : bozhongTexts;
-    const setText = kind === 'decomp' ? setDecompText : setBozhongText;
-    const lockedSet = kind === 'decomp' ? lockedDecomp : lockedBozhong;
+    const texts = kind === 'decomp' ? decompTexts : (kind === 'bozhong' ? bozhongTexts : (kind === 'duanzuZQ' ? duanZuZQTexts : duanZuBZTexts));
+    const setText = kind === 'decomp' ? setDecompText : (kind === 'bozhong' ? setBozhongText : (kind === 'duanzuZQ' ? setDuanZuZQText : setDuanZuBZText));
+    const lockedSet = kind === 'decomp' ? lockedDecomp : (kind === 'bozhong' ? lockedBozhong : (kind === 'duanzuZQ' ? lockedDuanZuZQ : lockedDuanZuBZ));
     const value = (texts && texts[issue]) || '';
     const hasData = value.trim().length > 0;
     const locked = !!(lockedSet && lockedSet.has(issue));
-    const v = (kind === 'decomp' ? verifyMaps.dm : verifyMaps.bz).get(issue);
-    const boxW = kind === 'decomp' ? decompBoxW : bozhongBoxW;
+    const v = (kind === 'decomp' ? verifyMaps.dm : (kind === 'bozhong' ? verifyMaps.bz : (kind === 'duanzuZQ' ? verifyMaps.dzq : verifyMaps.dzbz))).get(issue);
+    const boxW = kind === 'decomp' ? decompBoxW : (kind === 'bozhong' ? bozhongBoxW : (kind === 'duanzuZQ' ? duanZuZQBoxW : duanZuBZBoxW));
 
     return (      <td key={'dc_' + kind} style={{ padding: 2, background: locked ? '#eceff1' : (hasData ? '#fff' : '#e0e0e0') }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -1165,7 +1200,7 @@ function FullDataTable({
             color: v.type === '组三' ? '#c62828' : '#000',
             fontWeight: v.type === '组三' ? 700 : 600,
           }} title={`${issue} 期开奖最小容错等级（${v.type}）`}>
-            {v.type}（容错{v.level}）
+            {v.type === '组三' ? '组三' : `${v.type}（容错${v.level}）`}
           </span>
         )}
         </div>

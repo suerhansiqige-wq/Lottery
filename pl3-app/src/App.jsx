@@ -56,10 +56,13 @@ function App() {
   const [decompTexts, setDecompTextsState] = useState(() => normalizeTexts({ ...DECOMP_BASELINE, ...loadOverrides('pl3_decompTexts') }));
   const [bozhongTexts, setBozhongTextsState] = useState(() => normalizeTexts({ ...BOZHONG_BASELINE, ...loadOverrides('pl3_bozhongTexts') }));
   const [lajiTexts, setLajiTextsState] = useState(() => normalizeTexts({ ...loadOverrides('pl3_lajiTexts') }));
-  const [duanZuTexts, setDuanZuTextsState] = useState(() => normalizeTexts({ ...loadOverrides('pl3_duanZuTexts') }));
+  const [duanZuZQTexts, setDuanZuZQTextsState] = useState(() => normalizeTexts({ ...loadOverrides('pl3_duanZuZQTexts') }));
+  const [duanZuBZTexts, setDuanZuBZTextsState] = useState(() => normalizeTexts({ ...loadOverrides('pl3_duanZuBZTexts') }));
   const [lockedDecomp, setLockedDecompState] = useState(() => loadLockSet('pl3_lockedDecomp'));
   const [lockedBozhong, setLockedBozhongState] = useState(() => loadLockSet('pl3_lockedBozhong'));
   const [lockedLaji, setLockedLajiState] = useState(() => loadLockSet('pl3_lockedLaji'));
+  const [lockedDuanZuZQ, setLockedDuanZuZQState] = useState(() => loadLockSet('pl3_lockedDuanZuZQ'));
+  const [lockedDuanZuBZ, setLockedDuanZuBZState] = useState(() => loadLockSet('pl3_lockedDuanZuBZ'));
   const [pwdDialog, setPwdDialog] = useState(false);
   const [pwdTarget, setPwdTarget] = useState(null); // { kind: 'decomp'|'bozhong', issue }
   const [pwdInput, setPwdInput] = useState('');
@@ -77,13 +80,16 @@ function App() {
       safeSetItem(storageKey, JSON.stringify(next));
       // 编辑后立即同步到 Gist，确保云端数据是最新的
       if (getGistToken() && gistKey) {
-        const gistData = gistKey === 'decomp'
-          ? { decompTexts: next, bozhongTexts: bozhongTexts, lajiTexts: lajiTexts, duanZuTexts: duanZuTexts }
-          : gistKey === 'bozhong'
-          ? { decompTexts: decompTexts, bozhongTexts: next, lajiTexts: lajiTexts, duanZuTexts: duanZuTexts }
-          : gistKey === 'laji'
-          ? { decompTexts: decompTexts, bozhongTexts: bozhongTexts, lajiTexts: next, duanZuTexts: duanZuTexts }
-          : { decompTexts: decompTexts, bozhongTexts: bozhongTexts, lajiTexts: lajiTexts, duanZuTexts: next };
+        const gistData = {
+          decompTexts: decompTexts,
+          bozhongTexts: bozhongTexts,
+          lajiTexts: lajiTexts,
+          duanZuZQTexts: gistKey === 'duanzuZQ' ? next : duanZuZQTexts,
+          duanZuBZTexts: gistKey === 'duanzuBZ' ? next : duanZuBZTexts,
+        };
+        if (gistKey === 'decomp') gistData.decompTexts = next;
+        else if (gistKey === 'bozhong') gistData.bozhongTexts = next;
+        else if (gistKey === 'laji') gistData.lajiTexts = next;
         saveToGist(gistData).then(ok => {
           if (ok) {
             setGistSyncStatus('✅ 已同步到云端');
@@ -97,7 +103,8 @@ function App() {
   const setDecompText = makeTextSetter(setDecompTextsState, 'pl3_decompTexts', 'decomp');
   const setBozhongText = makeTextSetter(setBozhongTextsState, 'pl3_bozhongTexts', 'bozhong');
   const setLajiText = makeTextSetter(setLajiTextsState, 'pl3_lajiTexts', 'laji');
-  const setDuanZuText = makeTextSetter(setDuanZuTextsState, 'pl3_duanZuTexts', 'duanzu');
+  const setDuanZuZQText = makeTextSetter(setDuanZuZQTextsState, 'pl3_duanZuZQTexts', 'duanzuZQ');
+  const setDuanZuBZText = makeTextSetter(setDuanZuBZTextsState, 'pl3_duanZuBZTexts', 'duanzuBZ');
 
   // 自选号码：按「最新未开奖期」存储，键 pl3_selfPick（仅存非空期）
   // 这是右侧「直选大底」框，同时也是分解容错与直选高倍/保本投注的号码源
@@ -131,6 +138,8 @@ function App() {
   const setLockedDecomp = makeLockSetter(setLockedDecompState, 'pl3_lockedDecomp');
   const setLockedBozhong = makeLockSetter(setLockedBozhongState, 'pl3_lockedBozhong');
   const setLockedLaji = makeLockSetter(setLockedLajiState, 'pl3_lockedLaji');
+  const setLockedDuanZuZQ = makeLockSetter(setLockedDuanZuZQState, 'pl3_lockedDuanZuZQ');
+  const setLockedDuanZuBZ = makeLockSetter(setLockedDuanZuBZState, 'pl3_lockedDuanZuBZ');
 
   const requestUnlock = (kind, issue) => {
     setPwdTarget({ kind, issue });
@@ -146,6 +155,8 @@ function App() {
     if (kind === 'decomp') setLockedDecomp(remover);
     else if (kind === 'bozhong') setLockedBozhong(remover);
     else if (kind === 'laji') setLockedLaji(remover);
+    else if (kind === 'duanzuZQ') setLockedDuanZuZQ(remover);
+    else if (kind === 'duanzuBZ') setLockedDuanZuBZ(remover);
     setPwdDialog(false);
     setPwdTarget(null);
     setPwdInput('');
@@ -262,10 +273,15 @@ function App() {
         setLajiTextsState(merged);
         safeSetItem('pl3_lajiTexts', JSON.stringify(merged));
       }
-      if (data.duanZuTexts && Object.keys(data.duanZuTexts).length > 0) {
-        const merged = merge({}, data.duanZuTexts);
-        setDuanZuTextsState(merged);
-        safeSetItem('pl3_duanZuTexts', JSON.stringify(merged));
+      if (data.duanZuZQTexts && Object.keys(data.duanZuZQTexts).length > 0) {
+        const merged = merge({}, data.duanZuZQTexts);
+        setDuanZuZQTextsState(merged);
+        safeSetItem('pl3_duanZuZQTexts', JSON.stringify(merged));
+      }
+      if (data.duanZuBZTexts && Object.keys(data.duanZuBZTexts).length > 0) {
+        const merged = merge({}, data.duanZuBZTexts);
+        setDuanZuBZTextsState(merged);
+        safeSetItem('pl3_duanZuBZTexts', JSON.stringify(merged));
       }
     }).catch(() => {});
     // GitHub Gist（跨设备，静态托管也可用）—— 云端数据为准，直接覆盖本地
@@ -278,7 +294,8 @@ function App() {
         decompTexts: data.decompTexts ? Object.keys(data.decompTexts).length + ' 期' : '无',
         bozhongTexts: data.bozhongTexts ? Object.keys(data.bozhongTexts).length + ' 期' : '无',
         lajiTexts: data.lajiTexts ? Object.keys(data.lajiTexts).length + ' 期' : '无',
-        duanZuTexts: data.duanZuTexts ? Object.keys(data.duanZuTexts).length + ' 期' : '无'
+        duanZuZQTexts: data.duanZuZQTexts ? Object.keys(data.duanZuZQTexts).length + ' 期' : '无',
+        duanZuBZTexts: data.duanZuBZTexts ? Object.keys(data.duanZuBZTexts).length + ' 期' : '无'
       });
       if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
         setDecompTextsState(prev => {
@@ -324,13 +341,21 @@ function App() {
         });
         console.log('[Gist] ✓ 垃圾复式数据已同步到本地并锁定');
       }
-      if (data.duanZuTexts && Object.keys(data.duanZuTexts).length > 0) {
-        setDuanZuTextsState(prev => {
-          const merged = { ...prev, ...data.duanZuTexts };
-          safeSetItem('pl3_duanZuTexts', JSON.stringify(merged));
+      if (data.duanZuZQTexts && Object.keys(data.duanZuZQTexts).length > 0) {
+        setDuanZuZQTextsState(prev => {
+          const merged = { ...prev, ...data.duanZuZQTexts };
+          safeSetItem('pl3_duanZuZQTexts', JSON.stringify(merged));
           return merged;
         });
-        console.log('[Gist] ✓ 断组数据已同步到本地');
+        console.log('[Gist] ✓ 智取断组数据已同步到本地');
+      }
+      if (data.duanZuBZTexts && Object.keys(data.duanZuBZTexts).length > 0) {
+        setDuanZuBZTextsState(prev => {
+          const merged = { ...prev, ...data.duanZuBZTexts };
+          safeSetItem('pl3_duanZuBZTexts', JSON.stringify(merged));
+          return merged;
+        });
+        console.log('[Gist] ✓ 博众断组数据已同步到本地');
       }
     }).catch(err => {
       console.error('[Gist] 同步出错:', err);
@@ -363,29 +388,33 @@ function App() {
     setLockedDecomp(prev => { const n = new Set(prev).add(nextIssue); safeSetItem('pl3_lockedDecomp', JSON.stringify([...n])); return n; });
     setLockedBozhong(prev => { const n = new Set(prev).add(nextIssue); safeSetItem('pl3_lockedBozhong', JSON.stringify([...n])); return n; });
     setLockedLaji(prev => { const n = new Set(prev).add(nextIssue); safeSetItem('pl3_lockedLaji', JSON.stringify([...n])); return n; });
+    setLockedDuanZuZQ(prev => { const n = new Set(prev).add(nextIssue); safeSetItem('pl3_lockedDuanZuZQ', JSON.stringify([...n])); return n; });
+    setLockedDuanZuBZ(prev => { const n = new Set(prev).add(nextIssue); safeSetItem('pl3_lockedDuanZuBZ', JSON.stringify([...n])); return n; });
     fetch('/api/save-decomp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ decompTexts, bozhongTexts, lajiTexts, duanZuTexts })
+      body: JSON.stringify({ decompTexts, bozhongTexts, lajiTexts, duanZuZQTexts, duanZuBZTexts })
     }).catch(() => {});
-    
+
     // 明显的操作反馈动画
     setSubmitFlash(true);
     setTimeout(() => setSubmitFlash(false), 600);
-    
+
     if (getGistToken()) {
       const cloudData = await loadFromGist();
       let mergedD = { ...decompTexts };
       let mergedB = { ...bozhongTexts };
       let mergedL = { ...lajiTexts };
-      let mergedDZ = { ...duanZuTexts };
+      let mergedDZQ = { ...duanZuZQTexts };
+      let mergedDZB = { ...duanZuBZTexts };
       if (cloudData) {
         if (cloudData.decompTexts) mergedD = { ...mergedD, ...cloudData.decompTexts };
         if (cloudData.bozhongTexts) mergedB = { ...mergedB, ...cloudData.bozhongTexts };
         if (cloudData.lajiTexts) mergedL = { ...mergedL, ...cloudData.lajiTexts };
-        if (cloudData.duanZuTexts) mergedDZ = { ...mergedDZ, ...cloudData.duanZuTexts };
+        if (cloudData.duanZuZQTexts) mergedDZQ = { ...mergedDZQ, ...cloudData.duanZuZQTexts };
+        if (cloudData.duanZuBZTexts) mergedDZB = { ...mergedDZB, ...cloudData.duanZuBZTexts };
       }
-      const ok = await saveToGist({ decompTexts: mergedD, bozhongTexts: mergedB, lajiTexts: mergedL, duanZuTexts: mergedDZ });
+      const ok = await saveToGist({ decompTexts: mergedD, bozhongTexts: mergedB, lajiTexts: mergedL, duanZuZQTexts: mergedDZQ, duanZuBZTexts: mergedDZB });
       setGistSyncStatus(ok ? '✅ Gist 同步成功' : '❌ Gist 同步失败');
       setTimeout(() => setGistSyncStatus(''), 3000);
     }
@@ -513,23 +542,29 @@ function App() {
   const clearDecompData = () => {
     const pwd = prompt('请输入密码：');
     if (pwd !== '265047') { alert('密码错误'); return; }
-    if (!confirm('确定要清空所有智取分解、博众分解、垃圾复式和断组数据吗？此操作不可恢复。')) return;
+    if (!confirm('确定要清空所有智取分解、博众分解、垃圾复式、智取断组和博众断组数据吗？此操作不可恢复。')) return;
     setDecompTextsState({});
     setBozhongTextsState({});
     setLajiTextsState({});
-    setDuanZuTextsState({});
+    setDuanZuZQTextsState({});
+    setDuanZuBZTextsState({});
     setLockedDecomp(new Set());
     setLockedBozhong(new Set());
     setLockedLaji(new Set());
+    setLockedDuanZuZQ(new Set());
+    setLockedDuanZuBZ(new Set());
     safeSetItem('pl3_decompTexts', '{}');
     safeSetItem('pl3_bozhongTexts', '{}');
     safeSetItem('pl3_lajiTexts', '{}');
-    safeSetItem('pl3_duanZuTexts', '{}');
+    safeSetItem('pl3_duanZuZQTexts', '{}');
+    safeSetItem('pl3_duanZuBZTexts', '{}');
     safeSetItem('pl3_lockedDecomp', '[]');
     safeSetItem('pl3_lockedBozhong', '[]');
     safeSetItem('pl3_lockedLaji', '[]');
+    safeSetItem('pl3_lockedDuanZuZQ', '[]');
+    safeSetItem('pl3_lockedDuanZuBZ', '[]');
     if (getGistToken()) {
-      saveToGist({ decompTexts: {}, bozhongTexts: {}, lajiTexts: {}, duanZuTexts: {} }).then(ok => {
+      saveToGist({ decompTexts: {}, bozhongTexts: {}, lajiTexts: {}, duanZuZQTexts: {}, duanZuBZTexts: {} }).then(ok => {
         setGistSyncStatus(ok ? '✅ 已清空并同步到云端' : ' 清空失败');
         setTimeout(() => setGistSyncStatus(''), 3000);
       });
@@ -595,7 +630,8 @@ function App() {
                 let mergedD = { ...decompTexts };
                 let mergedB = { ...bozhongTexts };
                 let mergedL = { ...lajiTexts };
-                let mergedDZ = { ...duanZuTexts };
+                let mergedDZQ = { ...duanZuZQTexts };
+                let mergedDZB = { ...duanZuBZTexts };
                 if (data) {
                   if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
                     mergedD = { ...mergedD, ...data.decompTexts };
@@ -612,14 +648,19 @@ function App() {
                     console.log('[Gist 按钮] 合并垃圾复式:', Object.keys(data.lajiTexts).length, '期');
                     setLajiTextsState(prev => { const m = { ...prev, ...data.lajiTexts }; safeSetItem('pl3_lajiTexts', JSON.stringify(m)); return m; });
                   }
-                  if (data.duanZuTexts && Object.keys(data.duanZuTexts).length > 0) {
-                    mergedDZ = { ...mergedDZ, ...data.duanZuTexts };
-                    console.log('[Gist 按钮] 合并断组:', Object.keys(data.duanZuTexts).length, '期');
-                    setDuanZuTextsState(prev => { const m = { ...prev, ...data.duanZuTexts }; safeSetItem('pl3_duanZuTexts', JSON.stringify(m)); return m; });
+                  if (data.duanZuZQTexts && Object.keys(data.duanZuZQTexts).length > 0) {
+                    mergedDZQ = { ...mergedDZQ, ...data.duanZuZQTexts };
+                    console.log('[Gist 按钮] 合并智取断组:', Object.keys(data.duanZuZQTexts).length, '期');
+                    setDuanZuZQTextsState(prev => { const m = { ...prev, ...data.duanZuZQTexts }; safeSetItem('pl3_duanZuZQTexts', JSON.stringify(m)); return m; });
+                  }
+                  if (data.duanZuBZTexts && Object.keys(data.duanZuBZTexts).length > 0) {
+                    mergedDZB = { ...mergedDZB, ...data.duanZuBZTexts };
+                    console.log('[Gist 按钮] 合并博众断组:', Object.keys(data.duanZuBZTexts).length, '期');
+                    setDuanZuBZTextsState(prev => { const m = { ...prev, ...data.duanZuBZTexts }; safeSetItem('pl3_duanZuBZTexts', JSON.stringify(m)); return m; });
                   }
                 }
-                console.log('[Gist 按钮] 准备上传到云端，智取:', Object.keys(mergedD).length, '期，博众:', Object.keys(mergedB).length, '期，垃圾复式:', Object.keys(mergedL).length, '期，断组:', Object.keys(mergedDZ).length, '期');
-                const ok = await saveToGist({ decompTexts: mergedD, bozhongTexts: mergedB, lajiTexts: mergedL, duanZuTexts: mergedDZ });
+                console.log('[Gist 按钮] 准备上传到云端，智取:', Object.keys(mergedD).length, '期，博众:', Object.keys(mergedB).length, '期，垃圾复式:', Object.keys(mergedL).length, '期，智取断组:', Object.keys(mergedDZQ).length, '期，博众断组:', Object.keys(mergedDZB).length, '期');
+                const ok = await saveToGist({ decompTexts: mergedD, bozhongTexts: mergedB, lajiTexts: mergedL, duanZuZQTexts: mergedDZQ, duanZuBZTexts: mergedDZB });
                 console.log('[Gist 按钮] 上传结果:', ok ? '✓ 成功' : '✗ 失败');
                 setGistSyncStatus(ok ? '✅ 同步完成' : '❌ 同步失败');
                 setGistTesting(false);
@@ -668,12 +709,16 @@ function App() {
             onTrialChange={setTrialDigits}
             decompTexts={decompTexts}
             bozhongTexts={bozhongTexts}
-            duanZuTexts={duanZuTexts}
+            duanZuZQTexts={duanZuZQTexts}
+            duanZuBZTexts={duanZuBZTexts}
             setDecompText={setDecompText}
             setBozhongText={setBozhongText}
-            setDuanZuText={setDuanZuText}
+            setDuanZuZQText={setDuanZuZQText}
+            setDuanZuBZText={setDuanZuBZText}
             lockedDecomp={lockedDecomp}
             lockedBozhong={lockedBozhong}
+            lockedDuanZuZQ={lockedDuanZuZQ}
+            lockedDuanZuBZ={lockedDuanZuBZ}
             onRequestUnlock={requestUnlock}
             nextIssue={nextIssue}
             onDecompSubmit={onDecompSubmit}
@@ -833,7 +878,8 @@ function App() {
                   let mergedD = { ...decompTexts };
                   let mergedB = { ...bozhongTexts };
                   let mergedL = { ...lajiTexts };
-                  let mergedDZ = { ...duanZuTexts };
+                  let mergedDZQ = { ...duanZuZQTexts };
+                  let mergedDZB = { ...duanZuBZTexts };
                   if (data) {
                     if (data.decompTexts && Object.keys(data.decompTexts).length > 0) {
                       mergedD = { ...mergedD, ...data.decompTexts };
@@ -847,12 +893,16 @@ function App() {
                       mergedL = { ...mergedL, ...data.lajiTexts };
                       setLajiTextsState(prev => { const m = { ...prev, ...data.lajiTexts }; safeSetItem('pl3_lajiTexts', JSON.stringify(m)); return m; });
                     }
-                    if (data.duanZuTexts && Object.keys(data.duanZuTexts).length > 0) {
-                      mergedDZ = { ...mergedDZ, ...data.duanZuTexts };
-                      setDuanZuTextsState(prev => { const m = { ...prev, ...data.duanZuTexts }; safeSetItem('pl3_duanZuTexts', JSON.stringify(m)); return m; });
+                    if (data.duanZuZQTexts && Object.keys(data.duanZuZQTexts).length > 0) {
+                      mergedDZQ = { ...mergedDZQ, ...data.duanZuZQTexts };
+                      setDuanZuZQTextsState(prev => { const m = { ...prev, ...data.duanZuZQTexts }; safeSetItem('pl3_duanZuZQTexts', JSON.stringify(m)); return m; });
+                    }
+                    if (data.duanZuBZTexts && Object.keys(data.duanZuBZTexts).length > 0) {
+                      mergedDZB = { ...mergedDZB, ...data.duanZuBZTexts };
+                      setDuanZuBZTextsState(prev => { const m = { ...prev, ...data.duanZuBZTexts }; safeSetItem('pl3_duanZuBZTexts', JSON.stringify(m)); return m; });
                     }
                   }
-                  await saveToGist({ decompTexts: mergedD, bozhongTexts: mergedB, lajiTexts: mergedL, duanZuTexts: mergedDZ });
+                  await saveToGist({ decompTexts: mergedD, bozhongTexts: mergedB, lajiTexts: mergedL, duanZuZQTexts: mergedDZQ, duanZuBZTexts: mergedDZB });
                   setGistTestResult('✅ 同步完成');
                   setGistTesting(false);
                   setTimeout(() => setGistDialog(false), 800);
