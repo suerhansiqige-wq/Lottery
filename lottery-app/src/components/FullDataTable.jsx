@@ -425,24 +425,34 @@ function FullDataTable({
   const [copiedIssues, setCopiedIssues] = useState(new Set());
   
   const handleCopy = async (issue, numbers) => {
+    const text = numbers.join(' ');
     try {
-      await navigator.clipboard.writeText(numbers.join(' '));
-      setCopiedIssues(prev => new Set(prev).add(issue));
+      // 优先使用 navigator.clipboard
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        throw new Error('clipboard API not available');
+      }
     } catch (err) {
-      console.error('复制失败:', err);
-      // Fallback for older browsers
+      // Fallback: 使用 textarea 方式
       const textArea = document.createElement('textarea');
-      textArea.value = numbers.join(' ');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-9999px';
       document.body.appendChild(textArea);
       textArea.select();
       try {
         document.execCommand('copy');
-        setCopiedIssues(prev => new Set(prev).add(issue));
       } catch (fallbackErr) {
-        console.error('Fallback复制也失败:', fallbackErr);
+        console.error('复制失败:', fallbackErr);
       }
       document.body.removeChild(textArea);
     }
+    setCopiedIssues(prev => {
+      const next = new Set(prev);
+      next.add(issue);
+      return next;
+    });
   };
   
   const displayData = data.slice(-showCount)
