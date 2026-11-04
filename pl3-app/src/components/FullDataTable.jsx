@@ -361,6 +361,7 @@ const SHOW_ADDSUB_COL = true;
 
 // 容错10 / 交集号码 两列开关：2026-11-02 用户要求隐藏。数据照常计算（综合列依赖它们），只是不再占一列
 const SHOW_RC10_COL = true;
+const SHOW_RC_COL = true;
 const SHOW_JJ_COL = true;
 
 // 交集列开关：加减号码与综合列的交集；2026-11-03 用户要求新增
@@ -1317,6 +1318,7 @@ function FullDataTable({
                 {SHOW_SLBC_COLS && <th>必出号</th>}
                 {SHOW_ADDSUB_COL && <th title={`用其前${ADD_SUB_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>加减号码</th>}
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
+                {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
                 {SHOW_JJ_COL && <th title="智取容错10 ∩ 博众容错10（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
                 <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>
                 {SHOW_JIAOJI_COL && <th title="加减号码候选池 ∩ 综合列候选池；✓=在池内，✗=不在池内">交集</th>}
@@ -1414,6 +1416,8 @@ function FullDataTable({
                   {renderAddSubCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 容错10：智取分解容错10 ∪ 博众分解容错10 */}
                   {SHOW_RC10_COL && renderRongCuo10Cell(item.issue)}
+                  {/* 容错：对称差集 */}
+                  {SHOW_RC_COL && renderRongCuoCell(item.issue)}
                   {/* 交集号码：智取容错10 ∩ 博众容错10 */}
                   {SHOW_JJ_COL && renderJiJiaoCell(item.issue)}
                   {/* 综合：交集号码 - 容错列 - 容错10列 */}
@@ -1509,6 +1513,51 @@ function FullDataTable({
                               fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
                             }}
                             onClick={() => handleCopy('rc10_next_' + nextIssue, merged)}
+                          >
+                            {cpd ? '✓' : '复制'}
+                          </button>
+                        </div>
+                      </td>
+                    );
+                  })()}
+                  {/* 容错 - 预留行：下期对称差集注数 + 复制（尚未开奖，无对错） */}
+                  {SHOW_RC_COL && (() => {
+                    const cpd = copiedIssues.has('rc_next_' + nextIssue);
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
+                    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+                    const decompRc10 = [];
+                    if (decompResult && decompResult.buckets) {
+                      for (let i = 1; i <= 10; i++) {
+                        if (decompResult.buckets[i]) decompRc10.push(...decompResult.buckets[i]);
+                      }
+                    }
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
+                    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+                    const bozhongRc10 = [];
+                    if (bozhongResult && bozhongResult.buckets) {
+                      for (let i = 1; i <= 10; i++) {
+                        if (bozhongResult.buckets[i]) bozhongRc10.push(...bozhongResult.buckets[i]);
+                      }
+                    }
+                    const decompSet = new Set(decompRc10);
+                    const bozhongSet = new Set(bozhongRc10);
+                    const intersection = decompRc10.filter(n => bozhongSet.has(n));
+                    const intersectionSet = new Set(intersection);
+                    const union = [...new Set([...decompRc10, ...bozhongRc10])];
+                    const filtered = union.filter(n => !intersectionSet.has(n)).sort();
+                    return (
+                      <td key="rcNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{filtered.length}注</span>
+                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
+                          <button
+                            style={{
+                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
+                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+                            }}
+                            onClick={() => handleCopy('rc_next_' + nextIssue, filtered)}
                           >
                             {cpd ? '✓' : '复制'}
                           </button>
