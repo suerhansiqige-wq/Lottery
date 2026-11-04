@@ -194,6 +194,9 @@ const SHOW_JIAOJI_COL = false;
 // 祝君中奖列开关：2026-11-04 用户要求新增
 const SHOW_ZJZJ_COL = true;
 
+// 断组容错列开关：2026-11-04 用户要求新增（智取断组+博众断组容错2合并）
+const SHOW_DUANZU_RC_COL = true;
+
 // 断组334列开关：2026-11-04 用户要求新增
 const SHOW_DUANZU_COL = false; // 已迁移到 DECOMP_COLS 的 duanzuZQ/duanzuBZ
 
@@ -850,6 +853,76 @@ function FullDataTable({
     );
   };
 
+  // 断组容错列：智取断组容错2 ∪ 博众断组容错2
+  const renderDuanZuRongCuoCell = (issue) => {
+    if (!SHOW_DUANZU_RC_COL) return null;
+    const copied = copiedIssues.has('duanzurc_' + issue);
+    const btnStyle = {
+      fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+      border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+      background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
+      fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+    };
+
+    // 获取智取断组和博众断组的数据
+    const zqText = (duanZuZQTexts && duanZuZQTexts[issue]) || '';
+    const bzText = (duanZuBZTexts && duanZuBZTexts[issue]) || '';
+
+    // 解析断组数据
+    const zqGroups = parseDuanZuGroups(zqText);
+    const bzGroups = parseDuanZuGroups(bzText);
+
+    // 计算容错2的号码池
+    let zqRongCuo2 = [];
+    let bzRongCuo2 = [];
+
+    if (zqGroups.length > 0 && zqGroups[0].groups.length > 0) {
+      const zqResult = computeDuanZuRongCuo(zqGroups);
+      if (zqResult.levels && zqResult.levels.length >= 2) {
+        zqRongCuo2 = zqResult.levels[1].numbers || []; // 容错2
+      }
+    }
+
+    if (bzGroups.length > 0 && bzGroups[0].groups.length > 0) {
+      const bzResult = computeDuanZuRongCuo(bzGroups);
+      if (bzResult.levels && bzResult.levels.length >= 2) {
+        bzRongCuo2 = bzResult.levels[1].numbers || []; // 容错2
+      }
+    }
+
+    // 合并两个号码池并去重
+    const merged = Array.from(new Set([...zqRongCuo2, ...bzRongCuo2])).sort();
+
+    if (merged.length === 0) {
+      return <td key="duanzurc" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+
+    // 验证当期开奖号是否在断组容错列中
+    const item = displayData.find(d => d.issue === issue);
+    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
+    const hit = drawNum && merged.includes(drawNum);
+
+    return (
+      <td key="duanzurc" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+          <span style={{ fontWeight: 800, color: hit ? '#1b5e20' : (hit === false ? '#b71c1c' : '#666') }}>{merged.length}注</span>
+          {hit !== null && (
+            <span title={hit ? '当期开奖号在断组容错列内' : '当期开奖号不在断组容错列内'}
+              style={{ fontWeight: 900, fontSize: 15, color: hit ? '#2e7d32' : '#c62828' }}>
+              {hit ? '✓' : '✗'}
+            </span>
+          )}
+          <button
+            style={btnStyle}
+            onClick={() => handleCopy('duanzurc_' + issue, merged)}
+          >
+            {copied ? '✓' : '复制'}
+          </button>
+        </div>
+      </td>
+    );
+  };
+
   // 祝君中奖列：交集号码 - 容错列 - 容错10列
   const renderZhuJunZhongJiangCell = (issue) => {
     if (!SHOW_ZJZJ_COL) return null;
@@ -1261,6 +1334,7 @@ function FullDataTable({
                 {SHOW_JJ_COL && <th title="智取容错10 ∩ 博众容错10（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_JIAOJI_COL && <th title="加减号码候选池 ∩ 综合列候选池；✓=在池内，✗=不在池内">交集</th>}
+                {SHOW_DUANZU_RC_COL && <th title="智取断组容错2 ∪ 博众断组容错2（合并号码池）；✓=在池内，✗=不在池内">断组容错</th>}
                 {SHOW_ZJZJ_COL && <th title="交集号码 - 容错列 - 容错10列（祝君中奖）；✓=在池内，✗=不在池内">祝君中奖</th>}
                 {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
                 {/* 智取分解 / 博众分解 两列 */}
@@ -1362,6 +1436,8 @@ function FullDataTable({
                   {SHOW_ZONGHE_COL && renderZongHeCell(item.issue)}
                   {/* 交集：加减号码候选池 ∩ 综合列候选池 */}
                   {SHOW_JIAOJI_COL && renderJiaoJiCell(item.issue, issueIndexMap.get(item.issue))}
+                  {/* 断组容错：智取断组容错2 ∪ 博众断组容错2 */}
+                  {SHOW_DUANZU_RC_COL && renderDuanZuRongCuoCell(item.issue)}
                   {/* 祝君中奖：交集号码 - 容错列 - 容错10列 */}
                   {SHOW_ZJZJ_COL && renderZhuJunZhongJiangCell(item.issue)}
                   {/* 断组334：默认分组012/345/6789，断1组预测 */}
@@ -1610,6 +1686,48 @@ function FullDataTable({
                               fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
                             }}
                             onClick={() => handleCopy('jiaoji_next_' + nextIssue, filtered)}
+                          >
+                            {cpd ? '✓' : '复制'}
+                          </button>
+                        </div>
+                      </td>
+                    );
+                  })()}
+                  {/* 断组容错 - 预留行：下期断组容错注数 + 复制（尚未开奖，无对错） */}
+                  {SHOW_DUANZU_RC_COL && (() => {
+                    const cpd = copiedIssues.has('duanzurc_next_' + nextIssue);
+                    const zqText = (duanZuZQTexts && duanZuZQTexts[nextIssue]) || '';
+                    const bzText = (duanZuBZTexts && duanZuBZTexts[nextIssue]) || '';
+                    const zqGroups = parseDuanZuGroups(zqText);
+                    const bzGroups = parseDuanZuGroups(bzText);
+                    let zqRongCuo2 = [];
+                    let bzRongCuo2 = [];
+                    if (zqGroups.length > 0 && zqGroups[0].groups.length > 0) {
+                      const zqResult = computeDuanZuRongCuo(zqGroups);
+                      if (zqResult.levels && zqResult.levels.length >= 2) {
+                        zqRongCuo2 = zqResult.levels[1].numbers || [];
+                      }
+                    }
+                    if (bzGroups.length > 0 && bzGroups[0].groups.length > 0) {
+                      const bzResult = computeDuanZuRongCuo(bzGroups);
+                      if (bzResult.levels && bzResult.levels.length >= 2) {
+                        bzRongCuo2 = bzResult.levels[1].numbers || [];
+                      }
+                    }
+                    const merged = Array.from(new Set([...zqRongCuo2, ...bzRongCuo2])).sort();
+                    return (
+                      <td key="duanzurcNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{merged.length}注</span>
+                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
+                          <button
+                            style={{
+                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
+                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+                            }}
+                            onClick={() => handleCopy('duanzurc_next_' + nextIssue, merged)}
                           >
                             {cpd ? '✓' : '复制'}
                           </button>
