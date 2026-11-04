@@ -360,8 +360,8 @@ const SHOW_SLBC_COLS = true;
 const SHOW_ADDSUB_COL = true;
 
 // 容错10 / 交集号码 两列开关：2026-11-02 用户要求隐藏。数据照常计算（综合列依赖它们），只是不再占一列
-const SHOW_RC10_COL = false;
-const SHOW_JJ_COL = false;
+const SHOW_RC10_COL = true;
+const SHOW_JJ_COL = true;
 
 // 交集列开关：加减号码与综合列的交集；2026-11-03 用户要求新增
 const SHOW_JIAOJI_COL = true;
