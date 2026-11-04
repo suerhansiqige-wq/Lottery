@@ -496,6 +496,14 @@ function App() {
           console.log('[Gist] ✓ 智取断组数据已合并（本地优先）');
           return merged;
         });
+        setLockedDuanZuZQ(prev => {
+          const next = new Set(prev);
+          Object.keys(data.duanZuZQTexts).forEach(i => {
+            if (!prev.has(i)) next.add(i);
+          });
+          safeSetItem('3d_lockedDuanZuZQ', JSON.stringify([...next]));
+          return next;
+        });
       }
       if (data.duanZuBZTexts && Object.keys(data.duanZuBZTexts).length > 0) {
         setDuanZuBZTextsState(prev => {
@@ -503,6 +511,14 @@ function App() {
           safeSetItem('3d_duanZuBZTexts', JSON.stringify(merged));
           console.log('[Gist] ✓ 博众断组数据已合并（本地优先）');
           return merged;
+        });
+        setLockedDuanZuBZ(prev => {
+          const next = new Set(prev);
+          Object.keys(data.duanZuBZTexts).forEach(i => {
+            if (!prev.has(i)) next.add(i);
+          });
+          safeSetItem('3d_lockedDuanZuBZ', JSON.stringify([...next]));
+          return next;
         });
       }
     }).catch(err => {
