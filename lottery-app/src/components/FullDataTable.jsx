@@ -179,10 +179,10 @@ const SHOW_SLBC_COLS = false;
 // 加减号码列开关：2026-11-04 用户要求删除
 const SHOW_ADDSUB_COL = false;
 
-// 容错10 / 容错 / 交集号码 三列开关
-const SHOW_RC10_COL = true;
-const SHOW_RC_COL = true;
-const SHOW_JJ_COL = true;
+// 容错10 / 容错 / 交集号码 三列开关：2026-11-04 用户要求隐藏
+const SHOW_RC10_COL = false;
+const SHOW_RC_COL = false;
+const SHOW_JJ_COL = false;
 
 // 综合列开关：2026-11-04 用户要求删除
 const SHOW_ZONGHE_COL = false;
