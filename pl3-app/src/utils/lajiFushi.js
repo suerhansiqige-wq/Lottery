@@ -111,10 +111,10 @@ export function processLajiFushi(input) {
       }
     }
 
-    // 取出现3次或4次的号码
+    // 取出现2~4次的号码
     const batchResult = new Set();
     for (const [num, count] of countMap.entries()) {
-      if (count >= 3 && count <= 4) {
+      if (count >= 2 && count <= 4) {
         batchResult.add(num);
       }
     }
