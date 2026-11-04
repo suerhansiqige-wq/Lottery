@@ -894,9 +894,10 @@ function FullDataTable({
   };
 
   // 解析用户输入的断组分组（支持多组，每行一组）
-  // 支持两种格式：
+  // 支持三种格式：
   // 格式1（逗号分隔）：'307,189,6245'（3位+3位+4位数字串）
-  // 格式2（斜杠分隔）：'012/345/6789,013/245/6789,014/235/6789'（逗号分隔3个分组）
+  // 格式2（横线分隔）：'345-190-2786'（3位+3位+4位数字串）
+  // 格式3（斜杠分隔）：'012/345/6789,013/245/6789,014/235/6789'（逗号分隔3个分组）
   // 返回：[{groups: [{a:Set, b:Set, c:Set}], raw:string}, ...]
   const parseDuanZuGroups = (text) => {
     if (!text || !text.trim()) return [];
@@ -914,7 +915,18 @@ function FullDataTable({
         result.push({ groups, raw: line });
         continue;
       }
-      // 尝试格式2：斜杠+逗号混合格式（逗号分隔3个分组，每个分组用斜杠分隔3个集合）
+      // 尝试格式2：横线分隔的3个数字串
+      const dashParts = line.split(/[-]/).map(s => s.trim()).filter(Boolean);
+      if (dashParts.length === 3 && dashParts.every(p => /^\d+$/.test(p))) {
+        const groups = [{
+          a: new Set(dashParts[0].split('').map(Number)),
+          b: new Set(dashParts[1].split('').map(Number)),
+          c: new Set(dashParts[2].split('').map(Number))
+        }];
+        result.push({ groups, raw: line });
+        continue;
+      }
+      // 尝试格式3：斜杠+逗号混合格式（逗号分隔3个分组，每个分组用斜杠分隔3个集合）
       if (commaParts.length === 3) {
         const groups = [];
         let valid = true;
