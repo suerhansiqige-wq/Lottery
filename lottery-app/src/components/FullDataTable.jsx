@@ -772,32 +772,32 @@ function FullDataTable({
       fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
     };
 
-    // 计算智取分解容错10（errorCount <= 10）
+    // 计算智取分解容错12（errorCount <= 12）
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-    const decompRc10 = [];
+    const decompRc12 = [];
     if (decompResult && decompResult.buckets) {
-      for (let i = 1; i <= 10; i++) {
-        if (decompResult.buckets[i]) decompRc10.push(...decompResult.buckets[i]);
+      for (let i = 1; i <= 12; i++) {
+        if (decompResult.buckets[i]) decompRc12.push(...decompResult.buckets[i]);
       }
     }
 
-    // 计算博众分解容错10（errorCount <= 10）
+    // 计算博众分解容错12（errorCount <= 12）
     const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-    const bozhongRc10 = [];
+    const bozhongRc12 = [];
     if (bozhongResult && bozhongResult.buckets) {
-      for (let i = 1; i <= 10; i++) {
-        if (bozhongResult.buckets[i]) bozhongRc10.push(...bozhongResult.buckets[i]);
+      for (let i = 1; i <= 12; i++) {
+        if (bozhongResult.buckets[i]) bozhongRc12.push(...bozhongResult.buckets[i]);
       }
     }
 
-    // 容错列 = (智取容错10 ∪ 博众容错10) - (智取容错10 ∩ 博众容错10) = 对称差集
-    const decompSet = new Set(decompRc10);
-    const bozhongSet = new Set(bozhongRc10);
-    const intersection = decompRc10.filter(n => bozhongSet.has(n));
+    // 容错列 = (智取容错12 ∪ 博众容错12) - (智取容错12 ∩ 博众容错12) = 对称差集
+    const decompSet = new Set(decompRc12);
+    const bozhongSet = new Set(bozhongRc12);
+    const intersection = decompRc12.filter(n => bozhongSet.has(n));
     const intersectionSet = new Set(intersection);
-    const union = [...new Set([...decompRc10, ...bozhongRc10])];
+    const union = [...new Set([...decompRc12, ...bozhongRc12])];
     const filtered = union.filter(n => !intersectionSet.has(n)).sort();
 
     if (filtered.length === 0) {
@@ -1206,25 +1206,25 @@ function FullDataTable({
                     const cpd = copiedIssues.has('rc_next_' + nextIssue);
                     const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-                    const decompRc10 = [];
+                    const decompRc12 = [];
                     if (decompResult && decompResult.buckets) {
-                      for (let i = 1; i <= 10; i++) {
-                        if (decompResult.buckets[i]) decompRc10.push(...decompResult.buckets[i]);
+                      for (let i = 1; i <= 12; i++) {
+                        if (decompResult.buckets[i]) decompRc12.push(...decompResult.buckets[i]);
                       }
                     }
                     const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-                    const bozhongRc10 = [];
+                    const bozhongRc12 = [];
                     if (bozhongResult && bozhongResult.buckets) {
-                      for (let i = 1; i <= 10; i++) {
-                        if (bozhongResult.buckets[i]) bozhongRc10.push(...bozhongResult.buckets[i]);
+                      for (let i = 1; i <= 12; i++) {
+                        if (bozhongResult.buckets[i]) bozhongRc12.push(...bozhongResult.buckets[i]);
                       }
                     }
-                    const decompSet = new Set(decompRc10);
-                    const bozhongSet = new Set(bozhongRc10);
-                    const intersection = decompRc10.filter(n => bozhongSet.has(n));
+                    const decompSet = new Set(decompRc12);
+                    const bozhongSet = new Set(bozhongRc12);
+                    const intersection = decompRc12.filter(n => bozhongSet.has(n));
                     const intersectionSet = new Set(intersection);
-                    const union = [...new Set([...decompRc10, ...bozhongRc10])];
+                    const union = [...new Set([...decompRc12, ...bozhongRc12])];
                     const filtered = union.filter(n => !intersectionSet.has(n)).sort();
                     return (
                       <td key="rcNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
