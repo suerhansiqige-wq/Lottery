@@ -711,6 +711,88 @@ function FullDataTable({
   // 下期综合列候选池
   const tailZongHeNumbers = useMemo(() => computeZongHeNumbers(appNextIssue), [appNextIssue, decompTexts, bozhongTexts]);
 
+  // 计算任意期号的祝君中奖列候选池：交集号码 - 容错列 - 容错10列
+  const computeZhuJunZhongJiangNumbers = (issue) => {
+    if (!issue) return [];
+
+    // 1. 计算交集号码（组六1~8，组三1~12）
+    const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
+    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+    const decompZu6 = [];
+    const decompZu3 = [];
+    if (decompResult && decompResult.buckets) {
+      for (let i = 1; i <= 8; i++) {
+        if (decompResult.buckets[i]) decompZu6.push(...decompResult.buckets[i]);
+      }
+      for (let i = 1; i <= 12; i++) {
+        if (decompResult.buckets[i]) decompZu3.push(...decompResult.buckets[i]);
+      }
+    }
+
+    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
+    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+    const bozhongZu6 = [];
+    const bozhongZu3 = [];
+    if (bozhongResult && bozhongResult.buckets) {
+      for (let i = 1; i <= 8; i++) {
+        if (bozhongResult.buckets[i]) bozhongZu6.push(...bozhongResult.buckets[i]);
+      }
+      for (let i = 1; i <= 12; i++) {
+        if (bozhongResult.buckets[i]) bozhongZu3.push(...bozhongResult.buckets[i]);
+      }
+    }
+
+    // 交集号码 = 智取 ∩ 博众（组六用1~8池，组三用1~12池）
+    const decompZu6Set = new Set(decompZu6);
+    const bozhongZu6Set = new Set(bozhongZu6);
+    const decompZu3Set = new Set(decompZu3);
+    const bozhongZu3Set = new Set(bozhongZu3);
+    const decompAll = [...new Set([...decompZu6, ...decompZu3])];
+    const bozhongAll = [...new Set([...bozhongZu6, ...bozhongZu3])];
+    const bozhongAllSet = new Set(bozhongAll);
+    const jiaojiNumbers = decompAll.filter(n => {
+      if (!bozhongAllSet.has(n)) return false;
+      const isZu3 = n[0] === n[1] || n[1] === n[2] || n[0] === n[2];
+      if (isZu3) {
+        return decompZu3Set.has(n) && bozhongZu3Set.has(n);
+      } else {
+        return decompZu6Set.has(n) && bozhongZu6Set.has(n);
+      }
+    });
+
+    // 2. 计算容错列（1~12对称差集）
+    const decompRc12 = [];
+    const bozhongRc12 = [];
+    if (decompResult && decompResult.buckets) {
+      for (let i = 1; i <= 12; i++) {
+        if (decompResult.buckets[i]) decompRc12.push(...decompResult.buckets[i]);
+      }
+    }
+    if (bozhongResult && bozhongResult.buckets) {
+      for (let i = 1; i <= 12; i++) {
+        if (bozhongResult.buckets[i]) bozhongRc12.push(...bozhongResult.buckets[i]);
+      }
+    }
+    const decompRc12Set = new Set(decompRc12);
+    const bozhongRc12Set = new Set(bozhongRc12);
+    const rcIntersection = decompRc12.filter(n => bozhongRc12Set.has(n));
+    const rcIntersectionSet = new Set(rcIntersection);
+    const rcUnion = [...new Set([...decompRc12, ...bozhongRc12])];
+    const rongCuoNumbers = rcUnion.filter(n => !rcIntersectionSet.has(n));
+    const rongCuoSet = new Set(rongCuoNumbers);
+
+    // 3. 计算容错10列（buckets[10]）
+    const decompRc10 = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
+    const bozhongRc10 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
+    const rc10Set = new Set([...decompRc10, ...bozhongRc10]);
+
+    // 祝君中奖 = 交集号码 - 容错列 - 容错10列
+    return jiaojiNumbers
+      .filter(n => !rongCuoSet.has(n))
+      .filter(n => !rc10Set.has(n))
+      .sort();
+  };
+
   const renderAddSubCell = (issue, index) => {
     if (!SHOW_ADDSUB_COL) return null;
     const rec = addSubIndex.get(issue);
@@ -939,7 +1021,7 @@ function FullDataTable({
       fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
     };
 
-    const filtered = computeZongHeNumbers(issue);
+    const filtered = computeZhuJunZhongJiangNumbers(issue);
 
     if (filtered.length === 0) {
       return <td key="zjzj" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
@@ -1763,7 +1845,7 @@ function FullDataTable({
                   {/* 祝君中奖 - 预留行：下期祝君中奖注数 + 复制（尚未开奖，无对错） */}
                   {SHOW_ZJZJ_COL && (() => {
                     const cpd = copiedIssues.has('zjzj_next_' + nextIssue);
-                    const filtered = computeZongHeNumbers(nextIssue);
+                    const filtered = computeZhuJunZhongJiangNumbers(nextIssue);
                     return (
                       <td key="zjzjNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
