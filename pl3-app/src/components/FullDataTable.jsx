@@ -356,16 +356,19 @@ const SHOW_HJS_COLS = false;
 // 生号/连号/必出号 三列开关：2026-11-01 先随横竖加减一起隐藏，同日应用户要求恢复显示
 const SHOW_SLBC_COLS = true;
 
-// 加减号码列开关：2026-11-01 用户要求隐藏。候选池本身照常计算（直选高倍/保本取数依赖它），只是不再占一列
-const SHOW_ADDSUB_COL = true;
+// 加减号码列开关：2026-11-04 用户要求删除
+const SHOW_ADDSUB_COL = false;
 
-// 容错10 / 交集号码 两列开关：2026-11-02 用户要求隐藏。数据照常计算（综合列依赖它们），只是不再占一列
+// 容错10 / 容错 / 交集号码 三列开关
 const SHOW_RC10_COL = true;
 const SHOW_RC_COL = true;
 const SHOW_JJ_COL = true;
 
-// 交集列开关：加减号码与综合列的交集；2026-11-03 用户要求新增
-const SHOW_JIAOJI_COL = true;
+// 综合列开关：2026-11-04 用户要求删除
+const SHOW_ZONGHE_COL = false;
+
+// 交集列开关：2026-11-04 用户要求删除
+const SHOW_JIAOJI_COL = false;
 
 function renderHjsCells(src) {
   if (!SHOW_HJS_COLS) return [];
@@ -1349,7 +1352,7 @@ function FullDataTable({
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
                 {SHOW_JJ_COL && <th title="智取容错10 ∩ 博众容错10（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
-                <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>
+                {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_JIAOJI_COL && <th title="加减号码候选池 ∩ 综合列候选池；✓=在池内，✗=不在池内">交集</th>}
                 {/* 参考一/参考二/胆码三列表头已彻底删除 - 用户要求 */}
                 {/* 智取分解 / 博众分解 两列（表格最右侧，与福彩3D 同位置逻辑） */}
@@ -1450,9 +1453,9 @@ function FullDataTable({
                   {/* 交集号码：智取容错10 ∩ 博众容错10 */}
                   {SHOW_JJ_COL && renderJiJiaoCell(item.issue)}
                   {/* 综合：交集号码 - 容错列 - 容错10列 */}
-                  {renderZongHeCell(item.issue)}
+                  {SHOW_ZONGHE_COL && renderZongHeCell(item.issue)}
                   {/* 交集：加减号码候选池 ∩ 综合列候选池 */}
-                  {renderJiaoJiCell(item.issue, issueIndexMap.get(item.issue))}
+                  {SHOW_JIAOJI_COL && renderJiaoJiCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 参考一/参考二/胆码三列单元格已彻底删除 - 用户要求 */}
                   {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数（与福彩3D 一致） */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, item.issue, c.title))}
@@ -1659,7 +1662,7 @@ function FullDataTable({
                     );
                   })()}
                   {/* 综合 - 预留行：下期综合注数 + 复制（尚未开奖，无对错） */}
-                  {(() => {
+                  {SHOW_ZONGHE_COL && (() => {
                     const cpd = copiedIssues.has('zh_next_' + nextIssue);
                     const filtered = computeZongHeNumbers(nextIssue);
                     return (
