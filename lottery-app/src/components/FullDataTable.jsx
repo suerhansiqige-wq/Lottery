@@ -173,8 +173,8 @@ const HJS_COLS = [
 // 只隐藏表格展示，数据照常计算（加减号码候选池依赖横相加与横相减）；改回 true 即恢复显示
 const SHOW_HJS_COLS = false;
 
-// 生号/连号/必出号 三列开关：2026-11-01 先随横竖加减一起隐藏，同日应用户要求恢复显示
-const SHOW_SLBC_COLS = true;
+// 生号/连号/必出号 三列开关：2026-11-04 用户要求隐藏
+const SHOW_SLBC_COLS = false;
 
 // 加减号码列开关：2026-11-04 用户要求删除
 const SHOW_ADDSUB_COL = false;
