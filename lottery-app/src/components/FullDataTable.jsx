@@ -623,29 +623,58 @@ function FullDataTable({
       fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
     };
 
-    // 计算智取分解容错10（errorCount <= 10）
+    // 计算智取分解容错（组六1~8，组三1~12）
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-    const decompRc10 = [];
+    const decompZu6 = []; // 组六池 1~8
+    const decompZu3 = []; // 组三池 1~12
     if (decompResult && decompResult.buckets) {
-      for (let i = 1; i <= 10; i++) {
-        if (decompResult.buckets[i]) decompRc10.push(...decompResult.buckets[i]);
+      for (let i = 1; i <= 8; i++) {
+        if (decompResult.buckets[i]) decompZu6.push(...decompResult.buckets[i]);
+      }
+      for (let i = 1; i <= 12; i++) {
+        if (decompResult.buckets[i]) decompZu3.push(...decompResult.buckets[i]);
       }
     }
 
-    // 计算博众分解容错10（errorCount <= 10）
+    // 计算博众分解容错（组六1~8，组三1~12）
     const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-    const bozhongRc10 = [];
+    const bozhongZu6 = []; // 组六池 1~8
+    const bozhongZu3 = []; // 组三池 1~12
     if (bozhongResult && bozhongResult.buckets) {
-      for (let i = 1; i <= 10; i++) {
-        if (bozhongResult.buckets[i]) bozhongRc10.push(...bozhongResult.buckets[i]);
+      for (let i = 1; i <= 8; i++) {
+        if (bozhongResult.buckets[i]) bozhongZu6.push(...bozhongResult.buckets[i]);
+      }
+      for (let i = 1; i <= 12; i++) {
+        if (bozhongResult.buckets[i]) bozhongZu3.push(...bozhongResult.buckets[i]);
       }
     }
 
-    // 交集号码列 = 智取容错10 ∩ 博众容错10
-    const bozhongSet = new Set(bozhongRc10);
-    const filtered = decompRc10.filter(n => bozhongSet.has(n)).sort();
+    // 交集号码列 = 智取容错 ∩ 博众容错（组六用1~8池，组三用1~12池）
+    const decompZu6Set = new Set(decompZu6);
+    const bozhongZu6Set = new Set(bozhongZu6);
+    const decompZu3Set = new Set(decompZu3);
+    const bozhongZu3Set = new Set(bozhongZu3);
+    
+    // 合并两个池子用于交集计算
+    const decompAll = [...new Set([...decompZu6, ...decompZu3])];
+    const bozhongAll = [...new Set([...bozhongZu6, ...bozhongZu3])];
+    const bozhongAllSet = new Set(bozhongAll);
+    
+    // 取交集后，根据号码类型过滤
+    const filtered = decompAll.filter(n => {
+      if (!bozhongAllSet.has(n)) return false;
+      // 判断是组三还是组六
+      const isZu3 = n[0] === n[1] || n[1] === n[2] || n[0] === n[2];
+      if (isZu3) {
+        // 组三：需要在两个组三池中都存在
+        return decompZu3Set.has(n) && bozhongZu3Set.has(n);
+      } else {
+        // 组六：需要在两个组六池中都存在
+        return decompZu6Set.has(n) && bozhongZu6Set.has(n);
+      }
+    }).sort();
 
     if (filtered.length === 0) {
       return <td key="jj" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
@@ -1251,23 +1280,45 @@ function FullDataTable({
                     const cpd = copiedIssues.has('jj_next_' + nextIssue);
                     const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-                    const decompRc10 = [];
+                    const decompZu6 = [];
+                    const decompZu3 = [];
                     if (decompResult && decompResult.buckets) {
-                      for (let i = 1; i <= 10; i++) {
-                        if (decompResult.buckets[i]) decompRc10.push(...decompResult.buckets[i]);
+                      for (let i = 1; i <= 8; i++) {
+                        if (decompResult.buckets[i]) decompZu6.push(...decompResult.buckets[i]);
+                      }
+                      for (let i = 1; i <= 12; i++) {
+                        if (decompResult.buckets[i]) decompZu3.push(...decompResult.buckets[i]);
                       }
                     }
                     const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-                    const bozhongRc10 = [];
+                    const bozhongZu6 = [];
+                    const bozhongZu3 = [];
                     if (bozhongResult && bozhongResult.buckets) {
-                      for (let i = 1; i <= 10; i++) {
-                        if (bozhongResult.buckets[i]) bozhongRc10.push(...bozhongResult.buckets[i]);
+                      for (let i = 1; i <= 8; i++) {
+                        if (bozhongResult.buckets[i]) bozhongZu6.push(...bozhongResult.buckets[i]);
+                      }
+                      for (let i = 1; i <= 12; i++) {
+                        if (bozhongResult.buckets[i]) bozhongZu3.push(...bozhongResult.buckets[i]);
                       }
                     }
-                    // 交集号码列 = 智取容错10 ∩ 博众容错10
-                    const bozhongSet = new Set(bozhongRc10);
-                    const filtered = decompRc10.filter(n => bozhongSet.has(n)).sort();
+                    // 交集号码列 = 智取容错 ∩ 博众容错（组六用1~8池，组三用1~12池）
+                    const decompZu6Set = new Set(decompZu6);
+                    const bozhongZu6Set = new Set(bozhongZu6);
+                    const decompZu3Set = new Set(decompZu3);
+                    const bozhongZu3Set = new Set(bozhongZu3);
+                    const decompAll = [...new Set([...decompZu6, ...decompZu3])];
+                    const bozhongAll = [...new Set([...bozhongZu6, ...bozhongZu3])];
+                    const bozhongAllSet = new Set(bozhongAll);
+                    const filtered = decompAll.filter(n => {
+                      if (!bozhongAllSet.has(n)) return false;
+                      const isZu3 = n[0] === n[1] || n[1] === n[2] || n[0] === n[2];
+                      if (isZu3) {
+                        return decompZu3Set.has(n) && bozhongZu3Set.has(n);
+                      } else {
+                        return decompZu6Set.has(n) && bozhongZu6Set.has(n);
+                      }
+                    }).sort();
                     return (
                       <td key="jjNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
