@@ -1349,10 +1349,10 @@ function FullDataTable({
           <span style={{
             fontSize: 15, padding: '2px 6px', borderRadius: 3, border: '1px solid #e0e0e0',
             background: '#fff', whiteSpace: 'nowrap', minWidth: 70, textAlign: 'left',
-            color: v.type === '组三' ? '#c62828' : '#000',
-            fontWeight: v.type === '组三' ? 700 : 600,
+            color: (kind === 'duanzuZQ' || kind === 'duanzuBZ') && v.type === '组三' ? '#c62828' : '#000',
+            fontWeight: (kind === 'duanzuZQ' || kind === 'duanzuBZ') && v.type === '组三' ? 700 : 600,
           }} title={`${issue} 期开奖最小容错等级（${v.type}）`}>
-            {v.type === '组三' ? '组三' : `${v.type}（容错${v.level}）`}
+            {(kind === 'duanzuZQ' || kind === 'duanzuBZ') && v.type === '组三' ? '组三' : `${v.type}（容错${v.level}）`}
           </span>
         )}
         </div>
