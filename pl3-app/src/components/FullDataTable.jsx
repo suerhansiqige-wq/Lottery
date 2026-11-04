@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { parseDecompGroups, verifyDraw, computeRongCuo } from '../utils/decompRongCuo.js'
 import { ADD_SUB_LOOKBACK, buildAddSubIndex, getAddSubNumbers } from '../utils/addSubPool.js'
 import { processLajiFushi, verifyLajiDraw } from '../utils/lajiFushi.js'
+import { DEFAULT_GROUPS, generateByBrokenGroups, verifyBrokenGroupDraw } from '../utils/brokenGroup.js'
 
 // ============================================================
 // 遗漏策略：三组并集
@@ -372,6 +373,9 @@ const SHOW_JIAOJI_COL = false;
 
 // 祝君中奖列开关：2026-11-04 用户要求新增
 const SHOW_ZJZJ_COL = true;
+
+// 断组334列开关：2026-11-04 用户要求新增
+const SHOW_DUANZU_COL = true;
 
 function renderHjsCells(src) {
   if (!SHOW_HJS_COLS) return [];
@@ -1063,6 +1067,59 @@ function FullDataTable({
     );
   };
 
+  // 断组334列：默认分组012/345/6789，断1组
+  const renderDuanZuCell = (issue) => {
+    if (!SHOW_DUANZU_COL) return null;
+    const copied = copiedIssues.has('duanzu_' + issue);
+    const btnStyle = {
+      fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+      border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+      background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
+      fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+    };
+
+    // 默认分组：012 / 345 / 6789
+    const groups = DEFAULT_GROUPS;
+
+    // 生成断1组的所有号码（断第1组、断第2组、断第3组）
+    const broken1 = generateByBrokenGroups(groups, [1]); // 断第1组，用3456789
+    const broken2 = generateByBrokenGroups(groups, [2]); // 断第2组，用0126789
+    const broken3 = generateByBrokenGroups(groups, [3]); // 断第3组，用012345
+
+    // 合并所有断1组的号码
+    const allNumbers = new Set([...broken1, ...broken2, ...broken3]);
+    const filtered = Array.from(allNumbers).sort();
+
+    if (filtered.length === 0) {
+      return <td key="duanzu" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+
+    // 验证当期开奖号是否在断组预测中
+    const item = displayData.find(d => d.issue === issue);
+    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
+    const hit = drawNum && filtered.includes(drawNum);
+
+    return (
+      <td key="duanzu" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+          <span style={{ fontWeight: 800, color: hit ? '#1b5e20' : (hit === false ? '#b71c1c' : '#666') }}>{filtered.length}注</span>
+          {hit !== null && (
+            <span title={hit ? '当期开奖号在断组预测内' : '当期开奖号不在断组预测内'}
+              style={{ fontWeight: 900, fontSize: 15, color: hit ? '#2e7d32' : '#c62828' }}>
+              {hit ? '✓' : '✗'}
+            </span>
+          )}
+          <button
+            style={btnStyle}
+            onClick={() => handleCopy('duanzu_' + issue, filtered)}
+          >
+            {copied ? '✓' : '复制'}
+          </button>
+        </div>
+      </td>
+    );
+  };
+
   // 交集列：加减号码候选池 ∩ 综合列候选池
   const renderJiaoJiCell = (issue, index) => {
     if (!SHOW_JIAOJI_COL) return null;
@@ -1493,6 +1550,7 @@ function FullDataTable({
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_JIAOJI_COL && <th title="加减号码候选池 ∩ 综合列候选池；✓=在池内，✗=不在池内">交集</th>}
                 {SHOW_ZJZJ_COL && <th title="交集号码 - 容错列 - 容错10列（祝君中奖）；✓=在池内，✗=不在池内">祝君中奖</th>}
+                {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
                 {/* 参考一/参考二/胆码三列表头已彻底删除 - 用户要求 */}
                 {/* 智取分解 / 博众分解 两列（表格最右侧，与福彩3D 同位置逻辑） */}
                 {DECOMP_COLS.map(c => (
@@ -1597,6 +1655,8 @@ function FullDataTable({
                   {SHOW_JIAOJI_COL && renderJiaoJiCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 祝君中奖：交集号码 - 容错列 - 容错10列 */}
                   {SHOW_ZJZJ_COL && renderZhuJunZhongJiangCell(item.issue)}
+                  {/* 断组334：012/345/6789 断1组 */}
+                  {SHOW_DUANZU_COL && renderDuanZuCell(item.issue)}
                   {/* 参考一/参考二/胆码三列单元格已彻底删除 - 用户要求 */}
                   {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数（与福彩3D 一致） */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, item.issue, c.title))}
@@ -1869,6 +1929,35 @@ function FullDataTable({
                               fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
                             }}
                             onClick={() => handleCopy('zjzj_next_' + nextIssue, filtered)}
+                          >
+                            {cpd ? '✓' : '复制'}
+                          </button>
+                        </div>
+                      </td>
+                    );
+                  })()}
+                  {/* 断组334 - 预留行：下期断组注数 + 复制（尚未开奖，无对错） */}
+                  {SHOW_DUANZU_COL && (() => {
+                    const cpd = copiedIssues.has('duanzu_next_' + nextIssue);
+                    const groups = DEFAULT_GROUPS;
+                    const broken1 = generateByBrokenGroups(groups, [1]);
+                    const broken2 = generateByBrokenGroups(groups, [2]);
+                    const broken3 = generateByBrokenGroups(groups, [3]);
+                    const allNumbers = new Set([...broken1, ...broken2, ...broken3]);
+                    const filtered = Array.from(allNumbers).sort();
+                    return (
+                      <td key="duanzuNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{filtered.length}注</span>
+                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
+                          <button
+                            style={{
+                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
+                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+                            }}
+                            onClick={() => handleCopy('duanzu_next_' + nextIssue, filtered)}
                           >
                             {cpd ? '✓' : '复制'}
                           </button>
