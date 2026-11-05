@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { parseDecompGroups, verifyDraw, computeRongCuo } from '../utils/decompRongCuo.js'
 import { verifyDuanZuDraw, computeDuanZuRongCuo } from '../utils/duanZuRongCuo.js'
 import { ADD_SUB_LOOKBACK, buildAddSubIndex, getAddSubNumbers } from '../utils/addSubPool.js'
@@ -423,15 +423,14 @@ function FullDataTable({
   // 分解容错「无容错」号码（智取∪博众），并入保本投注
   wuRongCuoNumbers = [],
 }) {
-  const [copiedIssues, setCopiedIssues] = useState(new Set());
+  const copiedIssuesRef = useRef(new Set());
+  const [, forceUpdate] = useState(0);
   
   const handleCopy = async (issue, numbers) => {
-    // 立即更新状态，让 UI 快速响应
-    setCopiedIssues(prev => {
-      const next = new Set(prev);
-      next.add(issue);
-      return next;
-    });
+    // 直接更新 ref，避免触发整个表格重渲染
+    copiedIssuesRef.current.add(issue);
+    // 仅强制更新当前按钮所在的最小范围
+    forceUpdate(c => c + 1);
     const text = numbers.join(' ');
     try {
       // 优先使用 navigator.clipboard
@@ -764,7 +763,7 @@ function FullDataTable({
   };
 
   const renderRepeat3Cell = (issue, index) => {
-    const copied = copiedIssues.has('repeat3_' + issue);
+    const copied = copiedIssuesRef.current.has('repeat3_' + issue);
     const btnStyle = {
       fontSize: 11, padding: '1px 6px', cursor: 'pointer',
       border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
@@ -805,7 +804,7 @@ function FullDataTable({
 
   // 重复组号：五列中恰好出现3次的号码（仅显示注数+对错+复制）
   const renderRepeatGroupCell = (issue, index) => {
-    const copied = copiedIssues.has('repeatGroup_' + issue);
+    const copied = copiedIssuesRef.current.has('repeatGroup_' + issue);
     const btnStyle = {
       fontSize: 11, padding: '1px 6px', cursor: 'pointer',
       border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
@@ -847,7 +846,7 @@ function FullDataTable({
   const renderAddSubCell = (issue, index) => {
     if (!SHOW_ADDSUB_COL) return null;
     const rec = addSubIndex.get(issue);
-    const copied = copiedIssues.has(issue);
+    const copied = copiedIssuesRef.current.has(issue);
     const btnStyle = {
       fontSize: 11, padding: '1px 6px', cursor: 'pointer',
       border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
@@ -878,7 +877,7 @@ function FullDataTable({
 
   // 容错10列：智取分解容错10 ∪ 博众分解容错10（包含组三）
   const renderRongCuo10Cell = (issue) => {
-    const copied = copiedIssues.has('rc10_' + issue);
+    const copied = copiedIssuesRef.current.has('rc10_' + issue);
     const btnStyle = {
       fontSize: 11, padding: '1px 6px', cursor: 'pointer',
       border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
@@ -930,7 +929,7 @@ function FullDataTable({
   };
 
   const renderJiJiaoCell = (issue) => {
-    const copied = copiedIssues.has('jj_' + issue);
+    const copied = copiedIssuesRef.current.has('jj_' + issue);
     const btnStyle = {
       fontSize: 11, padding: '1px 6px', cursor: 'pointer',
       border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
@@ -1022,7 +1021,7 @@ function FullDataTable({
   };
 
   const renderZongHeCell = (issue) => {
-    const copied = copiedIssues.has('zh_' + issue);
+    const copied = copiedIssuesRef.current.has('zh_' + issue);
     const btnStyle = {
       fontSize: 11, padding: '1px 6px', cursor: 'pointer',
       border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
@@ -1065,7 +1064,7 @@ function FullDataTable({
   // 断组容错列：智取断组容错3 ∪ 博众断组容错3
   const renderDuanZuRongCuoCell = (issue) => {
     if (!SHOW_DUANZU_RC_COL) return null;
-    const copied = copiedIssues.has('duanzurc_' + issue);
+    const copied = copiedIssuesRef.current.has('duanzurc_' + issue);
     const btnStyle = {
       fontSize: 11, padding: '1px 6px', cursor: 'pointer',
       border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
@@ -1135,7 +1134,7 @@ function FullDataTable({
   // 祝君中奖列：交集号码 - 容错列 - 容错10列
   const renderZhuJunZhongJiangCell = (issue) => {
     if (!SHOW_ZJZJ_COL) return null;
-    const copied = copiedIssues.has('zjzj_' + issue);
+    const copied = copiedIssuesRef.current.has('zjzj_' + issue);
     const btnStyle = {
       fontSize: 11, padding: '1px 6px', cursor: 'pointer',
       border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
@@ -1261,7 +1260,7 @@ function FullDataTable({
     const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
     const hit = hasData && drawNum && filtered.length > 0 ? filtered.includes(drawNum) : null;
 
-    const copied = copiedIssues.has('duanzu_' + issue);
+    const copied = copiedIssuesRef.current.has('duanzu_' + issue);
 
     return (
       <td key="duanzu" style={{ padding: 2, background: hasData ? '#fff' : '#e0e0e0' }}>
@@ -1315,7 +1314,7 @@ function FullDataTable({
   // 交集列：加减号码候选池 ∩ 综合列候选池
   const renderJiaoJiCell = (issue, index) => {
     if (!SHOW_JIAOJI_COL) return null;
-    const copied = copiedIssues.has('jiaoji_' + issue);
+    const copied = copiedIssuesRef.current.has('jiaoji_' + issue);
     const btnStyle = {
       fontSize: 11, padding: '1px 6px', cursor: 'pointer',
       border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
@@ -1373,7 +1372,7 @@ function FullDataTable({
   };
 
   const renderRongCuoCell = (issue) => {
-    const copied = copiedIssues.has('rc_' + issue);
+    const copied = copiedIssuesRef.current.has('rc_' + issue);
     const btnStyle = {
       fontSize: 11, padding: '1px 6px', cursor: 'pointer',
       border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
@@ -1714,7 +1713,7 @@ function FullDataTable({
                   )}
                   {/* 加减号码 - 预留行：下期候选池注数 + 复制（尚未开奖，无对错） */}
                   {SHOW_ADDSUB_COL && (() => {
-                    const cpd = copiedIssues.has('next_' + nextIssue);
+                    const cpd = copiedIssuesRef.current.has('next_' + nextIssue);
                     return (
                       <td key="addSubNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
@@ -1737,7 +1736,7 @@ function FullDataTable({
                   })()}
                   {/* 交集号码 - 预留行：下期交集注数 + 复制（尚未开奖，无对错） */}
                   {SHOW_JJ_COL && (() => {
-                    const cpd = copiedIssues.has('jj_next_' + nextIssue);
+                    const cpd = copiedIssuesRef.current.has('jj_next_' + nextIssue);
                     const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompZu6 = [];
@@ -1801,7 +1800,7 @@ function FullDataTable({
                   })()}
                   {/* 综合 - 预留行：下期综合注数 + 复制（尚未开奖，无对错） */}
                   {SHOW_ZONGHE_COL && (() => {
-                    const cpd = copiedIssues.has('zh_next_' + nextIssue);
+                    const cpd = copiedIssuesRef.current.has('zh_next_' + nextIssue);
                     const filtered = computeZongHeNumbers(nextIssue);
                     return (
                       <td key="zhNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
@@ -1825,7 +1824,7 @@ function FullDataTable({
                   })()}
                   {/* 交集 - 预留行：下期交集注数 + 复制（尚未开奖，无对错） */}
                   {SHOW_JIAOJI_COL && (() => {
-                    const cpd = copiedIssues.has('jiaoji_next_' + nextIssue);
+                    const cpd = copiedIssuesRef.current.has('jiaoji_next_' + nextIssue);
                     const zongHe = computeZongHeNumbers(nextIssue);
                     const addSubSet = new Set(tailAddSubNumbers);
                     const filtered = zongHe.filter(n => addSubSet.has(n));
@@ -1851,7 +1850,7 @@ function FullDataTable({
                   })()}
                   {/* 容错10 - 预留行：下期容错10注数 + 复制（尚未开奖，无对错） */}
                   {SHOW_RC10_COL && (() => {
-                    const cpd = copiedIssues.has('rc10_next_' + nextIssue);
+                    const cpd = copiedIssuesRef.current.has('rc10_next_' + nextIssue);
                     const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompRc10 = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
@@ -1881,7 +1880,7 @@ function FullDataTable({
                   })()}
                   {/* 容错 - 预留行：下期对称差集注数 + 复制（尚未开奖，无对错） */}
                   {SHOW_RC_COL && (() => {
-                    const cpd = copiedIssues.has('rc_next_' + nextIssue);
+                    const cpd = copiedIssuesRef.current.has('rc_next_' + nextIssue);
                     const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompRc12 = [];
@@ -1926,7 +1925,7 @@ function FullDataTable({
                   })()}
                   {/* 断组容错 - 预留行：下期断组容错注数 + 复制（尚未开奖，无对错） */}
                   {SHOW_DUANZU_RC_COL && (() => {
-                    const cpd = copiedIssues.has('duanzurc_next_' + nextIssue);
+                    const cpd = copiedIssuesRef.current.has('duanzurc_next_' + nextIssue);
                     const zqText = (duanZuZQTexts && duanZuZQTexts[nextIssue]) || '';
                     const bzText = (duanZuBZTexts && duanZuBZTexts[nextIssue]) || '';
                     const zqGroups = parseDuanZuGroups(zqText);
@@ -1968,7 +1967,7 @@ function FullDataTable({
                   })()}
                   {/* 重复3次 - 预留行：下期五列重复恰好3次号码 + 复制（尚未开奖，无对错） */}
                   {SHOW_ZJZJ_COL && (() => {
-                    const cpd = copiedIssues.has('repeat3_next_' + nextIssue);
+                    const cpd = copiedIssuesRef.current.has('repeat3_next_' + nextIssue);
                     const filtered = computeRepeat1Numbers(nextIssue, poolData.length);
                     return (
                       <td key="repeat3Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
@@ -1992,7 +1991,7 @@ function FullDataTable({
                   })()}
                   {/* 重复组号 - 预留行：下期五列重复恰好3次号码注数 + 复制（尚未开奖，无对错） */}
                   {SHOW_ZJZJ_COL && (() => {
-                    const cpd = copiedIssues.has('repeatGroup_next_' + nextIssue);
+                    const cpd = copiedIssuesRef.current.has('repeatGroup_next_' + nextIssue);
                     const filtered = computeRepeat1Numbers(nextIssue, poolData.length);
                     return (
                       <td key="repeatGroupNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
@@ -2016,7 +2015,7 @@ function FullDataTable({
                   })()}
                   {/* 祝君中奖 - 预留行：下期祝君中奖注数 + 复制（尚未开奖，无对错） */}
                   {SHOW_ZJZJ_COL && (() => {
-                    const cpd = copiedIssues.has('zjzj_next_' + nextIssue);
+                    const cpd = copiedIssuesRef.current.has('zjzj_next_' + nextIssue);
                     const filtered = computeZhuJunZhongJiangNumbers(nextIssue);
                     return (
                       <td key="zjzjNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
@@ -2058,7 +2057,7 @@ function FullDataTable({
                       }
                       filtered = Array.from(allNumbers).sort();
                     }
-                    const cpd = copiedIssues.has('duanzu_next_' + nextDzIssue);
+                    const cpd = copiedIssuesRef.current.has('duanzu_next_' + nextDzIssue);
                     return (
                       <td key="duanzuNext" style={{ padding: 2, background: hasData ? '#f0f8ff' : '#e8f0f5' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
