@@ -121,12 +121,21 @@ function App() {
   const [lajiTexts, setLajiTextsState] = useState(() => normalizeTexts({ ...loadOverrides('3d_lajiTexts') }));
   const [duanZuZQTexts, setDuanZuZQTextsState] = useState(() => normalizeTexts({ ...loadOverrides('3d_duanZuZQTexts') }));
   const [duanZuBZTexts, setDuanZuBZTextsState] = useState(() => normalizeTexts({ ...loadOverrides('3d_duanZuBZTexts') }));
-  // 密码保护已解除：所有锁定状态初始化为空集，并清除 localStorage 中的历史锁定数据
-  const [lockedDecomp, setLockedDecompState] = useState(() => { safeSetItem('3d_lockedDecomp', '[]'); return new Set(); });
-  const [lockedBozhong, setLockedBozhongState] = useState(() => { safeSetItem('3d_lockedBozhong', '[]'); return new Set(); });
-  const [lockedLaji, setLockedLajiState] = useState(() => { safeSetItem('3d_lockedLaji', '[]'); return new Set(); });
-  const [lockedDuanZuZQ, setLockedDuanZuZQState] = useState(() => { safeSetItem('3d_lockedDuanZuZQ', '[]'); return new Set(); });
-  const [lockedDuanZuBZ, setLockedDuanZuBZState] = useState(() => { safeSetItem('3d_lockedDuanZuBZ', '[]'); return new Set(); });
+  // 密码保护已解除：强制清空所有锁定状态
+  const emptyLockSet = useMemo(() => new Set(), []);
+  const [lockedDecomp, setLockedDecompState] = useState(emptyLockSet);
+  const [lockedBozhong, setLockedBozhongState] = useState(emptyLockSet);
+  const [lockedLaji, setLockedLajiState] = useState(emptyLockSet);
+  const [lockedDuanZuZQ, setLockedDuanZuZQState] = useState(emptyLockSet);
+  const [lockedDuanZuBZ, setLockedDuanZuBZState] = useState(emptyLockSet);
+  // 启动时清除 localStorage 中的历史锁定数据
+  useEffect(() => {
+    safeSetItem('3d_lockedDecomp', '[]');
+    safeSetItem('3d_lockedBozhong', '[]');
+    safeSetItem('3d_lockedLaji', '[]');
+    safeSetItem('3d_lockedDuanZuZQ', '[]');
+    safeSetItem('3d_lockedDuanZuBZ', '[]');
+  }, []);
   // 密码弹窗已禁用：保留状态但不再使用
   const [pwdDialog, setPwdDialog] = useState(false);
   const [pwdTarget, setPwdTarget] = useState(null); // { kind: 'decomp'|'bozhong', issue }
