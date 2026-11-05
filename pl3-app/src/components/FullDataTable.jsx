@@ -912,6 +912,43 @@ function FullDataTable({
     );
   };
 
+  // 重复组号：显示五列中恰好出现3次的实际号码
+  const renderRepeatGroupCell = (issue, index) => {
+    const copied = copiedIssues.has('repeatGroup_' + issue);
+    const btnStyle = {
+      fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+      border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+      background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
+      fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+    };
+
+    const filtered = computeRepeat3Numbers(issue, index);
+
+    if (filtered.length === 0) {
+      return <td key="repeatGroup" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+
+    const item = displayData.find(d => d.issue === issue);
+    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
+    const hit = drawNum && filtered.includes(drawNum);
+
+    return (
+      <td key="repeatGroup" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5'), fontSize: 13 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', maxWidth: 200 }}>
+          <span style={{ fontWeight: 700, color: hit ? '#1b5e20' : (hit === false ? '#b71c1c' : '#333'), fontSize: 12 }}>
+            {filtered.join(' ')}
+          </span>
+          <button
+            style={btnStyle}
+            onClick={() => handleCopy('repeatGroup_' + issue, filtered)}
+          >
+            {copied ? '✓' : '复制'}
+          </button>
+        </div>
+      </td>
+    );
+  };
+
   const renderAddSubCell = (issue, index) => {
     if (!SHOW_ADDSUB_COL) return null;
     const rec = addSubIndex.get(issue);
@@ -1766,6 +1803,7 @@ function FullDataTable({
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
                 {SHOW_DUANZU_RC_COL && <th title="智取断组容错3 ∪ 博众断组容错3（合并号码池）；✓=在池内，✗=不在池内">断组容错</th>}
                 {SHOW_ZJZJ_COL && <th title="加减号码/交集号码/综合/交集/分解组号五列中恰好出现3次的号码；✓=在池内，✗=不在池内">重复3次</th>}
+                {SHOW_ZJZJ_COL && <th title="五列中恰好出现3次的实际号码列表">重复组号</th>}
                 {SHOW_ZJZJ_COL && <th title="交集号码 - 容错列 - 容错10列（分解组号）；✓=在池内，✗=不在池内">分解组号</th>}
                 {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
                 {/* 参考一/参考二/胆码三列表头已彻底删除 - 用户要求 */}
@@ -1874,6 +1912,8 @@ function FullDataTable({
                   {SHOW_DUANZU_RC_COL && renderDuanZuRongCuoCell(item.issue)}
                   {/* 重复3次：五列中恰好出现3次的号码 */}
                   {SHOW_ZJZJ_COL && renderRepeat3Cell(item.issue, issueIndexMap.get(item.issue))}
+                  {/* 重复组号：显示五列中恰好出现3次的实际号码 */}
+                  {SHOW_ZJZJ_COL && renderRepeatGroupCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 祝君中奖：交集号码 - 容错列 - 容错10列 */}
                   {SHOW_ZJZJ_COL && renderZhuJunZhongJiangCell(item.issue)}
                   {/* 断组334：012/345/6789 断1组 */}
@@ -2192,6 +2232,31 @@ function FullDataTable({
                               fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
                             }}
                             onClick={() => handleCopy('repeat3_next_' + nextIssue, filtered)}
+                          >
+                            {cpd ? '✓' : '复制'}
+                          </button>
+                        </div>
+                      </td>
+                    );
+                  })()}
+                  {/* 重复组号 - 预留行：显示下期五列重复恰好3次的实际号码 + 复制 */}
+                  {SHOW_ZJZJ_COL && (() => {
+                    const cpd = copiedIssues.has('repeatGroup_next_' + nextIssue);
+                    const filtered = computeRepeat3Numbers(nextIssue, poolData.length);
+                    return (
+                      <td key="repeatGroupNext" style={{ padding: '2px 4px', background: '#f0f8ff', fontSize: 13 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', maxWidth: 200 }}>
+                          <span style={{ fontWeight: 700, color: '#1b5e20', fontSize: 12 }}>
+                            {filtered.length > 0 ? filtered.join(' ') : '-'}
+                          </span>
+                          <button
+                            style={{
+                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
+                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+                            }}
+                            onClick={() => handleCopy('repeatGroup_next_' + nextIssue, filtered)}
                           >
                             {cpd ? '✓' : '复制'}
                           </button>
