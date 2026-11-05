@@ -1,4 +1,4 @@
-// 加减号码：隔一期用一期（跳期模式），回溯 2L 期实际取 L 期
+// 加减号码：隔二期用一期（跳期模式），回溯 3L 期实际取 L 期
 
 export const ADD_SUB_LOOKBACK = 200;
 
@@ -23,8 +23,8 @@ SUB_PAT.forEach(v => v.sort((x, y) => x - y));
 
 const toStr = (n) => String(n).padStart(3, '0');
 
-// 滑动窗口统计每个索引 i（i>=2L）对应的候选池注数与命中情况
-// 隔一期用一期：从 i-2L 到 i-1，步长为2
+// 滑动窗口统计每个索引 i（i>=3L）对应的候选池注数与命中情况
+// 隔二期用一期：从 i-3L 到 i-1，步长为3
 export function buildAddSubIndex(data, L = ADD_SUB_LOOKBACK) {
   const cAdd = new Int32Array(1000);
   const cSub = new Int32Array(1000);
@@ -58,12 +58,12 @@ export function buildAddSubIndex(data, L = ADD_SUB_LOOKBACK) {
   };
 
   const map = new Map();
-  // 需要回溯 2L 期（因为隔一期用一期，实际取 L 期）
-  const lookback = L * 2;
+  // 需要回溯 3L 期（因为隔二期用一期，实际取 L 期）
+  const lookback = L * 3;
   for (let i = 0; i < data.length; i++) {
-    // 隔一期用一期：从 i-lookback 到 i-1，步长为2
-    if (i >= 1 && (i - 1) % 2 === 0) pushPeriod(data[i - 1]);
-    if (i - lookback - 1 >= 0 && (i - lookback - 1) % 2 === 0) popPeriod(data[i - lookback - 1]);
+    // 隔二期用一期：从 i-lookback 到 i-1，步长为3
+    if (i >= 1 && (i - 1) % 3 === 0) pushPeriod(data[i - 1]);
+    if (i - lookback - 1 >= 0 && (i - lookback - 1) % 3 === 0) popPeriod(data[i - lookback - 1]);
     if (i < lookback) continue;
     const t = numKey(data[i]);
     map.set(data[i].issue, { size: covered, hit: cAdd[t] + cSub[t] > 0 });
@@ -72,15 +72,15 @@ export function buildAddSubIndex(data, L = ADD_SUB_LOOKBACK) {
 }
 
 // 单期候选池号码（点复制时才现算，避免全量存字符串）
-// 隔一期用一期：从 targetIndex-2L 到 targetIndex-1，步长为2
+// 隔二期用一期：从 targetIndex-3L 到 targetIndex-1，步长为3
 export function getAddSubNumbers(data, targetIndex, L = ADD_SUB_LOOKBACK) {
-  const lookback = L * 2;
+  const lookback = L * 3;
   if (targetIndex < lookback) return [];
   const start = targetIndex - lookback;
   const aPats = new Set();
   const sPats = new Set();
-  // 隔一期用一期，步长为2
-  for (let j = start; j < targetIndex; j += 2) {
+  // 隔二期用一期，步长为3
+  for (let j = start; j < targetIndex; j += 3) {
     aPats.add(hAddKey(data[j]));
     sPats.add(hSubKey(data[j]));
   }
