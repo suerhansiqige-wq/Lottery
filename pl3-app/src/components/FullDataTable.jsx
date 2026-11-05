@@ -365,7 +365,7 @@ const SHOW_ADDSUB_COL = true;
 // 隔一用一列开关
 const SHOW_ADDSUB_V2_COL = true;
 
-// 隔一用三列开关
+// 隔三用一列开关
 const SHOW_ADDSUB_V3_COL = true;
 
 // 容错10 / 容错 / 交集号码 三列开关：2026-11-04 用户要求隐藏
@@ -1696,7 +1696,7 @@ function FullDataTable({
                 {SHOW_SLBC_COLS && <th>必出号</th>}
                 {SHOW_ADDSUB_COL && <th title={`用其前${ADD_SUB_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>隔一用二</th>}
                 {SHOW_ADDSUB_V2_COL && <th title={`隔一期用一期（周期2取1），用其前${ADD_SUB_V2_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>隔一用一</th>}
-                {SHOW_ADDSUB_V3_COL && <th title={`隔一期用三期（周期4取1），用其前${ADD_SUB_V3_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>隔一用三</th>}
+                {SHOW_ADDSUB_V3_COL && <th title={`隔一期用三期（周期4取1），用其前${ADD_SUB_V3_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>隔三用一</th>}
                 {SHOW_JJ_COL && <th title="智取容错0~9 ∩ 博众容错0~9（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_JIAOJI_COL && <th title="加减号码候选池 ∩ 综合列候选池；✓=在池内，✗=不在池内">交集</th>}
@@ -1801,7 +1801,7 @@ function FullDataTable({
                   {renderAddSubCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 隔一用一：隔一期用一期，前200期横相加∪横相减候选池注数 + 对错 + 复制 */}
                   {renderAddSubV2Cell(item.issue, issueIndexMap.get(item.issue))}
-                  {/* 隔一用三：隔一期用三期，前200期横相加∪横相减候选池注数 + 对错 + 复制 */}
+                  {/* 隔三用一：隔一期用三期，前200期横相加∪横相减候选池注数 + 对错 + 复制 */}
                   {renderAddSubV3Cell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 交集号码：智取容错0~9 ∩ 博众容错0~9 */}
                   {SHOW_JJ_COL && renderJiJiaoCell(item.issue)}
@@ -1878,7 +1878,7 @@ function FullDataTable({
                       {renderClickableCount(tailAddSubV2Numbers.length, null, 'v2_next_' + nextIssue, tailAddSubV2Numbers, '#1b5e20')}
                     </td>
                   )}
-                  {/* 隔一用三 - 预留行：下期候选池注数（尚未开奖，无对错） */}
+                  {/* 隔三用一 - 预留行：下期候选池注数（尚未开奖，无对错） */}
                   {SHOW_ADDSUB_V3_COL && (
                     <td key="addSubV3Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                       {renderClickableCount(tailAddSubV3Numbers.length, null, 'v3_next_' + nextIssue, tailAddSubV3Numbers, '#1b5e20')}
