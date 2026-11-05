@@ -352,7 +352,7 @@ const HJS_COLS = [
 // 渲染横加减/竖加减4个合并单元格；src 为空（首行无上期）或该组全 null 时显示 -
 // 横相减/横相加/竖相减/竖相加 四列开关：2026-11-01 用户要求隐藏。
 // 只隐藏表格展示，数据照常计算（加减号码候选池依赖横相加与横相减）；改回 true 即恢复显示
-const SHOW_HJS_COLS = true;
+const SHOW_HJS_COLS = false;
 
 // 生号/连号/必出号 三列开关：2026-11-04 用户要求隐藏
 const SHOW_SLBC_COLS = false;
