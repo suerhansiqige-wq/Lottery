@@ -1345,11 +1345,11 @@ function FullDataTable({
                 {SHOW_SLBC_COLS && <th>连号</th>}
                 {SHOW_SLBC_COLS && <th>必出号</th>}
                 {SHOW_ADDSUB_COL && <th title={`用其前${ADD_SUB_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>加减号码</th>}
-                {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
-                {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
-                {SHOW_JJ_COL && <th title="智取容错10 ∩ 博众容错10（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
+                {SHOW_JJ_COL && <th title="智取容错0~9 ∩ 博众容错0~9（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_JIAOJI_COL && <th title="加减号码候选池 ∩ 综合列候选池；✓=在池内，✗=不在池内">交集</th>}
+                {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
+                {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
                 {SHOW_DUANZU_RC_COL && <th title="智取断组容错3 ∪ 博众断组容错3（合并号码池）；✓=在池内，✗=不在池内">断组容错</th>}
                 {SHOW_ZJZJ_COL && <th title="交集号码 - 容错列 - 容错10列（分解组号）；✓=在池内，✗=不在池内">分解组号</th>}
                 {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
@@ -1442,16 +1442,16 @@ function FullDataTable({
                   )}
                   {/* 加减号码：前200期横相加∪横相减候选池注数 + 对错符号 + 复制 */}
                   {renderAddSubCell(item.issue, issueIndexMap.get(item.issue))}
-                  {/* 容错10：智取分解容错10 ∪ 博众分解容错10 */}
-                  {SHOW_RC10_COL && renderRongCuo10Cell(item.issue)}
-                  {/* 容错：对称差集 */}
-                  {SHOW_RC_COL && renderRongCuoCell(item.issue)}
-                  {/* 交集号码：智取容错10 ∩ 博众容错10 */}
+                  {/* 交集号码：智取容错0~9 ∩ 博众容错0~9 */}
                   {SHOW_JJ_COL && renderJiJiaoCell(item.issue)}
                   {/* 综合：交集号码 - 容错列 - 容错10列 */}
                   {SHOW_ZONGHE_COL && renderZongHeCell(item.issue)}
                   {/* 交集：加减号码候选池 ∩ 综合列候选池 */}
                   {SHOW_JIAOJI_COL && renderJiaoJiCell(item.issue, issueIndexMap.get(item.issue))}
+                  {/* 容错10：智取分解容错10 ∪ 博众分解容错10 */}
+                  {SHOW_RC10_COL && renderRongCuo10Cell(item.issue)}
+                  {/* 容错：对称差集 */}
+                  {SHOW_RC_COL && renderRongCuoCell(item.issue)}
                   {/* 断组容错：智取断组容错2 ∪ 博众断组容错2 */}
                   {SHOW_DUANZU_RC_COL && renderDuanZuRongCuoCell(item.issue)}
                   {/* 祝君中奖：交集号码 - 容错列 - 容错10列 */}
@@ -1513,81 +1513,6 @@ function FullDataTable({
                               fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
                             }}
                             onClick={() => handleCopy('next_' + nextIssue, tailAddSubNumbers)}
-                          >
-                            {cpd ? '✓' : '复制'}
-                          </button>
-                        </div>
-                      </td>
-                    );
-                  })()}
-                  {/* 容错10 - 预留行：下期容错10注数 + 复制（尚未开奖，无对错） */}
-                  {SHOW_RC10_COL && (() => {
-                    const cpd = copiedIssues.has('rc10_next_' + nextIssue);
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
-                    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-                    const decompRc10 = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
-                    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-                    const bozhongRc10 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
-                    const merged = [...new Set([...decompRc10, ...bozhongRc10])].sort();
-                    return (
-                      <td key="rc10Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{merged.length}注</span>
-                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
-                          <button
-                            style={{
-                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
-                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-                            }}
-                            onClick={() => handleCopy('rc10_next_' + nextIssue, merged)}
-                          >
-                            {cpd ? '✓' : '复制'}
-                          </button>
-                        </div>
-                      </td>
-                    );
-                  })()}
-                  {/* 容错 - 预留行：下期对称差集注数 + 复制（尚未开奖，无对错） */}
-                  {SHOW_RC_COL && (() => {
-                    const cpd = copiedIssues.has('rc_next_' + nextIssue);
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
-                    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-                    const decompRc12 = [];
-                    if (decompResult && decompResult.buckets) {
-                      for (let i = 1; i <= 12; i++) {
-                        if (decompResult.buckets[i]) decompRc12.push(...decompResult.buckets[i]);
-                      }
-                    }
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
-                    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-                    const bozhongRc12 = [];
-                    if (bozhongResult && bozhongResult.buckets) {
-                      for (let i = 1; i <= 12; i++) {
-                        if (bozhongResult.buckets[i]) bozhongRc12.push(...bozhongResult.buckets[i]);
-                      }
-                    }
-                    const decompSet = new Set(decompRc12);
-                    const bozhongSet = new Set(bozhongRc12);
-                    const intersection = decompRc12.filter(n => bozhongSet.has(n));
-                    const intersectionSet = new Set(intersection);
-                    const union = [...new Set([...decompRc12, ...bozhongRc12])];
-                    const filtered = union.filter(n => !intersectionSet.has(n)).sort();
-                    return (
-                      <td key="rcNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{filtered.length}注</span>
-                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
-                          <button
-                            style={{
-                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
-                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-                            }}
-                            onClick={() => handleCopy('rc_next_' + nextIssue, filtered)}
                           >
                             {cpd ? '✓' : '复制'}
                           </button>
@@ -1702,6 +1627,81 @@ function FullDataTable({
                               fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
                             }}
                             onClick={() => handleCopy('jiaoji_next_' + nextIssue, filtered)}
+                          >
+                            {cpd ? '✓' : '复制'}
+                          </button>
+                        </div>
+                      </td>
+                    );
+                  })()}
+                  {/* 容错10 - 预留行：下期容错10注数 + 复制（尚未开奖，无对错） */}
+                  {SHOW_RC10_COL && (() => {
+                    const cpd = copiedIssues.has('rc10_next_' + nextIssue);
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
+                    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+                    const decompRc10 = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
+                    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+                    const bozhongRc10 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
+                    const merged = [...new Set([...decompRc10, ...bozhongRc10])].sort();
+                    return (
+                      <td key="rc10Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{merged.length}注</span>
+                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
+                          <button
+                            style={{
+                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
+                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+                            }}
+                            onClick={() => handleCopy('rc10_next_' + nextIssue, merged)}
+                          >
+                            {cpd ? '✓' : '复制'}
+                          </button>
+                        </div>
+                      </td>
+                    );
+                  })()}
+                  {/* 容错 - 预留行：下期对称差集注数 + 复制（尚未开奖，无对错） */}
+                  {SHOW_RC_COL && (() => {
+                    const cpd = copiedIssues.has('rc_next_' + nextIssue);
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
+                    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+                    const decompRc12 = [];
+                    if (decompResult && decompResult.buckets) {
+                      for (let i = 1; i <= 12; i++) {
+                        if (decompResult.buckets[i]) decompRc12.push(...decompResult.buckets[i]);
+                      }
+                    }
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
+                    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+                    const bozhongRc12 = [];
+                    if (bozhongResult && bozhongResult.buckets) {
+                      for (let i = 1; i <= 12; i++) {
+                        if (bozhongResult.buckets[i]) bozhongRc12.push(...bozhongResult.buckets[i]);
+                      }
+                    }
+                    const decompSet = new Set(decompRc12);
+                    const bozhongSet = new Set(bozhongRc12);
+                    const intersection = decompRc12.filter(n => bozhongSet.has(n));
+                    const intersectionSet = new Set(intersection);
+                    const union = [...new Set([...decompRc12, ...bozhongRc12])];
+                    const filtered = union.filter(n => !intersectionSet.has(n)).sort();
+                    return (
+                      <td key="rcNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{filtered.length}注</span>
+                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
+                          <button
+                            style={{
+                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
+                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+                            }}
+                            onClick={() => handleCopy('rc_next_' + nextIssue, filtered)}
                           >
                             {cpd ? '✓' : '复制'}
                           </button>
