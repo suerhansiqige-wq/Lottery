@@ -1,7 +1,7 @@
 // 加减号码：用回溯 L 期（默认200）的横相加∪横相减候选并集，验证当期开奖号是否命中
 // 与验证脚本 verify_add_sub_combined_sweep.js / review_26285_backtest200.js 同一套口径
 
-export const ADD_SUB_LOOKBACK = 200;
+export const ADD_SUB_LOOKBACK = 300;
 
 const hAddKey = (d) => ((d.d1 + d.d2) % 10) * 100 + ((d.d2 + d.d3) % 10) * 10 + ((d.d1 + d.d3) % 10);
 const hSubKey = (d) => Math.abs(d.d1 - d.d2) * 100 + Math.abs(d.d2 - d.d3) * 10 + Math.abs(d.d1 - d.d3);
