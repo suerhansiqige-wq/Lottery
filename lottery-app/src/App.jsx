@@ -105,7 +105,7 @@ function App() {
   //   覆盖在 JSON 基线之上。这样重跑 export_decomp.cjs / export_bozhong.cjs 导出新数据后
   //   新期号仍能生效，用户已录入的编辑内容也不丢，且不会把 21 万字节基线写进 localStorage
   // 键名沿用历史：3d_decompTexts / 3d_bozhongTexts / 3d_lockedDecomp / 3d_lockedBozhong
-  // 交互循环：编辑 -> 点「智取、博众分解」自动锁定（置灰只读）-> 点击弹密码框 -> 解锁再编辑
+  // 【密码保护已解除】2026-11-06 起所有分解编辑框无密码保护，全部可编辑
   // ============================================================
   const DECOMP_PWD = '000000';
   const safeSetItem = (key, value) => { try { localStorage.setItem(key, value); } catch { /* 配额超限时静默 */ } };
@@ -121,12 +121,13 @@ function App() {
   const [lajiTexts, setLajiTextsState] = useState(() => normalizeTexts({ ...loadOverrides('3d_lajiTexts') }));
   const [duanZuZQTexts, setDuanZuZQTextsState] = useState(() => normalizeTexts({ ...loadOverrides('3d_duanZuZQTexts') }));
   const [duanZuBZTexts, setDuanZuBZTextsState] = useState(() => normalizeTexts({ ...loadOverrides('3d_duanZuBZTexts') }));
-  const [lockedDecomp, setLockedDecompState] = useState(() => loadLockSet('3d_lockedDecomp'));
-  const [lockedBozhong, setLockedBozhongState] = useState(() => loadLockSet('3d_lockedBozhong'));
-  const [lockedLaji, setLockedLajiState] = useState(() => loadLockSet('3d_lockedLaji'));
-  const [lockedDuanZuZQ, setLockedDuanZuZQState] = useState(() => loadLockSet('3d_lockedDuanZuZQ'));
-  const [lockedDuanZuBZ, setLockedDuanZuBZState] = useState(() => loadLockSet('3d_lockedDuanZuBZ'));
-  // 密码弹窗：decomp / bozhong 共用一个，由 pwdTarget.kind 区分
+  // 密码保护已解除：所有锁定状态初始化为空集，并清除 localStorage 中的历史锁定数据
+  const [lockedDecomp, setLockedDecompState] = useState(() => { safeSetItem('3d_lockedDecomp', '[]'); return new Set(); });
+  const [lockedBozhong, setLockedBozhongState] = useState(() => { safeSetItem('3d_lockedBozhong', '[]'); return new Set(); });
+  const [lockedLaji, setLockedLajiState] = useState(() => { safeSetItem('3d_lockedLaji', '[]'); return new Set(); });
+  const [lockedDuanZuZQ, setLockedDuanZuZQState] = useState(() => { safeSetItem('3d_lockedDuanZuZQ', '[]'); return new Set(); });
+  const [lockedDuanZuBZ, setLockedDuanZuBZState] = useState(() => { safeSetItem('3d_lockedDuanZuBZ', '[]'); return new Set(); });
+  // 密码弹窗已禁用：保留状态但不再使用
   const [pwdDialog, setPwdDialog] = useState(false);
   const [pwdTarget, setPwdTarget] = useState(null); // { kind: 'decomp'|'bozhong', issue }
   const [pwdInput, setPwdInput] = useState('');
@@ -213,24 +214,12 @@ function App() {
   const setLockedDuanZuZQ = makeLockSetter(setLockedDuanZuZQState, '3d_lockedDuanZuZQ');
   const setLockedDuanZuBZ = makeLockSetter(setLockedDuanZuBZState, '3d_lockedDuanZuBZ');
 
-  // 点击已锁定的文本框 -> 弹密码框
+  // 密码保护已解除：requestUnlock 不再弹出密码框
   const requestUnlock = (kind, issue) => {
-    setPwdTarget({ kind, issue });
-    setPwdInput('');
-    setPwdError('');
-    setPwdDialog(true);
+    // 无操作 - 密码保护已解除
   };
-  // 密码校验通过 -> 从对应 Lock Set 移除该期号，恢复可编辑（支持无限次循环）
+  // 密码校验已禁用
   const submitPwd = () => {
-    if (!pwdTarget) return;
-    if (pwdInput.trim() !== DECOMP_PWD) { setPwdError('密码错误'); return; }
-    const { kind, issue } = pwdTarget;
-    const remover = (prev) => { const n = new Set(prev); n.delete(issue); return n; };
-    if (kind === 'decomp') setLockedDecomp(remover);
-    else if (kind === 'bozhong') setLockedBozhong(remover);
-    else if (kind === 'laji') setLockedLaji(remover);
-    else if (kind === 'duanzuZQ') setLockedDuanZuZQ(remover);
-    else if (kind === 'duanzuBZ') setLockedDuanZuBZ(remover);
     setPwdDialog(false);
     setPwdTarget(null);
     setPwdInput('');
@@ -921,8 +910,8 @@ return (
         />
       </div>
 
-      {/* 密码解锁弹窗：点击已锁定的分解文本框弹出，默认密码 000000 */}
-      {pwdDialog && (
+      {/* 密码解锁弹窗已禁用 - 密码保护已解除 */}
+      {false && pwdDialog && (
         <div
           onClick={() => { setPwdDialog(false); setPwdTarget(null); setPwdError(''); }}
           style={{

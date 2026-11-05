@@ -43,6 +43,7 @@ function App() {
   // ============================================================
   // 智取分解 / 博众分解：编辑框内容 + 锁定状态 + 密码解锁（与福彩3D 同一套逻辑）
   // 键名前缀 pl3_ 以与福彩3D 的 3d_ 隔离
+  // 【密码保护已解除】2026-11-06 起所有分解编辑框无密码保护，全部可编辑
   // ============================================================
   const DECOMP_PWD = '000000';
   const safeSetItem = (key, value) => { try { localStorage.setItem(key, value); } catch { /* 配额超限时静默 */ } };
@@ -58,11 +59,13 @@ function App() {
   const [lajiTexts, setLajiTextsState] = useState(() => normalizeTexts({ ...loadOverrides('pl3_lajiTexts') }));
   const [duanZuZQTexts, setDuanZuZQTextsState] = useState(() => normalizeTexts({ ...loadOverrides('pl3_duanZuZQTexts') }));
   const [duanZuBZTexts, setDuanZuBZTextsState] = useState(() => normalizeTexts({ ...loadOverrides('pl3_duanZuBZTexts') }));
-  const [lockedDecomp, setLockedDecompState] = useState(() => loadLockSet('pl3_lockedDecomp'));
-  const [lockedBozhong, setLockedBozhongState] = useState(() => loadLockSet('pl3_lockedBozhong'));
-  const [lockedLaji, setLockedLajiState] = useState(() => loadLockSet('pl3_lockedLaji'));
-  const [lockedDuanZuZQ, setLockedDuanZuZQState] = useState(() => loadLockSet('pl3_lockedDuanZuZQ'));
-  const [lockedDuanZuBZ, setLockedDuanZuBZState] = useState(() => loadLockSet('pl3_lockedDuanZuBZ'));
+  // 密码保护已解除：所有锁定状态初始化为空集，并清除 localStorage 中的历史锁定数据
+  const [lockedDecomp, setLockedDecompState] = useState(() => { safeSetItem('pl3_lockedDecomp', '[]'); return new Set(); });
+  const [lockedBozhong, setLockedBozhongState] = useState(() => { safeSetItem('pl3_lockedBozhong', '[]'); return new Set(); });
+  const [lockedLaji, setLockedLajiState] = useState(() => { safeSetItem('pl3_lockedLaji', '[]'); return new Set(); });
+  const [lockedDuanZuZQ, setLockedDuanZuZQState] = useState(() => { safeSetItem('pl3_lockedDuanZuZQ', '[]'); return new Set(); });
+  const [lockedDuanZuBZ, setLockedDuanZuBZState] = useState(() => { safeSetItem('pl3_lockedDuanZuBZ', '[]'); return new Set(); });
+  // 密码弹窗已禁用：保留状态但不再使用
   const [pwdDialog, setPwdDialog] = useState(false);
   const [pwdTarget, setPwdTarget] = useState(null); // { kind: 'decomp'|'bozhong', issue }
   const [pwdInput, setPwdInput] = useState('');
@@ -145,22 +148,12 @@ function App() {
   const setLockedDuanZuZQ = makeLockSetter(setLockedDuanZuZQState, 'pl3_lockedDuanZuZQ');
   const setLockedDuanZuBZ = makeLockSetter(setLockedDuanZuBZState, 'pl3_lockedDuanZuBZ');
 
+  // 密码保护已解除：requestUnlock 不再弹出密码框
   const requestUnlock = (kind, issue) => {
-    setPwdTarget({ kind, issue });
-    setPwdInput('');
-    setPwdError('');
-    setPwdDialog(true);
+    // 无操作 - 密码保护已解除
   };
+  // 密码校验已禁用
   const submitPwd = () => {
-    if (!pwdTarget) return;
-    if (pwdInput.trim() !== DECOMP_PWD) { setPwdError('密码错误'); return; }
-    const { kind, issue } = pwdTarget;
-    const remover = (prev) => { const n = new Set(prev); n.delete(issue); return n; };
-    if (kind === 'decomp') setLockedDecomp(remover);
-    else if (kind === 'bozhong') setLockedBozhong(remover);
-    else if (kind === 'laji') setLockedLaji(remover);
-    else if (kind === 'duanzuZQ') setLockedDuanZuZQ(remover);
-    else if (kind === 'duanzuBZ') setLockedDuanZuBZ(remover);
     setPwdDialog(false);
     setPwdTarget(null);
     setPwdInput('');
@@ -762,8 +755,8 @@ function App() {
         />
       </div>
 
-      {/* 密码解锁弹窗：点击已锁定的分解文本框弹出，默认密码 000000（与福彩3D 一致） */}
-      {pwdDialog && (
+      {/* 密码解锁弹窗已禁用 - 密码保护已解除 */}
+      {false && pwdDialog && (
         <div
           onClick={() => { setPwdDialog(false); setPwdTarget(null); setPwdError(''); }}
           style={{

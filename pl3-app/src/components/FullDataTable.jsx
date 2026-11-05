@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { parseDecompGroups, verifyDraw, computeRongCuo } from '../utils/decompRongCuo.js'
 import { parseDuanZuGroups, verifyDuanZuDraw, computeDuanZuRongCuo } from '../utils/duanZuRongCuo.js'
 import { ADD_SUB_LOOKBACK, buildAddSubIndex, getAddSubNumbers } from '../utils/addSubPool.js'
@@ -51,12 +51,12 @@ function ClickableCount({ count, hit, numbers, color }) {
 }
 
 // 分解文本框组件：独立管理本地状态，避免每次按键触发整个表格重渲染
-function DecompTextarea({ value, locked, hasData, boxW, title, kind, issue, setText, onRequestUnlock }) {
+const DecompTextarea = React.memo(function DecompTextarea({ value, locked, hasData, boxW, title, kind, issue, setText, onRequestUnlock }) {
   const [localValue, setLocalValue] = useState(value);
   const textareaRef = useRef(null);
 
   // 当外部值变化时同步（如从 Gist 加载新数据）
-  useMemo(() => {
+  useEffect(() => {
     if (localValue !== value) {
       setLocalValue(value);
     }
@@ -102,7 +102,7 @@ function DecompTextarea({ value, locked, hasData, boxW, title, kind, issue, setT
       }}
     />
   );
-}
+});
 
 // ============================================================
 // 遗漏策略：三组并集
