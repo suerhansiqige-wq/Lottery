@@ -696,6 +696,73 @@ function FullDataTable({
       .sort();
   };
 
+  // 重复1次：五列（加减号码/交集号码/综合/交集/分解组号）中恰好出现1次的号码
+  const computeRepeat1Numbers = (issue, index) => {
+    if (!issue) return [];
+    const cols = [];
+
+    // 1. 加减号码
+    const addSub = index != null ? getAddSubNumbers(poolData, index) : [];
+    if (addSub.length > 0) cols.push(addSub);
+
+    // 2. 交集号码（组六1~8，组三1~12）
+    const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
+    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
+    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+    const decompZu6 = [], decompZu3 = [], bozhongZu6 = [], bozhongZu3 = [];
+    if (decompResult && decompResult.buckets) {
+      for (let i = 1; i <= 8; i++) { if (decompResult.buckets[i]) decompZu6.push(...decompResult.buckets[i]); }
+      for (let i = 1; i <= 12; i++) { if (decompResult.buckets[i]) decompZu3.push(...decompResult.buckets[i]); }
+    }
+    if (bozhongResult && bozhongResult.buckets) {
+      for (let i = 1; i <= 8; i++) { if (bozhongResult.buckets[i]) bozhongZu6.push(...bozhongResult.buckets[i]); }
+      for (let i = 1; i <= 12; i++) { if (bozhongResult.buckets[i]) bozhongZu3.push(...bozhongResult.buckets[i]); }
+    }
+    const decompZu6Set = new Set(decompZu6), bozhongZu6Set = new Set(bozhongZu6);
+    const decompZu3Set = new Set(decompZu3), bozhongZu3Set = new Set(bozhongZu3);
+    const decompAll = [...new Set([...decompZu6, ...decompZu3])];
+    const bozhongAll = [...new Set([...bozhongZu6, ...bozhongZu3])];
+    const bozhongAllSet = new Set(bozhongAll);
+    const jiJiaoNumbers = decompAll.filter(n => {
+      if (!bozhongAllSet.has(n)) return false;
+      const isZu3 = n[0] === n[1] || n[1] === n[2] || n[0] === n[2];
+      return isZu3 ? decompZu3Set.has(n) && bozhongZu3Set.has(n) : decompZu6Set.has(n) && bozhongZu6Set.has(n);
+    });
+    if (jiJiaoNumbers.length > 0) cols.push(jiJiaoNumbers);
+
+    // 3. 综合
+    const zongHe = computeZongHeNumbers(issue);
+    if (zongHe.length > 0) cols.push(zongHe);
+
+    // 4. 交集（智取容错0~9 ∩ 博众容错0~9）
+    const decompRc0_9 = [], bozhongRc0_9 = [];
+    if (decompResult && decompResult.buckets) {
+      for (let i = 0; i <= 9; i++) { if (decompResult.buckets[i]) decompRc0_9.push(...decompResult.buckets[i]); }
+    }
+    if (bozhongResult && bozhongResult.buckets) {
+      for (let i = 0; i <= 9; i++) { if (bozhongResult.buckets[i]) bozhongRc0_9.push(...bozhongResult.buckets[i]); }
+    }
+    const bozhongRcSet = new Set(bozhongRc0_9);
+    const jiaoJiNumbers = decompRc0_9.filter(n => bozhongRcSet.has(n));
+    if (jiaoJiNumbers.length > 0) cols.push(jiaoJiNumbers);
+
+    // 5. 分解组号
+    const zjzj = computeZhuJunZhongJiangNumbers(issue);
+    if (zjzj.length > 0) cols.push(zjzj);
+
+    // 统计每个号码出现在几列中
+    const freq = {};
+    for (const col of cols) {
+      const seen = new Set(col);
+      for (const n of seen) { freq[n] = (freq[n] || 0) + 1; }
+    }
+    return Object.entries(freq)
+      .filter(([, count]) => count === 1)
+      .map(([n]) => n)
+      .sort();
+  };
+
   const renderRepeat3Cell = (issue, index) => {
     const copied = copiedIssues.has('repeat3_' + issue);
     const btnStyle = {
@@ -705,7 +772,7 @@ function FullDataTable({
       fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
     };
 
-    const filtered = computeRepeat3Numbers(issue, index);
+    const filtered = computeRepeat1Numbers(issue, index);
 
     if (filtered.length === 0) {
       return <td key="repeat3" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
@@ -746,7 +813,7 @@ function FullDataTable({
       fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
     };
 
-    const filtered = computeRepeat3Numbers(issue, index);
+    const filtered = computeRepeat1Numbers(issue, index);
 
     if (filtered.length === 0) {
       return <td key="repeatGroup" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
@@ -1494,7 +1561,7 @@ function FullDataTable({
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
                 {SHOW_DUANZU_RC_COL && <th title="智取断组容错3 ∪ 博众断组容错3（合并号码池）；✓=在池内，✗=不在池内">断组容错</th>}
                 {SHOW_ZJZJ_COL && <th title="加减号码/交集号码/综合/交集/分解组号五列中恰好出现3次的号码；✓=在池内，✗=不在池内">重复3次</th>}
-                {SHOW_ZJZJ_COL && <th title="五列中恰好出现3次的实际号码列表">重复组号</th>}
+                {SHOW_ZJZJ_COL && <th title="五列中恰好出现1次的号码（重复1次）；✓=在池内，✗=不在池内">重复组号</th>}
                 {SHOW_ZJZJ_COL && <th title="交集号码 - 容错列 - 容错10列（分解组号）；✓=在池内，✗=不在池内">分解组号</th>}
                 {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
                 {/* 智取分解 / 博众分解 两列 */}
@@ -1902,7 +1969,7 @@ function FullDataTable({
                   {/* 重复3次 - 预留行：下期五列重复恰好3次号码 + 复制（尚未开奖，无对错） */}
                   {SHOW_ZJZJ_COL && (() => {
                     const cpd = copiedIssues.has('repeat3_next_' + nextIssue);
-                    const filtered = computeRepeat3Numbers(nextIssue, poolData.length);
+                    const filtered = computeRepeat1Numbers(nextIssue, poolData.length);
                     return (
                       <td key="repeat3Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
@@ -1926,7 +1993,7 @@ function FullDataTable({
                   {/* 重复组号 - 预留行：下期五列重复恰好3次号码注数 + 复制（尚未开奖，无对错） */}
                   {SHOW_ZJZJ_COL && (() => {
                     const cpd = copiedIssues.has('repeatGroup_next_' + nextIssue);
-                    const filtered = computeRepeat3Numbers(nextIssue, poolData.length);
+                    const filtered = computeRepeat1Numbers(nextIssue, poolData.length);
                     return (
                       <td key="repeatGroupNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
