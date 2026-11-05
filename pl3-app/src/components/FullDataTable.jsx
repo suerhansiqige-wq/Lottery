@@ -912,7 +912,7 @@ function FullDataTable({
     );
   };
 
-  // 重复组号：显示五列中恰好出现3次的实际号码
+  // 重复组号：五列中恰好出现3次的号码（仅显示注数+对错+复制）
   const renderRepeatGroupCell = (issue, index) => {
     const copied = copiedIssues.has('repeatGroup_' + issue);
     const btnStyle = {
@@ -933,11 +933,15 @@ function FullDataTable({
     const hit = drawNum && filtered.includes(drawNum);
 
     return (
-      <td key="repeatGroup" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5'), fontSize: 13 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', maxWidth: 200 }}>
-          <span style={{ fontWeight: 700, color: hit ? '#1b5e20' : (hit === false ? '#b71c1c' : '#333'), fontSize: 12 }}>
-            {filtered.join(' ')}
-          </span>
+      <td key="repeatGroup" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+          <span style={{ fontWeight: 800, color: hit ? '#1b5e20' : (hit === false ? '#b71c1c' : '#666') }}>{filtered.length}注</span>
+          {hit !== null && (
+            <span title={hit ? '当期开奖号在重复组号列内' : '当期开奖号不在重复组号列内'}
+              style={{ fontWeight: 900, fontSize: 15, color: hit ? '#2e7d32' : '#c62828' }}>
+              {hit ? '✓' : '✗'}
+            </span>
+          )}
           <button
             style={btnStyle}
             onClick={() => handleCopy('repeatGroup_' + issue, filtered)}
@@ -2239,16 +2243,15 @@ function FullDataTable({
                       </td>
                     );
                   })()}
-                  {/* 重复组号 - 预留行：显示下期五列重复恰好3次的实际号码 + 复制 */}
+                  {/* 重复组号 - 预留行：下期五列重复恰好3次号码注数 + 复制（尚未开奖，无对错） */}
                   {SHOW_ZJZJ_COL && (() => {
                     const cpd = copiedIssues.has('repeatGroup_next_' + nextIssue);
                     const filtered = computeRepeat3Numbers(nextIssue, poolData.length);
                     return (
-                      <td key="repeatGroupNext" style={{ padding: '2px 4px', background: '#f0f8ff', fontSize: 13 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', maxWidth: 200 }}>
-                          <span style={{ fontWeight: 700, color: '#1b5e20', fontSize: 12 }}>
-                            {filtered.length > 0 ? filtered.join(' ') : '-'}
-                          </span>
+                      <td key="repeatGroupNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{filtered.length}注</span>
+                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
                           <button
                             style={{
                               fontSize: 11, padding: '1px 6px', cursor: 'pointer',
