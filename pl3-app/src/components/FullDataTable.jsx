@@ -1711,11 +1711,11 @@ function FullDataTable({
                 {SHOW_ADDSUB_V2_COL && <th title={`隔一期用一期（周期2取1），用其前${ADD_SUB_V2_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>隔一用一</th>}
                 {SHOW_ADDSUB_V3_COL && <th title={`隔一期用三期（周期4取1），用其前${ADD_SUB_V3_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>隔三用一</th>}
                 {SHOW_JJ_COL && <th title="智取容错0~9 ∩ 博众容错0~9（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
-                {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_JIAOJI_COL && <th title="加减号码候选池 ∩ 综合列候选池；✓=在池内，✗=不在池内">交集</th>}
                 {SHOW_RC9_COL && <th title="智取分解容错9 ∪ 博众分解容错9（包含组三）；✓=在池内，✗=不在池内">容错9</th>}
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
+                {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_DUANZU_RC_COL && <th title="智取断组容错3 ∪ 博众断组容错3（合并号码池）；✓=在池内，✗=不在池内">断组容错</th>}
                 {SHOW_ZJZJ_COL && <th title="加减号码/交集号码/综合/交集/分解组号五列中恰好出现3次的号码；✓=在池内，✗=不在池内">重复3次</th>}
                 {SHOW_ZJZJ_COL && <th title="五列中恰好出现1次的号码（重复1次）；✓=在池内，✗=不在池内">重复1次</th>}
@@ -1819,8 +1819,6 @@ function FullDataTable({
                   {renderAddSubV3Cell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 交集号码：智取容错0~9 ∩ 博众容错0~9 */}
                   {SHOW_JJ_COL && renderJiJiaoCell(item.issue)}
-                  {/* 综合：交集号码 - 容错列 - 容错10列 */}
-                  {SHOW_ZONGHE_COL && renderZongHeCell(item.issue)}
                   {/* 交集：加减号码候选池 ∩ 综合列候选池 */}
                   {SHOW_JIAOJI_COL && renderJiaoJiCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 容错9：智取分解容错9 ∪ 博众分解容错9 */}
@@ -1829,6 +1827,8 @@ function FullDataTable({
                   {SHOW_RC10_COL && renderRongCuo10Cell(item.issue)}
                   {/* 容错：对称差集 */}
                   {SHOW_RC_COL && renderRongCuoCell(item.issue)}
+                  {/* 综合：交集号码 - 容错列 - 容错10列 */}
+                  {SHOW_ZONGHE_COL && renderZongHeCell(item.issue)}
                   {/* 断组容错：智取断组容错3 ∪ 博众断组容错3 */}
                   {SHOW_DUANZU_RC_COL && renderDuanZuRongCuoCell(item.issue)}
                   {/* 重复3次：五列中恰好出现3次的号码 */}
@@ -1949,15 +1949,6 @@ function FullDataTable({
                       </td>
                     );
                   })()}
-                  {/* 综合 - 预留行：下期综合注数（尚未开奖，无对错） */}
-                  {SHOW_ZONGHE_COL && (() => {
-                    const filtered = computeZongHeNumbers(nextIssue);
-                    return (
-                      <td key="zhNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
                   {/* 交集 - 预留行：下期交集注数（尚未开奖，无对错） */}
                   {SHOW_JIAOJI_COL && (() => {
                     const zongHe = computeZongHeNumbers(nextIssue);
@@ -2025,6 +2016,15 @@ function FullDataTable({
                     const filtered = union.filter(n => !intersectionSet.has(n)).sort();
                     return (
                       <td key="rcNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
+                      </td>
+                    );
+                  })()}
+                  {/* 综合 - 预留行：下期综合注数（尚未开奖，无对错） */}
+                  {SHOW_ZONGHE_COL && (() => {
+                    const filtered = computeZongHeNumbers(nextIssue);
+                    return (
+                      <td key="zhNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
                       </td>
                     );
