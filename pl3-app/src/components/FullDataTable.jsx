@@ -1,10 +1,55 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useCallback } from 'react'
 import { parseDecompGroups, verifyDraw, computeRongCuo } from '../utils/decompRongCuo.js'
 import { parseDuanZuGroups, verifyDuanZuDraw, computeDuanZuRongCuo } from '../utils/duanZuRongCuo.js'
 import { ADD_SUB_LOOKBACK, buildAddSubIndex, getAddSubNumbers } from '../utils/addSubPool.js'
 import { ADD_SUB_V2_LOOKBACK, buildAddSubV2Index, getAddSubV2Numbers } from '../utils/addSubPoolV2.js'
 import { ADD_SUB_V3_LOOKBACK, buildAddSubV3Index, getAddSubV3Numbers } from '../utils/addSubPoolV3.js'
 import { generateByBrokenGroups } from '../utils/brokenGroup.js'
+
+// 可点击注数组件：独立管理复制状态，避免点击时整个表格重渲染
+function ClickableCount({ count, hit, numbers, color }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleClick = useCallback(async () => {
+    setCopied(true);
+    const text = numbers.join(' ');
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        throw new Error('clipboard API not available');
+      }
+    } catch (err) {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-9999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+      } catch (fallbackErr) {
+        console.error('复制失败:', fallbackErr);
+      }
+      document.body.removeChild(textArea);
+    }
+    setTimeout(() => setCopied(false), 1500);
+  }, [numbers]);
+
+  const baseColor = hit ? '#1b5e20' : (hit === false ? '#b71c1c' : (color || '#666'));
+  return (
+    <span
+      onClick={handleClick}
+      style={{ fontWeight: 800, fontSize: 13, color: baseColor, cursor: 'pointer', position: 'relative', userSelect: 'none', display: 'inline-block' }}
+      title="点击复制号码"
+    >
+      {count}注
+      {copied && (
+        <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', fontSize: 20, color: '#c62828', fontWeight: 900, background: 'rgba(255, 200, 200, 0.85)', borderRadius: 4, padding: '0 4px', lineHeight: '24px' }}>✓</span>
+      )}
+    </span>
+  );
+}
 
 // ============================================================
 // 遗漏策略：三组并集
@@ -607,56 +652,6 @@ function FullDataTable({
   // 分解容错「无容错」号码（智取∪博众），并入保本投注
   wuRongCuoNumbers = [],
 }) {
-  const copiedIssuesRef = useRef(new Set());
-  const [, forceUpdate] = useState(0);
-  
-  const handleCopy = async (issue, numbers) => {
-    // 直接更新 ref，避免触发整个表格重渲染
-    copiedIssuesRef.current.add(issue);
-    // 仅强制更新当前按钮所在的最小范围
-    forceUpdate(c => c + 1);
-    const text = numbers.join(' ');
-    try {
-      // 优先使用 navigator.clipboard
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        throw new Error('clipboard API not available');
-      }
-    } catch (err) {
-      // Fallback: 使用 textarea 方式
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-9999px';
-      document.body.appendChild(textArea);
-      textArea.select();
-      try {
-        document.execCommand('copy');
-      } catch (fallbackErr) {
-        console.error('复制失败:', fallbackErr);
-      }
-      document.body.removeChild(textArea);
-    }
-  };
-  
-  // 渲染可点击注数（点击复制，成功后显示透明打勾）
-  const renderClickableCount = (count, hit, copyKey, numbers, color) => {
-    const copied = copiedIssuesRef.current.has(copyKey);
-    const baseColor = hit ? '#1b5e20' : (hit === false ? '#b71c1c' : (color || '#666'));
-    return (
-      <span
-        onClick={() => handleCopy(copyKey, numbers)}
-        style={{ fontWeight: 800, fontSize: 13, color: baseColor, cursor: 'pointer', position: 'relative', userSelect: 'none', display: 'inline-block' }}
-        title="点击复制号码"
-      >
-        {count}注
-        {copied && (
-          <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', fontSize: 20, color: '#c62828', fontWeight: 900, background: 'rgba(255, 200, 200, 0.85)', borderRadius: 4, padding: '0 4px', lineHeight: '24px' }}>✓</span>
-        )}
-      </span>
-    );
-  };
 
   const displayData = data.slice(-showCount)
   // 首行显示项在完整数据中的上一期（下移一行列在首行也要显示上期值，而非自身）
@@ -981,7 +976,7 @@ function FullDataTable({
 
     return (
       <td key="repeat3" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {renderClickableCount(filtered.length, hit, 'repeat3_' + issue, filtered)}
+        {<ClickableCount count={filtered.length} hit={hit} numbers={filtered} />}
       </td>
     );
   };
@@ -999,7 +994,7 @@ function FullDataTable({
 
     return (
       <td key="repeatGroup" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {renderClickableCount(filtered.length, hit, 'repeatGroup_' + issue, filtered)}
+        {<ClickableCount count={filtered.length} hit={hit} numbers={filtered} />}
       </td>
     );
   };
@@ -1012,7 +1007,7 @@ function FullDataTable({
     }
     return (
       <td key="addSub" style={{ padding: '2px 4px', background: rec.hit ? '#e8f5e9' : '#ffebee' }}>
-        {renderClickableCount(rec.size, rec.hit, issue, getAddSubNumbers(poolData, index))}
+        {<ClickableCount count={rec.size} hit={rec.hit} numbers={getAddSubNumbers(poolData, index)} />}
       </td>
     );
   };
@@ -1025,7 +1020,7 @@ function FullDataTable({
     }
     return (
       <td key="addSubV2" style={{ padding: '2px 4px', background: rec.hit ? '#e8f5e9' : '#ffebee' }}>
-        {renderClickableCount(rec.size, rec.hit, 'v2_' + issue, getAddSubV2Numbers(poolData, index))}
+        {<ClickableCount count={rec.size} hit={rec.hit} numbers={getAddSubV2Numbers(poolData, index)} />}
       </td>
     );
   };
@@ -1038,7 +1033,7 @@ function FullDataTable({
     }
     return (
       <td key="addSubV3" style={{ padding: '2px 4px', background: rec.hit ? '#e8f5e9' : '#ffebee' }}>
-        {renderClickableCount(rec.size, rec.hit, 'v3_' + issue, getAddSubV3Numbers(poolData, index))}
+        {<ClickableCount count={rec.size} hit={rec.hit} numbers={getAddSubV3Numbers(poolData, index)} />}
       </td>
     );
   };
@@ -1069,7 +1064,7 @@ function FullDataTable({
 
     return (
       <td key="rc10" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {renderClickableCount(merged.length, hit, 'rc10_' + issue, merged)}
+        {<ClickableCount count={merged.length} hit={hit} numbers={merged} />}
       </td>
     );
   };
@@ -1139,7 +1134,7 @@ function FullDataTable({
 
     return (
       <td key="jj" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {renderClickableCount(filtered.length, hit, 'jj_' + issue, filtered)}
+        {<ClickableCount count={filtered.length} hit={hit} numbers={filtered} />}
       </td>
     );
   };
@@ -1158,7 +1153,7 @@ function FullDataTable({
 
     return (
       <td key="zh" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {renderClickableCount(filtered.length, hit, 'zh_' + issue, filtered)}
+        {<ClickableCount count={filtered.length} hit={hit} numbers={filtered} />}
       </td>
     );
   };
@@ -1207,7 +1202,7 @@ function FullDataTable({
 
     return (
       <td key="duanzurc" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {renderClickableCount(merged.length, hit, 'duanzurc_' + issue, merged)}
+        {<ClickableCount count={merged.length} hit={hit} numbers={merged} />}
       </td>
     );
   };
@@ -1229,7 +1224,7 @@ function FullDataTable({
 
     return (
       <td key="zjzj" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {renderClickableCount(filtered.length, hit, 'zjzj_' + issue, filtered)}
+        {<ClickableCount count={filtered.length} hit={hit} numbers={filtered} />}
       </td>
     );
   };
@@ -1337,19 +1332,7 @@ function FullDataTable({
             }}
           />
           {hasData && filtered.length > 0 && (
-            <span style={{
-              fontSize: 13, padding: '2px 6px', borderRadius: 3, border: '1px solid #e0e0e0',
-              background: '#fff', whiteSpace: 'nowrap', minWidth: 60, textAlign: 'left',
-              color: hit === true ? '#1b5e20' : (hit === false ? '#b71c1c' : '#000'),
-              fontWeight: 600, cursor: 'pointer', position: 'relative',
-            }} title={`${issue} 期断组预测号码（${filtered.length}注，${allGroupsList.length}组）\n点击复制`}
-              onClick={() => handleCopy('duanzu_' + issue, filtered)}
-            >
-              {filtered.length}注
-              {copiedIssuesRef.current.has('duanzu_' + issue) && (
-                <span style={{ position: 'absolute', right: -14, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, fontSize: 12, color: '#2e7d32' }}>✓</span>
-              )}
-            </span>
+            <ClickableCount count={filtered.length} hit={hit} numbers={filtered} />
           )}
         </div>
       </td>
@@ -1390,14 +1373,12 @@ function FullDataTable({
 
     return (
       <td key="jiaoji" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {renderClickableCount(filtered.length, hit, 'jiaoji_' + issue, filtered)}
+        {<ClickableCount count={filtered.length} hit={hit} numbers={filtered} />}
       </td>
     );
   };
 
   const renderRongCuoCell = (issue) => {
-    const copied = copiedIssuesRef.current.has('rc_' + issue);
-
     // 计算智取分解容错0~12（errorCount <= 12，含无容错）
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
@@ -1437,7 +1418,7 @@ function FullDataTable({
 
     return (
       <td key="rc" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {renderClickableCount(filtered.length, hit, 'rc_' + issue, filtered)}
+        {<ClickableCount count={filtered.length} hit={hit} numbers={filtered} />}
       </td>
     );
   };
@@ -1869,19 +1850,19 @@ function FullDataTable({
                   {/* 加减号码 - 预留行：下期候选池注数（尚未开奖，无对错） */}
                   {SHOW_ADDSUB_COL && (
                     <td key="addSubNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                      {renderClickableCount(tailAddSubNumbers.length, null, 'next_' + nextIssue, tailAddSubNumbers, '#1b5e20')}
+                      {<ClickableCount count={tailAddSubNumbers.length} hit={null} numbers={tailAddSubNumbers} color="#1b5e20" />}
                     </td>
                   )}
                   {/* 隔一用一 - 预留行：下期候选池注数（尚未开奖，无对错） */}
                   {SHOW_ADDSUB_V2_COL && (
                     <td key="addSubV2Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                      {renderClickableCount(tailAddSubV2Numbers.length, null, 'v2_next_' + nextIssue, tailAddSubV2Numbers, '#1b5e20')}
+                      {<ClickableCount count={tailAddSubV2Numbers.length} hit={null} numbers={tailAddSubV2Numbers} color="#1b5e20" />}
                     </td>
                   )}
                   {/* 隔三用一 - 预留行：下期候选池注数（尚未开奖，无对错） */}
                   {SHOW_ADDSUB_V3_COL && (
                     <td key="addSubV3Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                      {renderClickableCount(tailAddSubV3Numbers.length, null, 'v3_next_' + nextIssue, tailAddSubV3Numbers, '#1b5e20')}
+                      {<ClickableCount count={tailAddSubV3Numbers.length} hit={null} numbers={tailAddSubV3Numbers} color="#1b5e20" />}
                     </td>
                   )}
                   {/* 交集号码 - 预留行：下期交集注数（尚未开奖，无对错） */}
@@ -1929,7 +1910,7 @@ function FullDataTable({
                     }).sort();
                     return (
                       <td key="jjNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {renderClickableCount(filtered.length, null, 'jj_next_' + nextIssue, filtered, '#1b5e20')}
+                        {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
                       </td>
                     );
                   })()}
@@ -1938,7 +1919,7 @@ function FullDataTable({
                     const filtered = computeZongHeNumbers(nextIssue);
                     return (
                       <td key="zhNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {renderClickableCount(filtered.length, null, 'zh_next_' + nextIssue, filtered, '#1b5e20')}
+                        {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
                       </td>
                     );
                   })()}
@@ -1949,7 +1930,7 @@ function FullDataTable({
                     const filtered = zongHe.filter(n => addSubSet.has(n));
                     return (
                       <td key="jiaojiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {renderClickableCount(filtered.length, null, 'jiaoji_next_' + nextIssue, filtered, '#1b5e20')}
+                        {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
                       </td>
                     );
                   })()}
@@ -1964,7 +1945,7 @@ function FullDataTable({
                     const merged = [...new Set([...decompRc10, ...bozhongRc10])].sort();
                     return (
                       <td key="rc10Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {renderClickableCount(merged.length, null, 'rc10_next_' + nextIssue, merged, '#1b5e20')}
+                        {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
                       </td>
                     );
                   })()}
@@ -1994,7 +1975,7 @@ function FullDataTable({
                     const filtered = union.filter(n => !intersectionSet.has(n)).sort();
                     return (
                       <td key="rcNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {renderClickableCount(filtered.length, null, 'rc_next_' + nextIssue, filtered, '#1b5e20')}
+                        {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
                       </td>
                     );
                   })()}
@@ -2021,7 +2002,7 @@ function FullDataTable({
                     const merged = Array.from(new Set([...zqRongCuo3, ...bzRongCuo3])).sort();
                     return (
                       <td key="duanzurcNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {renderClickableCount(merged.length, null, 'duanzurc_next_' + nextIssue, merged, '#1b5e20')}
+                        {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
                       </td>
                     );
                   })()}
@@ -2030,7 +2011,7 @@ function FullDataTable({
                     const filtered = computeRepeat1Numbers(nextIssue, poolData.length);
                     return (
                       <td key="repeat3Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {renderClickableCount(filtered.length, null, 'repeat3_next_' + nextIssue, filtered, '#1b5e20')}
+                        {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
                       </td>
                     );
                   })()}
@@ -2039,7 +2020,7 @@ function FullDataTable({
                     const filtered = computeRepeat1Numbers(nextIssue, poolData.length);
                     return (
                       <td key="repeatGroupNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {renderClickableCount(filtered.length, null, 'repeatGroup_next_' + nextIssue, filtered, '#1b5e20')}
+                        {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
                       </td>
                     );
                   })()}
@@ -2048,7 +2029,7 @@ function FullDataTable({
                     const filtered = computeZhuJunZhongJiangNumbers(nextIssue);
                     return (
                       <td key="zjzjNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {renderClickableCount(filtered.length, null, 'zjzj_next_' + nextIssue, filtered, '#1b5e20')}
+                        {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
                       </td>
                     );
                   })()}
@@ -2072,7 +2053,6 @@ function FullDataTable({
                       }
                       filtered = Array.from(allNumbers).sort();
                     }
-                    const cpd = copiedIssuesRef.current.has('duanzu_next_' + nextDzIssue);
                     return (
                       <td key="duanzuNext" style={{ padding: 2, background: hasData ? '#f0f8ff' : '#e8f0f5' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -2099,17 +2079,7 @@ function FullDataTable({
                                 {filtered.length}注
                                 <span style={{ marginLeft: 4, color: '#78909c', fontWeight: 700, fontSize: 12 }}>待开奖</span>
                               </span>
-                              <button
-                                style={{
-                                  fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                                  border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                                  background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
-                                  fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-                                }}
-                                onClick={() => handleCopy('duanzu_next_' + nextDzIssue, filtered)}
-                              >
-                                {cpd ? '✓' : '复制'}
-                              </button>
+                              <ClickableCount count={0} hit={null} numbers={filtered} />
                             </>
                           )}
                         </div>
