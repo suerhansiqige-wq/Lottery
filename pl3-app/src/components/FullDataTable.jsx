@@ -50,6 +50,60 @@ function ClickableCount({ count, hit, numbers, color }) {
   );
 }
 
+// 分解文本框组件：独立管理本地状态，避免每次按键触发整个表格重渲染
+function DecompTextarea({ value, locked, hasData, boxW, title, kind, issue, setText, onRequestUnlock }) {
+  const [localValue, setLocalValue] = useState(value);
+  const textareaRef = useRef(null);
+
+  // 当外部值变化时同步（如从 Gist 加载新数据）
+  useMemo(() => {
+    if (localValue !== value) {
+      setLocalValue(value);
+    }
+  }, [value]);
+
+  const handleChange = useCallback((e) => {
+    setLocalValue(e.target.value);
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    if (setText && localValue !== value) {
+      setText(issue, localValue);
+    }
+  }, [setText, issue, localValue, value]);
+
+  const handleClick = useCallback(() => {
+    if (locked && onRequestUnlock) {
+      onRequestUnlock(kind, issue);
+    } else if (!locked && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [locked, onRequestUnlock, kind, issue]);
+
+  return (
+    <textarea
+      ref={textareaRef}
+      readOnly={locked}
+      value={localValue}
+      title={title}
+      placeholder=""
+      onChange={handleChange}
+      onBlur={handleBlur}
+      onClick={handleClick}
+      style={{
+        width: boxW, minWidth: boxW, flex: '1 1 auto', height: 40, resize: 'none', overflow: 'hidden', display: 'block',
+        fontSize: 11, lineHeight: '19px', fontFamily: 'Consolas,Menlo,monospace',
+        padding: '0 3px', boxSizing: 'border-box', borderRadius: 3,
+        border: `1px solid ${locked ? '#cfd8dc' : (hasData ? '#90caf9' : '#bdbdbd')}`,
+        background: locked ? '#eceff1' : (hasData ? '#fff' : '#eee'),
+        color: locked ? '#78909c' : '#222',
+        cursor: locked ? 'pointer' : 'text',
+        whiteSpace: 'pre',
+      }}
+    />
+  );
+}
+
 // ============================================================
 // 遗漏策略：三组并集
 // 组1: 百位6个最多遗漏 + 十位5个冷号(排除前5) + 个位5个冷号(排除前5)
@@ -1501,23 +1555,16 @@ function FullDataTable({
     return (
       <td key={'dc_' + kind} style={{ padding: 2, background: locked ? '#eceff1' : (hasData ? '#fff' : '#e0e0e0') }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <textarea
-          readOnly={locked}
+        <DecompTextarea
           value={value}
+          locked={locked}
+          hasData={hasData}
+          boxW={boxW}
           title={title}
-          placeholder=""
-          onChange={e => { if (setText) setText(issue, e.target.value); }}
-          onClick={locked && onRequestUnlock ? () => onRequestUnlock(kind, issue) : undefined}
-          style={{
-            width: boxW, minWidth: boxW, flex: '1 1 auto', height: 40, resize: 'none', overflow: 'hidden', display: 'block',
-            fontSize: 11, lineHeight: '19px', fontFamily: 'Consolas,Menlo,monospace',
-            padding: '0 3px', boxSizing: 'border-box', borderRadius: 3,
-            border: `1px solid ${locked ? '#cfd8dc' : (hasData ? '#90caf9' : '#bdbdbd')}`,
-            background: locked ? '#eceff1' : (hasData ? '#fff' : '#eee'),
-            color: locked ? '#78909c' : '#222',
-            cursor: locked ? 'pointer' : 'text',
-            whiteSpace: 'pre',
-          }}
+          kind={kind}
+          issue={issue}
+          setText={setText}
+          onRequestUnlock={onRequestUnlock}
         />
         {v && (
           <span style={{
