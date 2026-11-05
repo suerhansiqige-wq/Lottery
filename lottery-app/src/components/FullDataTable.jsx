@@ -1177,13 +1177,19 @@ function FullDataTable({
       }
     }
 
-    // 容错列 = (智取容错12 ∪ 博众容错12) - (智取容错12 ∩ 博众容错12) = 对称差集
+    // 容错列 = (智取容错12 ∪ 博众容错12) - (智取容错12 ∩ 博众容错12) - 无容错号码 = 对称差集 - 无容错
     const decompSet = new Set(decompRc12);
     const bozhongSet = new Set(bozhongRc12);
     const intersection = decompRc12.filter(n => bozhongSet.has(n));
     const intersectionSet = new Set(intersection);
     const union = [...new Set([...decompRc12, ...bozhongRc12])];
-    const filtered = union.filter(n => !intersectionSet.has(n)).sort();
+    let filtered = union.filter(n => !intersectionSet.has(n));
+    // 滤除无容错号码（errorCount === 0）
+    const wuRongCuoSet = new Set([
+      ...(decompResult && decompResult.none ? decompResult.none.numbers : []),
+      ...(bozhongResult && bozhongResult.none ? bozhongResult.none.numbers : []),
+    ]);
+    filtered = filtered.filter(n => !wuRongCuoSet.has(n)).sort();
 
     if (filtered.length === 0) {
       return <td key="rc" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
