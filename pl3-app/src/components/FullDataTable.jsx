@@ -1772,8 +1772,13 @@ function FullDataTable({
                 // 预测数据源统一为 prevData（第一行取自身），与福彩3D 一致
                 const mustOutDigits = prevData.mustOutNums.filter(v => v !== -1);
                 const mustOutStyle = getHitStyle(mustOutDigits, '#1e8449', '#fff');
+                const [hovered, setHovered] = useState(false);
                 return (
-                <tr key={item.issue} style={isTrialRow(item) ? { background: '#fffde7' } : {}}>
+                <tr key={item.issue} 
+                  style={isTrialRow(item) ? { background: hovered ? '#e3f2fd' : '#fffde7' } : { background: hovered ? '#e3f2fd' : undefined }}
+                  onMouseEnter={() => setHovered(true)}
+                  onMouseLeave={() => setHovered(false)}
+                >
                   <td className="issue" style={{ color: '#000', fontWeight: isTrialRow(item) ? 700 : 400 }}>{'20' + item.issue}{isTrialRow(item) ? ' (测试)' : ''}</td>
                   {isTrialRow(item) ? (
                     <>
