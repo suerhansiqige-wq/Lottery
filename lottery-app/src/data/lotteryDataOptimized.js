@@ -8740,33 +8740,10 @@ const COMPACT_DATA = `02002,2,3,7
 26294,2,6,1
 26295,7,4,1`;
 
-// 解析紧凑数据为对象数组
-function parseCompactData() {
-  return COMPACT_DATA.split('\n').map(line => {
-    const [issue, d1, d2, d3] = line.split(',');
-    return { issue, d1: Number(d1), d2: Number(d2), d3: Number(d3) };
-  });
-}
-
-// 缓存解析结果
-let _lotteryData = null;
-export const lotteryData = new Proxy({}, {
-  get(target, prop) {
-    if (!_lotteryData) _lotteryData = parseCompactData();
-    return _lotteryData[prop];
-  },
-  has(target, prop) {
-    if (!_lotteryData) _lotteryData = parseCompactData();
-    return prop in _lotteryData;
-  },
-  ownKeys() {
-    if (!_lotteryData) _lotteryData = parseCompactData();
-    return Reflect.ownKeys(_lotteryData);
-  },
-  getOwnPropertyDescriptor(target, prop) {
-    if (!_lotteryData) _lotteryData = parseCompactData();
-    return Object.getOwnPropertyDescriptor(_lotteryData, prop);
-  }
+// 解析紧凑数据为对象数组并直接导出
+export const lotteryData = COMPACT_DATA.split('\n').map(line => {
+  const [issue, d1, d2, d3] = line.split(',');
+  return { issue, d1: Number(d1), d2: Number(d2), d3: Number(d3) };
 });
 
 // 工具函数保持不变
