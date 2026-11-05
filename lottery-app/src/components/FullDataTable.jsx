@@ -433,6 +433,12 @@ function FullDataTable({
   const [copiedIssues, setCopiedIssues] = useState(new Set());
   
   const handleCopy = async (issue, numbers) => {
+    // 立即更新状态，让 UI 快速响应
+    setCopiedIssues(prev => {
+      const next = new Set(prev);
+      next.add(issue);
+      return next;
+    });
     const text = numbers.join(' ');
     try {
       // 优先使用 navigator.clipboard
@@ -456,11 +462,6 @@ function FullDataTable({
       }
       document.body.removeChild(textArea);
     }
-    setCopiedIssues(prev => {
-      const next = new Set(prev);
-      next.add(issue);
-      return next;
-    });
   };
   
   const displayData = data.slice(-showCount)
