@@ -632,6 +632,24 @@ function FullDataTable({
     }
   };
   
+  // 渲染可点击注数（点击复制，成功后显示透明打勾）
+  const renderClickableCount = (count, hit, copyKey, numbers, color) => {
+    const copied = copiedIssuesRef.current.has(copyKey);
+    const baseColor = hit ? '#1b5e20' : (hit === false ? '#b71c1c' : (color || '#666'));
+    return (
+      <span
+        onClick={() => handleCopy(copyKey, numbers)}
+        style={{ fontWeight: 800, color: baseColor, cursor: 'pointer', position: 'relative', userSelect: 'none' }}
+        title="点击复制号码"
+      >
+        {count}注
+        {copied && (
+          <span style={{ position: 'absolute', right: -14, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, fontSize: 12, color: '#2e7d32' }}>✓</span>
+        )}
+      </span>
+    );
+  };
+
   const displayData = data.slice(-showCount)
   // 首行显示项在完整数据中的上一期（下移一行列在首行也要显示上期值，而非自身）
   const prevOfFirstDisplay = data.length - displayData.length > 0 ? data[data.length - displayData.length - 1] : null
@@ -939,14 +957,6 @@ function FullDataTable({
   };
 
   const renderRepeat3Cell = (issue, index) => {
-    const copied = copiedIssuesRef.current.has('repeat3_' + issue);
-    const btnStyle = {
-      fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-      border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-      background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
-      fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-    };
-
     const filtered = computeRepeat3Numbers(issue, index);
 
     if (filtered.length === 0) {
@@ -959,35 +969,12 @@ function FullDataTable({
 
     return (
       <td key="repeat3" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-          <span style={{ fontWeight: 800, color: hit ? '#1b5e20' : (hit === false ? '#b71c1c' : '#666') }}>{filtered.length}注</span>
-          {hit !== null && (
-            <span title={hit ? '当期开奖号在重复3次列内' : '当期开奖号不在重复3次列内'}
-              style={{ fontWeight: 900, fontSize: 15, color: hit ? '#2e7d32' : '#c62828' }}>
-              {hit ? '✓' : '✗'}
-            </span>
-          )}
-          <button
-            style={btnStyle}
-            onClick={() => handleCopy('repeat3_' + issue, filtered)}
-          >
-            {copied ? '✓' : '复制'}
-          </button>
-        </div>
+        {renderClickableCount(filtered.length, hit, 'repeat3_' + issue, filtered)}
       </td>
     );
   };
 
-  // 重复组号：五列中恰好出现3次的号码（仅显示注数+对错+复制）
   const renderRepeatGroupCell = (issue, index) => {
-    const copied = copiedIssuesRef.current.has('repeatGroup_' + issue);
-    const btnStyle = {
-      fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-      border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-      background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
-      fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-    };
-
     const filtered = computeRepeat1Numbers(issue, index);
 
     if (filtered.length === 0) {
@@ -1000,21 +987,7 @@ function FullDataTable({
 
     return (
       <td key="repeatGroup" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-          <span style={{ fontWeight: 800, color: hit ? '#1b5e20' : (hit === false ? '#b71c1c' : '#666') }}>{filtered.length}注</span>
-          {hit !== null && (
-            <span title={hit ? '当期开奖号在重复组号列内' : '当期开奖号不在重复组号列内'}
-              style={{ fontWeight: 900, fontSize: 15, color: hit ? '#2e7d32' : '#c62828' }}>
-              {hit ? '✓' : '✗'}
-            </span>
-          )}
-          <button
-            style={btnStyle}
-            onClick={() => handleCopy('repeatGroup_' + issue, filtered)}
-          >
-            {copied ? '✓' : '复制'}
-          </button>
-        </div>
+        {renderClickableCount(filtered.length, hit, 'repeatGroup_' + issue, filtered)}
       </td>
     );
   };
@@ -1022,44 +995,18 @@ function FullDataTable({
   const renderAddSubCell = (issue, index) => {
     if (!SHOW_ADDSUB_COL) return null;
     const rec = addSubIndex.get(issue);
-    const copied = copiedIssuesRef.current.has(issue);
     if (!rec) {
       return <td key="addSub" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
     }
     return (
       <td key="addSub" style={{ padding: '2px 4px', background: rec.hit ? '#e8f5e9' : '#ffebee' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-          <span style={{ fontWeight: 800, color: rec.hit ? '#1b5e20' : '#b71c1c' }}>{rec.size}注</span>
-          <span title={rec.hit ? '当期开奖号在候选池内' : '当期开奖号不在候选池内'}
-            style={{ fontWeight: 900, fontSize: 15, color: rec.hit ? '#2e7d32' : '#c62828' }}>
-            {rec.hit ? '✓' : '✗'}
-          </span>
-          <button
-            style={{
-              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-              border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-              background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
-              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-            }}
-            onClick={() => handleCopy(issue, getAddSubNumbers(poolData, index))}
-          >
-            {copied ? '✓' : '复制'}
-          </button>
-        </div>
+        {renderClickableCount(rec.size, rec.hit, issue, getAddSubNumbers(poolData, index))}
       </td>
     );
   };
 
   // 容错10列：智取分解容错10 ∪ 博众分解容错10（包含组三）
   const renderRongCuo10Cell = (issue) => {
-    const copied = copiedIssuesRef.current.has('rc10_' + issue);
-    const btnStyle = {
-      fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-      border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-      background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
-      fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-    };
-
     // 计算智取分解容错10
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
@@ -1084,34 +1031,12 @@ function FullDataTable({
 
     return (
       <td key="rc10" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-          <span style={{ fontWeight: 800, color: hit ? '#1b5e20' : (hit === false ? '#b71c1c' : '#666') }}>{merged.length}注</span>
-          {hit !== null && (
-            <span title={hit ? '当期开奖号在容错10内' : '当期开奖号不在容错10内'}
-              style={{ fontWeight: 900, fontSize: 15, color: hit ? '#2e7d32' : '#c62828' }}>
-              {hit ? '✓' : '✗'}
-            </span>
-          )}
-          <button
-            style={btnStyle}
-            onClick={() => handleCopy('rc10_' + issue, merged)}
-          >
-            {copied ? '✓' : '复制'}
-          </button>
-        </div>
+        {renderClickableCount(merged.length, hit, 'rc10_' + issue, merged)}
       </td>
     );
   };
 
   const renderJiJiaoCell = (issue) => {
-    const copied = copiedIssuesRef.current.has('jj_' + issue);
-    const btnStyle = {
-      fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-      border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-      background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
-      fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-    };
-
     // 计算智取分解容错（组六1~8，组三1~12）
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
@@ -1176,34 +1101,12 @@ function FullDataTable({
 
     return (
       <td key="jj" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-          <span style={{ fontWeight: 800, color: hit ? '#1b5e20' : (hit === false ? '#b71c1c' : '#666') }}>{filtered.length}注</span>
-          {hit !== null && (
-            <span title={hit ? '当期开奖号在交集内' : '当期开奖号不在交集内'}
-              style={{ fontWeight: 900, fontSize: 15, color: hit ? '#2e7d32' : '#c62828' }}>
-              {hit ? '✓' : '✗'}
-            </span>
-          )}
-          <button
-            style={btnStyle}
-            onClick={() => handleCopy('jj_' + issue, filtered)}
-          >
-            {copied ? '✓' : '复制'}
-          </button>
-        </div>
+        {renderClickableCount(filtered.length, hit, 'jj_' + issue, filtered)}
       </td>
     );
   };
 
   const renderZongHeCell = (issue) => {
-    const copied = copiedIssuesRef.current.has('zh_' + issue);
-    const btnStyle = {
-      fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-      border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-      background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
-      fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-    };
-
     const filtered = computeZongHeNumbers(issue);
 
     if (filtered.length === 0) {
@@ -1217,21 +1120,7 @@ function FullDataTable({
 
     return (
       <td key="zh" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-          <span style={{ fontWeight: 800, color: hit ? '#1b5e20' : (hit === false ? '#b71c1c' : '#666') }}>{filtered.length}注</span>
-          {hit !== null && (
-            <span title={hit ? '当期开奖号在综合列内' : '当期开奖号不在综合列内'}
-              style={{ fontWeight: 900, fontSize: 15, color: hit ? '#2e7d32' : '#c62828' }}>
-              {hit ? '✓' : '✗'}
-            </span>
-          )}
-          <button
-            style={btnStyle}
-            onClick={() => handleCopy('zh_' + issue, filtered)}
-          >
-            {copied ? '✓' : '复制'}
-          </button>
-        </div>
+        {renderClickableCount(filtered.length, hit, 'zh_' + issue, filtered)}
       </td>
     );
   };
@@ -1239,13 +1128,6 @@ function FullDataTable({
   // 断组容错列：智取断组容错3 ∪ 博众断组容错3
   const renderDuanZuRongCuoCell = (issue) => {
     if (!SHOW_DUANZU_RC_COL) return null;
-    const copied = copiedIssuesRef.current.has('duanzurc_' + issue);
-    const btnStyle = {
-      fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-      border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-      background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
-      fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-    };
 
     // 获取智取断组和博众断组的数据
     const zqText = (duanZuZQTexts && duanZuZQTexts[issue]) || '';
@@ -1287,21 +1169,7 @@ function FullDataTable({
 
     return (
       <td key="duanzurc" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-          <span style={{ fontWeight: 800, color: hit ? '#1b5e20' : (hit === false ? '#b71c1c' : '#666') }}>{merged.length}注</span>
-          {hit !== null && (
-            <span title={hit ? '当期开奖号在断组容错列内' : '当期开奖号不在断组容错列内'}
-              style={{ fontWeight: 900, fontSize: 15, color: hit ? '#2e7d32' : '#c62828' }}>
-              {hit ? '✓' : '✗'}
-            </span>
-          )}
-          <button
-            style={btnStyle}
-            onClick={() => handleCopy('duanzurc_' + issue, merged)}
-          >
-            {copied ? '✓' : '复制'}
-          </button>
-        </div>
+        {renderClickableCount(merged.length, hit, 'duanzurc_' + issue, merged)}
       </td>
     );
   };
@@ -1309,13 +1177,6 @@ function FullDataTable({
   // 祝君中奖列：交集号码 - 容错列 - 容错10列
   const renderZhuJunZhongJiangCell = (issue) => {
     if (!SHOW_ZJZJ_COL) return null;
-    const copied = copiedIssuesRef.current.has('zjzj_' + issue);
-    const btnStyle = {
-      fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-      border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-      background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
-      fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-    };
 
     const filtered = computeZhuJunZhongJiangNumbers(issue);
 
@@ -1330,21 +1191,7 @@ function FullDataTable({
 
     return (
       <td key="zjzj" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-          <span style={{ fontWeight: 800, color: hit ? '#1b5e20' : (hit === false ? '#b71c1c' : '#666') }}>{filtered.length}注</span>
-          {hit !== null && (
-            <span title={hit ? '当期开奖号在祝君中奖列内' : '当期开奖号不在祝君中奖列内'}
-              style={{ fontWeight: 900, fontSize: 15, color: hit ? '#2e7d32' : '#c62828' }}>
-              {hit ? '✓' : '✗'}
-            </span>
-          )}
-          <button
-            style={btnStyle}
-            onClick={() => handleCopy('zjzj_' + issue, filtered)}
-          >
-            {copied ? '✓' : '复制'}
-          </button>
-        </div>
+        {renderClickableCount(filtered.length, hit, 'zjzj_' + issue, filtered)}
       </td>
     );
   };
@@ -1435,8 +1282,6 @@ function FullDataTable({
     const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
     const hit = hasData && drawNum && filtered.length > 0 ? filtered.includes(drawNum) : null;
 
-    const copied = copiedIssuesRef.current.has('duanzu_' + issue);
-
     return (
       <td key="duanzu" style={{ padding: 2, background: hasData ? '#fff' : '#e0e0e0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -1454,32 +1299,19 @@ function FullDataTable({
             }}
           />
           {hasData && filtered.length > 0 && (
-            <>
-              <span style={{
-                fontSize: 13, padding: '2px 6px', borderRadius: 3, border: '1px solid #e0e0e0',
-                background: '#fff', whiteSpace: 'nowrap', minWidth: 60, textAlign: 'left',
-                color: hit === true ? '#1b5e20' : (hit === false ? '#b71c1c' : '#000'),
-                fontWeight: 600,
-              }} title={`${issue} 期断组预测号码（${filtered.length}注，${allGroupsList.length}组）`}>
-                {filtered.length}注
-                {hit !== null && (
-                  <span style={{ marginLeft: 4, color: hit ? '#2e7d32' : '#c62828', fontWeight: 700 }}>
-                    {hit ? '✓' : '✗'}
-                  </span>
-                )}
-              </span>
-              <button
-                style={{
-                  fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                  border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                  background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
-                  fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-                }}
-                onClick={() => handleCopy('duanzu_' + issue, filtered)}
-              >
-                {copied ? '✓' : '复制'}
-              </button>
-            </>
+            <span style={{
+              fontSize: 13, padding: '2px 6px', borderRadius: 3, border: '1px solid #e0e0e0',
+              background: '#fff', whiteSpace: 'nowrap', minWidth: 60, textAlign: 'left',
+              color: hit === true ? '#1b5e20' : (hit === false ? '#b71c1c' : '#000'),
+              fontWeight: 600, cursor: 'pointer', position: 'relative',
+            }} title={`${issue} 期断组预测号码（${filtered.length}注，${allGroupsList.length}组）\n点击复制`}
+              onClick={() => handleCopy('duanzu_' + issue, filtered)}
+            >
+              {filtered.length}注
+              {copiedIssuesRef.current.has('duanzu_' + issue) && (
+                <span style={{ position: 'absolute', right: -14, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, fontSize: 12, color: '#2e7d32' }}>✓</span>
+              )}
+            </span>
           )}
         </div>
       </td>
@@ -1489,13 +1321,6 @@ function FullDataTable({
   // 交集列：加减号码候选池 ∩ 综合列候选池
   const renderJiaoJiCell = (issue, index) => {
     if (!SHOW_JIAOJI_COL) return null;
-    const copied = copiedIssuesRef.current.has('jiaoji_' + issue);
-    const btnStyle = {
-      fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-      border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-      background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
-      fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-    };
 
     // 交集号码 = 智取容错0~9 ∩ 博众容错0~9
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
@@ -1527,33 +1352,13 @@ function FullDataTable({
 
     return (
       <td key="jiaoji" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-          <span style={{ fontWeight: 800, color: hit ? '#1b5e20' : (hit === false ? '#b71c1c' : '#666') }}>{filtered.length}注</span>
-          {hit !== null && (
-            <span title={hit ? '当期开奖号在交集中' : '当期开奖号不在交集中'}
-              style={{ fontWeight: 900, fontSize: 15, color: hit ? '#2e7d32' : '#c62828' }}>
-              {hit ? '✓' : '✗'}
-            </span>
-          )}
-          <button
-            style={btnStyle}
-            onClick={() => handleCopy('jiaoji_' + issue, filtered)}
-          >
-            {copied ? '✓' : '复制'}
-          </button>
-        </div>
+        {renderClickableCount(filtered.length, hit, 'jiaoji_' + issue, filtered)}
       </td>
     );
   };
 
   const renderRongCuoCell = (issue) => {
     const copied = copiedIssuesRef.current.has('rc_' + issue);
-    const btnStyle = {
-      fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-      border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-      background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
-      fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-    };
 
     // 计算智取分解容错0~12（errorCount <= 12，含无容错）
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
@@ -1594,21 +1399,7 @@ function FullDataTable({
 
     return (
       <td key="rc" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-          <span style={{ fontWeight: 800, color: hit ? '#1b5e20' : (hit === false ? '#b71c1c' : '#666') }}>{filtered.length}注</span>
-          {hit !== null && (
-            <span title={hit ? '当期开奖号在容错内' : '当期开奖号不在容错内'}
-              style={{ fontWeight: 900, fontSize: 15, color: hit ? '#2e7d32' : '#c62828' }}>
-              {hit ? '✓' : '✗'}
-            </span>
-          )}
-          <button
-            style={btnStyle}
-            onClick={() => handleCopy('rc_' + issue, filtered)}
-          >
-            {copied ? '✓' : '复制'}
-          </button>
-        </div>
+        {renderClickableCount(filtered.length, hit, 'rc_' + issue, filtered)}
       </td>
     );
   };
