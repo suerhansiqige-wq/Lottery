@@ -1328,7 +1328,7 @@ function FullDataTable({
             <option value={data.length}>全部</option>
           </select>
         </div>
-        <style>{`input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; } input[type=number] { -moz-appearance: textfield; } textarea::-webkit-scrollbar { width: 0; height: 0; } textarea { scrollbar-width: none; -ms-overflow-style: none; }`}</style>
+        <style>{`input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; } input[type=number] { -moz-appearance: textfield; } textarea::-webkit-scrollbar { width: 0; height: 0; } textarea { scrollbar-width: none; -ms-overflow-style: none; } .data-table tbody tr:hover { background: #e3f2fd !important; }`}</style>
         <div style={{ display: 'flex', gap: 16, alignItems: 'stretch' }}>
           <div className="table-container" style={{ maxHeight: '700px', display: 'inline-block' }}>
             <table className="data-table" style={{ fontSize: 17 }}>
