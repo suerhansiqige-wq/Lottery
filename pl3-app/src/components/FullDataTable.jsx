@@ -499,83 +499,73 @@ export const expandZuxuanToZhixuan = (tokens) => {
 
 const BAOZI_NUMS = ['000','111','222','333','444','555','666','777','888','999'];
 
-/** 直选高倍 / 保本投注
- *  直选高倍 = （综合列 ∩ 直选大底 ∩ 组六 ∩ 加减号码） - 精选展开的组六号码 - 智取/博众无容错号码
- *  保本投注 = （综合列 ∩ 直选大底） - 直选高倍 + 无容错号码 + 所有豹子号
- */
-function ZhiXuanGaoBeiModule({ issue }) {
-  const [copiedHigh, setCopiedHigh] = useState(false);
-  const [copiedBaoben, setCopiedBaoben] = useState(false);
+/** 直选高倍模块：手动录入模式，作为分解号码池 */
+function ZhiXuanGaoBeiModule({ issue, value, onChange }) {
+  const [copied, setCopied] = useState(false);
 
-  const highNums = [];
-  const baobenNums = [];
-
-  const handleCopy = async (text, type) => {
+  const handleCopy = async () => {
+    if (!value) return;
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(value);
     } catch (err) {
       const ta = document.createElement('textarea');
-      ta.value = text;
+      ta.value = value;
       document.body.appendChild(ta);
       ta.select();
       try { document.execCommand('copy'); } catch {}
       document.body.removeChild(ta);
     }
-    if (type === 'high') setCopiedHigh(true);
-    else setCopiedBaoben(true);
+    setCopied(true);
   };
+
+  const count = useMemo(() => parsePickNumbers(value).length, [value]);
 
   return (
     <div style={{ width: '100%', flex: 1, border: '2px solid #00838f', borderRadius: 6, background: '#e0f7fa', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <div style={{
         padding: '6px 10px', background: '#00838f', color: '#fff',
-        display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 8, flexWrap: 'wrap',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap',
       }}>
-        <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.95 }}>
-          {issue ? `${issue} 期（最新未开奖）` : '—'}
-        </span>
-        <span style={{ fontSize: 15, fontWeight: 800 }}>直选高倍</span>
-      </div>
-      <div style={{ padding: 8, display: 'flex', gap: 8, alignItems: 'stretch', flex: 1, minHeight: 0 }}>
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px dashed #4dd0e1', borderRadius: 3, background: '#fff', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#e0f2f1', borderBottom: '1px solid #b2dfdb' }}
-            title="（综合列 ∩ 直选大底 ∩ 组六 ∩ 加减号码）- 精选展开组六 - 智取/博众无容错号码">
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#00695c' }}>直选高倍 {highNums.length} 注</span>
-            <button
-              onClick={() => handleCopy(highNums.join(' '), 'high')}
-              style={{
-                fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                border: `1px solid ${copiedHigh ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                background: copiedHigh ? '#c8e6c9' : '#fff', color: copiedHigh ? '#1b5e20' : '#555',
-                fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-              }}
-            >
-              {copiedHigh ? '✓' : '复制'}
-            </button>
-          </div>
-          <div style={{ fontSize: 12, color: '#00695c', fontFamily: 'Consolas,monospace', lineHeight: '18px', wordBreak: 'break-all', padding: 4, overflowY: 'auto', flex: '1 1 0', minHeight: 0 }}>
-            {highNums.join(' ') || '—'}
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 15, fontWeight: 800 }}>直选高倍</span>
+          <span style={{
+            fontSize: 12, fontWeight: 800, color: '#00695c',
+            background: '#fff', borderRadius: 10, padding: '1px 8px', whiteSpace: 'nowrap',
+          }}>
+            {count} 注
+          </span>
         </div>
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px dashed #ef9a9a', borderRadius: 3, background: '#fff', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, padding: '2px 6px', background: '#ffebee', borderBottom: '1px solid #ffcdd2' }}
-            title="（综合列 ∩ 直选大底） - 直选高倍 + 无容错号码 + 所有豹子号">
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#c62828' }}>保本投注 {baobenNums.length} 注</span>
-            <button
-              onClick={() => handleCopy(baobenNums.join(' '), 'baoben')}
-              style={{
-                fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                border: `1px solid ${copiedBaoben ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                background: copiedBaoben ? '#c8e6c9' : '#fff', color: copiedBaoben ? '#1b5e20' : '#555',
-                fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-              }}
-            >
-              {copiedBaoben ? '✓' : '复制'}
-            </button>
-          </div>
-          <div style={{ fontSize: 12, color: '#c62828', fontFamily: 'Consolas,monospace', lineHeight: '18px', wordBreak: 'break-all', padding: 4, overflowY: 'auto', flex: '1 1 0', minHeight: 0 }}>
-            {baobenNums.join(' ') || '—'}
-          </div>
+        <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.95 }}>
+          {issue ? `${issue} 期` : '—'}
+        </span>
+      </div>
+      <div style={{ padding: 8, flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <textarea
+          value={value || ''}
+          onChange={(e) => onChange && onChange(e.target.value)}
+          placeholder="手动输入直选号码，作为分解号码池。空格/逗号/换行分隔"
+          spellCheck={false}
+          style={{
+            display: 'block', width: '100%', boxSizing: 'border-box', height: 80, resize: 'none',
+            fontSize: 12, fontFamily: 'Consolas,monospace', lineHeight: '16px',
+            padding: 4, border: '1px solid #4dd0e1', borderRadius: 3,
+            background: '#fff', color: '#00695c',
+            overflowY: 'auto', cursor: 'text', flex: 1,
+          }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+          <button
+            onClick={handleCopy}
+            disabled={!value}
+            style={{
+              fontSize: 11, padding: '1px 6px', cursor: value ? 'pointer' : 'default',
+              border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+              background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
+              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+            }}
+          >
+            {copied ? '✓' : '复制'}
+          </button>
         </div>
       </div>
     </div>
@@ -603,6 +593,9 @@ function FullDataTable({
   onSelfPickChange,
   selfPickJxValue,
   onSelfPickJxChange,
+  // 直选高倍（手动录入模式，作为分解号码池）
+  zhiXuanGaoBeiValue,
+  onZhiXuanGaoBeiChange,
   // 分解容错「无容错」号码（智取∪博众），并入保本投注
   wuRongCuoNumbers = [],
 }) {
@@ -2192,11 +2185,8 @@ function FullDataTable({
           <div style={{ flex: '1 1 0', minHeight: 0, display: 'flex' }}>
             <ZhiXuanGaoBeiModule
               issue={selfPickIssue}
-              selfPickValue={selfPickValue}
-              selfPickJxValue={selfPickJxValue}
-              addSubNumbers={tailAddSubNumbers}
-              zongHeNumbers={tailZongHeNumbers}
-              wuRongCuoNumbers={wuRongCuoNumbers}
+              value={zhiXuanGaoBeiValue}
+              onChange={onZhiXuanGaoBeiChange}
             />
           </div>
           <button

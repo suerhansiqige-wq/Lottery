@@ -128,6 +128,10 @@ function App() {
   const [selfPickJxTexts, setSelfPickJxTextsState] = useState(() => loadOverrides('pl3_selfPickJx'));
   const setSelfPickJxText = useCallback(makeIssueTextSetter(setSelfPickJxTextsState, 'pl3_selfPickJx'), []);
 
+  // 直选高倍（手动录入模式，作为分解号码池）
+  const [zhiXuanGaoBeiTexts, setZhiXuanGaoBeiTextsState] = useState(() => loadOverrides('pl3_zhiXuanGaoBei'));
+  const setZhiXuanGaoBeiText = useCallback(makeIssueTextSetter(setZhiXuanGaoBeiTextsState, 'pl3_zhiXuanGaoBei'), []);
+
   const makeLockSetter = (setState, storageKey) => (val) => {
     setState(prev => {
       const next = typeof val === 'function' ? val(prev) : val;
@@ -744,6 +748,8 @@ function App() {
             onSelfPickChange={(v) => setSelfPickText(nextIssue, v)}
             selfPickJxValue={selfPickJxTexts[nextIssue] || ''}
             onSelfPickJxChange={(v) => setSelfPickJxText(nextIssue, v)}
+            zhiXuanGaoBeiValue={zhiXuanGaoBeiTexts[nextIssue] || ''}
+            onZhiXuanGaoBeiChange={(v) => setZhiXuanGaoBeiText(nextIssue, v)}
             wuRongCuoNumbers={wuRongCuoNumbers}
           />
         </main>

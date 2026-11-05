@@ -195,6 +195,10 @@ function App() {
   const [selfPickJxTexts, setSelfPickJxTextsState] = useState(() => loadOverrides('3d_selfPickJx'));
   const setSelfPickJxText = useCallback(makeIssueTextSetter(setSelfPickJxTextsState, '3d_selfPickJx'), []);
 
+  // 直选高倍（手动录入模式，作为分解号码池）
+  const [zhiXuanGaoBeiTexts, setZhiXuanGaoBeiTextsState] = useState(() => loadOverrides('3d_zhiXuanGaoBei'));
+  const setZhiXuanGaoBeiText = useCallback(makeIssueTextSetter(setZhiXuanGaoBeiTextsState, '3d_zhiXuanGaoBei'), []);
+
   // 锁定集合写入：接收新 Set，同步落盘
   const makeLockSetter = (setState, storageKey) => (val) => {
     setState(prev => {
@@ -905,6 +909,8 @@ return (
             onSelfPickChange={(v) => setSelfPickText(nextIssue, v)}
             selfPickJxValue={selfPickJxTexts[nextIssue] || ''}
             onSelfPickJxChange={(v) => setSelfPickJxText(nextIssue, v)}
+            zhiXuanGaoBeiValue={zhiXuanGaoBeiTexts[nextIssue] || ''}
+            onZhiXuanGaoBeiChange={(v) => setZhiXuanGaoBeiText(nextIssue, v)}
             wuRongCuoNumbers={wuRongCuoNumbers}
           />
         </main>
