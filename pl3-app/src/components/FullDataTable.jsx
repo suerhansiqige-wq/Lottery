@@ -639,12 +639,12 @@ function FullDataTable({
     return (
       <span
         onClick={() => handleCopy(copyKey, numbers)}
-        style={{ fontWeight: 800, color: baseColor, cursor: 'pointer', position: 'relative', userSelect: 'none' }}
+        style={{ fontWeight: 800, color: baseColor, cursor: 'pointer', position: 'relative', userSelect: 'none', display: 'inline-block' }}
         title="点击复制号码"
       >
         {count}注
         {copied && (
-          <span style={{ position: 'absolute', right: -14, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, fontSize: 12, color: '#2e7d32' }}>✓</span>
+          <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', opacity: 0.4, fontSize: 16, color: '#2e7d32', fontWeight: 900 }}>✓</span>
         )}
       </span>
     );
@@ -1822,32 +1822,14 @@ function FullDataTable({
                       {predMustOut.length > 0 ? predMustOut.join('') : '-'}
                     </td>
                   )}
-                  {/* 加减号码 - 预留行：下期候选池注数 + 复制（尚未开奖，无对错） */}
-                  {SHOW_ADDSUB_COL && (() => {
-                    const cpd = copiedIssuesRef.current.has('next_' + nextIssue);
-                    return (
-                      <td key="addSubNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{tailAddSubNumbers.length}注</span>
-                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
-                          <button
-                            style={{
-                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
-                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-                            }}
-                            onClick={() => handleCopy('next_' + nextIssue, tailAddSubNumbers)}
-                          >
-                            {cpd ? '✓' : '复制'}
-                          </button>
-                        </div>
-                      </td>
-                    );
-                  })()}
-                  {/* 交集号码 - 预留行：下期交集注数 + 复制（尚未开奖，无对错） */}
+                  {/* 加减号码 - 预留行：下期候选池注数（尚未开奖，无对错） */}
+                  {SHOW_ADDSUB_COL && (
+                    <td key="addSubNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                      {renderClickableCount(tailAddSubNumbers.length, null, 'next_' + nextIssue, tailAddSubNumbers, '#1b5e20')}
+                    </td>
+                  )}
+                  {/* 交集号码 - 预留行：下期交集注数（尚未开奖，无对错） */}
                   {SHOW_JJ_COL && (() => {
-                    const cpd = copiedIssuesRef.current.has('jj_next_' + nextIssue);
                     const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompZu6 = [];
@@ -1891,77 +1873,32 @@ function FullDataTable({
                     }).sort();
                     return (
                       <td key="jjNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{filtered.length}注</span>
-                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
-                          <button
-                            style={{
-                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
-                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-                            }}
-                            onClick={() => handleCopy('jj_next_' + nextIssue, filtered)}
-                          >
-                            {cpd ? '✓' : '复制'}
-                          </button>
-                        </div>
+                        {renderClickableCount(filtered.length, null, 'jj_next_' + nextIssue, filtered, '#1b5e20')}
                       </td>
                     );
                   })()}
-                  {/* 综合 - 预留行：下期综合注数 + 复制（尚未开奖，无对错） */}
+                  {/* 综合 - 预留行：下期综合注数（尚未开奖，无对错） */}
                   {SHOW_ZONGHE_COL && (() => {
-                    const cpd = copiedIssuesRef.current.has('zh_next_' + nextIssue);
                     const filtered = computeZongHeNumbers(nextIssue);
                     return (
                       <td key="zhNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{filtered.length}注</span>
-                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
-                          <button
-                            style={{
-                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
-                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-                            }}
-                            onClick={() => handleCopy('zh_next_' + nextIssue, filtered)}
-                          >
-                            {cpd ? '✓' : '复制'}
-                          </button>
-                        </div>
+                        {renderClickableCount(filtered.length, null, 'zh_next_' + nextIssue, filtered, '#1b5e20')}
                       </td>
                     );
                   })()}
-                  {/* 交集 - 预留行：下期交集注数 + 复制（尚未开奖，无对错） */}
+                  {/* 交集 - 预留行：下期交集注数（尚未开奖，无对错） */}
                   {SHOW_JIAOJI_COL && (() => {
-                    const cpd = copiedIssuesRef.current.has('jiaoji_next_' + nextIssue);
                     const zongHe = computeZongHeNumbers(nextIssue);
                     const addSubSet = new Set(tailAddSubNumbers);
                     const filtered = zongHe.filter(n => addSubSet.has(n));
                     return (
                       <td key="jiaojiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{filtered.length}注</span>
-                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
-                          <button
-                            style={{
-                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
-                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-                            }}
-                            onClick={() => handleCopy('jiaoji_next_' + nextIssue, filtered)}
-                          >
-                            {cpd ? '✓' : '复制'}
-                          </button>
-                        </div>
+                        {renderClickableCount(filtered.length, null, 'jiaoji_next_' + nextIssue, filtered, '#1b5e20')}
                       </td>
                     );
                   })()}
-                  {/* 容错10 - 预留行：下期容错10注数 + 复制（尚未开奖，无对错） */}
+                  {/* 容错10 - 预留行：下期容错10注数（尚未开奖，无对错） */}
                   {SHOW_RC10_COL && (() => {
-                    const cpd = copiedIssuesRef.current.has('rc10_next_' + nextIssue);
                     const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompRc10 = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
@@ -1971,27 +1908,12 @@ function FullDataTable({
                     const merged = [...new Set([...decompRc10, ...bozhongRc10])].sort();
                     return (
                       <td key="rc10Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{merged.length}注</span>
-                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
-                          <button
-                            style={{
-                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
-                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-                            }}
-                            onClick={() => handleCopy('rc10_next_' + nextIssue, merged)}
-                          >
-                            {cpd ? '✓' : '复制'}
-                          </button>
-                        </div>
+                        {renderClickableCount(merged.length, null, 'rc10_next_' + nextIssue, merged, '#1b5e20')}
                       </td>
                     );
                   })()}
-                  {/* 容错 - 预留行：下期对称差集注数 + 复制（尚未开奖，无对错） */}
+                  {/* 容错 - 预留行：下期对称差集注数（尚未开奖，无对错） */}
                   {SHOW_RC_COL && (() => {
-                    const cpd = copiedIssuesRef.current.has('rc_next_' + nextIssue);
                     const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompRc12 = [];
@@ -2016,27 +1938,12 @@ function FullDataTable({
                     const filtered = union.filter(n => !intersectionSet.has(n)).sort();
                     return (
                       <td key="rcNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{filtered.length}注</span>
-                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
-                          <button
-                            style={{
-                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
-                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-                            }}
-                            onClick={() => handleCopy('rc_next_' + nextIssue, filtered)}
-                          >
-                            {cpd ? '✓' : '复制'}
-                          </button>
-                        </div>
+                        {renderClickableCount(filtered.length, null, 'rc_next_' + nextIssue, filtered, '#1b5e20')}
                       </td>
                     );
                   })()}
-                  {/* 断组容错 - 预留行：下期断组容错注数 + 复制（尚未开奖，无对错） */}
+                  {/* 断组容错 - 预留行：下期断组容错注数（尚未开奖，无对错） */}
                   {SHOW_DUANZU_RC_COL && (() => {
-                    const cpd = copiedIssuesRef.current.has('duanzurc_next_' + nextIssue);
                     const zqText = (duanZuZQTexts && duanZuZQTexts[nextIssue]) || '';
                     const bzText = (duanZuBZTexts && duanZuBZTexts[nextIssue]) || '';
                     const zqGroups = parseDuanZuGroups(zqText);
@@ -2058,93 +1965,34 @@ function FullDataTable({
                     const merged = Array.from(new Set([...zqRongCuo3, ...bzRongCuo3])).sort();
                     return (
                       <td key="duanzurcNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{merged.length}注</span>
-                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
-                          <button
-                            style={{
-                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
-                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-                            }}
-                            onClick={() => handleCopy('duanzurc_next_' + nextIssue, merged)}
-                          >
-                            {cpd ? '✓' : '复制'}
-                          </button>
-                        </div>
+                        {renderClickableCount(merged.length, null, 'duanzurc_next_' + nextIssue, merged, '#1b5e20')}
                       </td>
                     );
                   })()}
-                  {/* 重复3次 - 预留行：下期五列重复恰好3次号码 + 复制（尚未开奖，无对错） */}
+                  {/* 重复3次 - 预留行：下期五列重复恰好3次号码（尚未开奖，无对错） */}
                   {SHOW_ZJZJ_COL && (() => {
-                    const cpd = copiedIssuesRef.current.has('repeat3_next_' + nextIssue);
                     const filtered = computeRepeat1Numbers(nextIssue, poolData.length);
                     return (
                       <td key="repeat3Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{filtered.length}注</span>
-                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
-                          <button
-                            style={{
-                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
-                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-                            }}
-                            onClick={() => handleCopy('repeat3_next_' + nextIssue, filtered)}
-                          >
-                            {cpd ? '✓' : '复制'}
-                          </button>
-                        </div>
+                        {renderClickableCount(filtered.length, null, 'repeat3_next_' + nextIssue, filtered, '#1b5e20')}
                       </td>
                     );
                   })()}
-                  {/* 重复组号 - 预留行：下期五列重复恰好3次号码注数 + 复制（尚未开奖，无对错） */}
+                  {/* 重复组号 - 预留行：下期五列重复恰好1次号码注数（尚未开奖，无对错） */}
                   {SHOW_ZJZJ_COL && (() => {
-                    const cpd = copiedIssuesRef.current.has('repeatGroup_next_' + nextIssue);
                     const filtered = computeRepeat1Numbers(nextIssue, poolData.length);
                     return (
                       <td key="repeatGroupNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{filtered.length}注</span>
-                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
-                          <button
-                            style={{
-                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
-                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-                            }}
-                            onClick={() => handleCopy('repeatGroup_next_' + nextIssue, filtered)}
-                          >
-                            {cpd ? '✓' : '复制'}
-                          </button>
-                        </div>
+                        {renderClickableCount(filtered.length, null, 'repeatGroup_next_' + nextIssue, filtered, '#1b5e20')}
                       </td>
                     );
                   })()}
-                  {/* 祝君中奖 - 预留行：下期祝君中奖注数 + 复制（尚未开奖，无对错） */}
+                  {/* 祝君中奖 - 预留行：下期祝君中奖注数（尚未开奖，无对错） */}
                   {SHOW_ZJZJ_COL && (() => {
-                    const cpd = copiedIssuesRef.current.has('zjzj_next_' + nextIssue);
                     const filtered = computeZhuJunZhongJiangNumbers(nextIssue);
                     return (
                       <td key="zjzjNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{filtered.length}注</span>
-                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
-                          <button
-                            style={{
-                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
-                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-                            }}
-                            onClick={() => handleCopy('zjzj_next_' + nextIssue, filtered)}
-                          >
-                            {cpd ? '✓' : '复制'}
-                          </button>
-                        </div>
+                        {renderClickableCount(filtered.length, null, 'zjzj_next_' + nextIssue, filtered, '#1b5e20')}
                       </td>
                     );
                   })()}
