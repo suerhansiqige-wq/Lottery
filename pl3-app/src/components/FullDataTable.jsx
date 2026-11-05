@@ -1289,10 +1289,25 @@ function FullDataTable({
       fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
     };
 
-    const zongHe = computeZongHeNumbers(issue);
-    const addSub = index != null ? getAddSubNumbers(poolData, index) : [];
-    const addSubSet = new Set(addSub);
-    const filtered = zongHe.filter(n => addSubSet.has(n));
+    // 交集号码 = 智取容错0~9 ∩ 博众容错0~9
+    const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
+    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+    const decompRc0_9 = [];
+    if (decompResult && decompResult.buckets) {
+      for (let i = 0; i <= 9; i++) {
+        if (decompResult.buckets[i]) decompRc0_9.push(...decompResult.buckets[i]);
+      }
+    }
+    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
+    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+    const bozhongRc0_9 = [];
+    if (bozhongResult && bozhongResult.buckets) {
+      for (let i = 0; i <= 9; i++) {
+        if (bozhongResult.buckets[i]) bozhongRc0_9.push(...bozhongResult.buckets[i]);
+      }
+    }
+    const bozhongSet = new Set(bozhongRc0_9);
+    const filtered = decompRc0_9.filter(n => bozhongSet.has(n));
 
     if (filtered.length === 0) {
       return <td key="jiaoji" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
