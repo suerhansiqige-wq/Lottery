@@ -79,9 +79,9 @@ export function getAddSubNumbers(data, targetIndex, L = ADD_SUB_LOOKBACK) {
   const start = targetIndex - lookback;
   const aPats = new Set();
   const sPats = new Set();
-  // 隔一期用二期，周期为3，步长为3但取前2个
+  // 隔一期用二期，周期为3，步长为3但取前2个（与buildAddSubIndex的k%3基准一致）
   for (let j = start; j < targetIndex; j++) {
-    if ((j - start) % 3 !== 2) {
+    if (j % 3 !== 2) {
       aPats.add(hAddKey(data[j]));
       sPats.add(hSubKey(data[j]));
     }
