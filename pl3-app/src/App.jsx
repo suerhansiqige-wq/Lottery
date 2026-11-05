@@ -251,7 +251,7 @@ function App() {
 
   // 启动时从后端加载分解数据（跨浏览器/电脑同步）
   useEffect(() => {
-    // 本地开发服务器
+    // 本地开发服务器（GitHub Pages 静态托管无后端，404 为正常）
     fetch('/api/load-decomp').then(r => r.json()).then(data => {
       if (!data.success) return;
       const merge = (base, remote) => normalizeTexts({ ...base, ...remote });
@@ -280,7 +280,7 @@ function App() {
         setDuanZuBZTextsState(merged);
         safeSetItem('pl3_duanZuBZTexts', JSON.stringify(merged));
       }
-    }).catch(() => {});
+    }).catch(() => { /* 静态托管无后端 API，忽略 */ });
     // GitHub Gist（跨设备，静态托管也可用）—— 云端数据为准，直接覆盖本地
     console.log('[Gist] 初始化同步，检查 token...');
     console.log('[Gist] Token:', getGistToken() ? '✓ 已配置' : '✗ 未配置');
