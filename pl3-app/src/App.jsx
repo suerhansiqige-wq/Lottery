@@ -225,17 +225,10 @@ function App() {
   const decompIssue = nextIssue;
   const bozhongIssue = nextIssue;
 
-  // 候选集 = 《直选高倍》号码池 = 大底里的组六、且在加减号码预留行候选池内、且不在精选展开的直选号里；组三与池外号码不参与分解
+  // 候选集 = 《直选高倍》手动输入号码池，直接作为分解候选集
   const selfPickZuLiu = useMemo(() => {
-    // 分解候选 = 直选高倍框的号码池：大底里的组六、在加减号码预留行候选池内、并剔除精选组选展开的直选号。
-    // 唯一保留的是「无容错」号码：它们必须留在候选集内参与分解，否则容错结果会自我收缩（右侧框只做展示层剔除）
-    const jxZhiXuan = expandZuxuanToZhixuan(parsePickNumbers(selfPickJxTexts[nextIssue] || ''));
-    const out = [];
-    for (const t of parsePickNumbers(selfPickTexts[nextIssue] || '')) {
-      if (new Set(t.split('')).size === 3 && addSubTailPool.has(t) && !jxZhiXuan.has(t)) out.push(t);
-    }
-    return out;
-  }, [selfPickTexts, selfPickJxTexts, nextIssue, addSubTailPool]);
+    return parsePickNumbers(zhiXuanGaoBeiTexts[nextIssue] || '');
+  }, [zhiXuanGaoBeiTexts, nextIssue]);
 
   const decompResult = useMemo(
     () => computeRongCuo(parseDecompGroups(decompTexts[decompIssue] || ''), selfPickZuLiu),

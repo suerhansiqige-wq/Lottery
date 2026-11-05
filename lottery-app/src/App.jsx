@@ -356,23 +356,15 @@ function App() {
   const bozhongIssue = nextIssue;
 
   // ============================================================
-  // 【算法锁定】分解容错计算（候选集 = 《直选高倍》号码池，见下）
+  // 【算法锁定】分解容错计算（候选集 = 《直选高倍》手动输入号码池）
   // ============================================================
-  // 【候选集】取直选大底里的组六（三位互不相同），与「加减号码」下期预留行候选池求同，
-  // 再剔除精选框组选号展开的直选号码，剩下的就是右侧「直选高倍」框的号码池，
-  // 作为智取/博众分解容错的候选集；组三、池外号码与精选号码都不参与分解。
+  // 【候选集】直接使用直选高倍框中用户手动输入的号码作为分解候选集。
+  // 用户输入的号码直接参与智取/博众分解容错计算，不做额外过滤。
   // 候选为空时容错模块显示空候选提示，不回退到全部 1000 注
   // ============================================================
   const selfPickZuLiu = useMemo(() => {
-    // 分解候选 = 直选高倍框的号码池：大底里的组六、在加减号码预留行候选池内、并剔除精选组选展开的直选号。
-    // 唯一保留的是「无容错」号码：它们必须留在候选集内参与分解，否则容错结果会自我收缩（右侧框只做展示层剔除）
-    const jxZhiXuan = expandZuxuanToZhixuan(parsePickNumbers(selfPickJxTexts[nextIssue] || ''));
-    const out = [];
-    for (const t of parsePickNumbers(selfPickTexts[nextIssue] || '')) {
-      if (new Set(t.split('')).size === 3 && addSubTailPool.has(t) && !jxZhiXuan.has(t)) out.push(t);
-    }
-    return out;
-  }, [selfPickTexts, selfPickJxTexts, nextIssue, addSubTailPool]);
+    return parsePickNumbers(zhiXuanGaoBeiTexts[nextIssue] || '');
+  }, [zhiXuanGaoBeiTexts, nextIssue]);
 
   // 依赖数组必须包含 decompTexts / bozhongTexts —— 历史踩坑：漏依赖会导致
   // textarea 编辑后容错结果不重算（编辑框看起来“失效”）
