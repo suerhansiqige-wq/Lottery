@@ -1544,19 +1544,19 @@ function FullDataTable({
   const duanZuZQBoxW = useMemo(() => calcDecompBoxWidth(duanZuZQTexts, decompIssues), [duanZuZQTexts, decompIssues]);
   const duanZuBZBoxW = useMemo(() => calcDecompBoxWidth(duanZuBZTexts, decompIssues), [duanZuBZTexts, decompIssues]);
 
-  // 渲染一个分解文本框单元格；hasData 决定白底/灰底，locked 决定只读与点击解锁（与福彩3D 完全一致）
+  // 渲染一个分解文本框单元格；hasData 决定白底/灰底
   const renderDecompCell = (kind, issue, title) => {
     const texts = kind === 'decomp' ? decompTexts : (kind === 'bozhong' ? bozhongTexts : (kind === 'duanzuZQ' ? duanZuZQTexts : duanZuBZTexts));
     const setText = kind === 'decomp' ? setDecompText : (kind === 'bozhong' ? setBozhongText : (kind === 'duanzuZQ' ? setDuanZuZQText : setDuanZuBZText));
-    const lockedSet = kind === 'decomp' ? lockedDecomp : (kind === 'bozhong' ? lockedBozhong : (kind === 'duanzuZQ' ? lockedDuanZuZQ : lockedDuanZuBZ));
     const value = (texts && texts[issue]) || '';
     const hasData = value.trim().length > 0;
-    const locked = !!(lockedSet && lockedSet.has(issue));
+    // 密码保护已解除：强制所有文本框可编辑
+    const locked = false;
     const v = (kind === 'decomp' ? verifyMaps.dm : (kind === 'bozhong' ? verifyMaps.bz : (kind === 'duanzuZQ' ? verifyMaps.dzq : verifyMaps.dzbz))).get(issue);
     const boxW = kind === 'decomp' ? decompBoxW : (kind === 'bozhong' ? bozhongBoxW : (kind === 'duanzuZQ' ? duanZuZQBoxW : duanZuBZBoxW));
 
     return (
-      <td key={'dc_' + kind} style={{ padding: 2, background: locked ? '#eceff1' : (hasData ? '#fff' : '#e0e0e0') }}>
+      <td key={'dc_' + kind} style={{ padding: 2, background: hasData ? '#fff' : '#e0e0e0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <DecompTextarea
           value={value}
