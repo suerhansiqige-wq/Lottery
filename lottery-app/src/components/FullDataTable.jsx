@@ -1336,7 +1336,7 @@ function FullDataTable({
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_JIAOJI_COL && <th title="加减号码候选池 ∩ 综合列候选池；✓=在池内，✗=不在池内">交集</th>}
                 {SHOW_DUANZU_RC_COL && <th title="智取断组容错3 ∪ 博众断组容错3（合并号码池）；✓=在池内，✗=不在池内">断组容错</th>}
-                {SHOW_ZJZJ_COL && <th title="交集号码 - 容错列 - 容错10列（断组组号）；✓=在池内，✗=不在池内">断组组号</th>}
+                {SHOW_ZJZJ_COL && <th title="交集号码 - 容错列 - 容错10列（分解组号）；✓=在池内，✗=不在池内">分解组号</th>}
                 {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
                 {/* 智取分解 / 博众分解 两列 */}
                 {DECOMP_COLS.map(c => (
