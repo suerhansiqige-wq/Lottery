@@ -1642,7 +1642,7 @@ function FullDataTable({
                   })()}
                   {/* 重复3次 - 预留行：下期五列重复恰好3次号码（尚未开奖，无对错） */}
                   {SHOW_ZJZJ_COL && (() => {
-                    const filtered = computeRepeat1Numbers(nextIssue, poolData.length);
+                    const filtered = computeRepeat3Numbers(nextIssue, poolData.length);
                     return (
                       <td key="repeat3Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
