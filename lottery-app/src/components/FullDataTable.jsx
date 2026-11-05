@@ -1268,7 +1268,7 @@ function FullDataTable({
         <div style={{ display: 'flex', gap: 16, alignItems: 'stretch' }}>
           <div className="table-container" style={{ maxHeight: '700px', display: 'inline-block' }}>
             <table className="data-table" style={{ fontSize: 17 }}>
-            <thead>
+            <thead style={{ fontSize: 13 }}>
               <tr>
                 <th>期数</th>
                 <th style={{ borderBottom: '3px solid #a8d8ea' }}>百</th>
