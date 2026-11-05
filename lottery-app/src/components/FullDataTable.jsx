@@ -33,7 +33,6 @@ function ClickableCount({ count, hit, numbers, color }) {
       }
       document.body.removeChild(textArea);
     }
-    setTimeout(() => setCopied(false), 1500);
   }, [numbers]);
 
   const baseColor = hit ? '#1b5e20' : (hit === false ? '#b71c1c' : (color || '#666'));
