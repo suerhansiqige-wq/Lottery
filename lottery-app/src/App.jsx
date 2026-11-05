@@ -151,37 +151,117 @@ function App() {
   const [gistTestResult, setGistTestResult] = useState('');
 
   // 写入某期分解文本：立即持久化到 localStorage
-  const makeTextSetter = (setState, storageKey, gistKey) => (issue, val) => {
-    setState(prev => {
+  // 使用 ref 追踪最新值，避免 useCallback 依赖状态导致函数引用变化
+  const decompTextsRef = useRef(decompTexts);
+  const bozhongTextsRef = useRef(bozhongTexts);
+  const lajiTextsRef = useRef(lajiTexts);
+  const duanZuZQTextsRef = useRef(duanZuZQTexts);
+  const duanZuBZTextsRef = useRef(duanZuBZTexts);
+  decompTextsRef.current = decompTexts;
+  bozhongTextsRef.current = bozhongTexts;
+  lajiTextsRef.current = lajiTexts;
+  duanZuZQTextsRef.current = duanZuZQTexts;
+  duanZuBZTextsRef.current = duanZuBZTexts;
+
+  const setDecompText = useCallback((issue, val) => {
+    setDecompTextsState(prev => {
       const next = { ...prev, [issue]: val };
-      safeSetItem(storageKey, JSON.stringify(next));
-      // 编辑后立即同步到 Gist，确保云端数据是最新的
-      if (getGistToken() && gistKey) {
+      safeSetItem('3d_decompTexts', JSON.stringify(next));
+      if (getGistToken()) {
         const gistData = {
-          decompTexts: decompTexts,
-          bozhongTexts: bozhongTexts,
-          lajiTexts: lajiTexts,
-          duanZuZQTexts: gistKey === 'duanzuZQ' ? next : duanZuZQTexts,
-          duanZuBZTexts: gistKey === 'duanzuBZ' ? next : duanZuBZTexts,
+          decompTexts: next,
+          bozhongTexts: bozhongTextsRef.current,
+          lajiTexts: lajiTextsRef.current,
+          duanZuZQTexts: duanZuZQTextsRef.current,
+          duanZuBZTexts: duanZuBZTextsRef.current,
         };
-        if (gistKey === 'decomp') gistData.decompTexts = next;
-        else if (gistKey === 'bozhong') gistData.bozhongTexts = next;
-        else if (gistKey === 'laji') gistData.lajiTexts = next;
         saveToGist(gistData).then(ok => {
-          if (ok) {
-            setGistSyncStatus('✅ 已同步到云端');
-            setTimeout(() => setGistSyncStatus(''), 2000);
-          }
+          if (ok) { setGistSyncStatus('✅ 已同步到云端'); setTimeout(() => setGistSyncStatus(''), 2000); }
         });
       }
       return next;
     });
-  };
-  const setDecompText = makeTextSetter(setDecompTextsState, '3d_decompTexts', 'decomp');
-  const setBozhongText = makeTextSetter(setBozhongTextsState, '3d_bozhongTexts', 'bozhong');
-  const setLajiText = makeTextSetter(setLajiTextsState, '3d_lajiTexts', 'laji');
-  const setDuanZuZQText = makeTextSetter(setDuanZuZQTextsState, '3d_duanZuZQTexts', 'duanzuZQ');
-  const setDuanZuBZText = makeTextSetter(setDuanZuBZTextsState, '3d_duanZuBZTexts', 'duanzuBZ');
+  }, []);
+
+  const setBozhongText = useCallback((issue, val) => {
+    setBozhongTextsState(prev => {
+      const next = { ...prev, [issue]: val };
+      safeSetItem('3d_bozhongTexts', JSON.stringify(next));
+      if (getGistToken()) {
+        const gistData = {
+          decompTexts: decompTextsRef.current,
+          bozhongTexts: next,
+          lajiTexts: lajiTextsRef.current,
+          duanZuZQTexts: duanZuZQTextsRef.current,
+          duanZuBZTexts: duanZuBZTextsRef.current,
+        };
+        saveToGist(gistData).then(ok => {
+          if (ok) { setGistSyncStatus('✅ 已同步到云端'); setTimeout(() => setGistSyncStatus(''), 2000); }
+        });
+      }
+      return next;
+    });
+  }, []);
+
+  const setLajiText = useCallback((issue, val) => {
+    setLajiTextsState(prev => {
+      const next = { ...prev, [issue]: val };
+      safeSetItem('3d_lajiTexts', JSON.stringify(next));
+      if (getGistToken()) {
+        const gistData = {
+          decompTexts: decompTextsRef.current,
+          bozhongTexts: bozhongTextsRef.current,
+          lajiTexts: next,
+          duanZuZQTexts: duanZuZQTextsRef.current,
+          duanZuBZTexts: duanZuBZTextsRef.current,
+        };
+        saveToGist(gistData).then(ok => {
+          if (ok) { setGistSyncStatus('✅ 已同步到云端'); setTimeout(() => setGistSyncStatus(''), 2000); }
+        });
+      }
+      return next;
+    });
+  }, []);
+
+  const setDuanZuZQText = useCallback((issue, val) => {
+    setDuanZuZQTextsState(prev => {
+      const next = { ...prev, [issue]: val };
+      safeSetItem('3d_duanZuZQTexts', JSON.stringify(next));
+      if (getGistToken()) {
+        const gistData = {
+          decompTexts: decompTextsRef.current,
+          bozhongTexts: bozhongTextsRef.current,
+          lajiTexts: lajiTextsRef.current,
+          duanZuZQTexts: next,
+          duanZuBZTexts: duanZuBZTextsRef.current,
+        };
+        saveToGist(gistData).then(ok => {
+          if (ok) { setGistSyncStatus('✅ 已同步到云端'); setTimeout(() => setGistSyncStatus(''), 2000); }
+        });
+      }
+      return next;
+    });
+  }, []);
+
+  const setDuanZuBZText = useCallback((issue, val) => {
+    setDuanZuBZTextsState(prev => {
+      const next = { ...prev, [issue]: val };
+      safeSetItem('3d_duanZuBZTexts', JSON.stringify(next));
+      if (getGistToken()) {
+        const gistData = {
+          decompTexts: decompTextsRef.current,
+          bozhongTexts: bozhongTextsRef.current,
+          lajiTexts: lajiTextsRef.current,
+          duanZuZQTexts: duanZuZQTextsRef.current,
+          duanZuBZTexts: next,
+        };
+        saveToGist(gistData).then(ok => {
+          if (ok) { setGistSyncStatus('✅ 已同步到云端'); setTimeout(() => setGistSyncStatus(''), 2000); }
+        });
+      }
+      return next;
+    });
+  }, []);
 
   // 自选号码：按「最新未开奖期」存储用户手填号码，localStorage 键 3d_selfPick（仅存非空期）
   // 这是右侧「直选大底」框，同时也是分解容错与直选高倍/保本投注的号码源
