@@ -1,0 +1,33 @@
+{
+  "strategy": "规则9（安全9规则 + 动态过滤）",
+  "rules": [
+    "allIn(ha1)",
+    "allIn(hs1)",
+    "allIn(va1)",
+    "allIn(ha3)",
+    "dblHAdd(ha1)",
+    "dblHAdd(ha2)",
+    "dblHAdd(ha3)",
+    "dblHAdd(va2)",
+    "dblHSub(vs1)"
+  ],
+  "dynamicFilter": {
+    "level1": "和值5-22",
+    "level2": "和值6-21",
+    "level3": "跨度>=1（排除豹子）"
+  },
+  "testResults": {
+    "totalPeriods": 8722,
+    "hitPeriods": 7046,
+    "missPeriods": 1676,
+    "hitRate": 80.78,
+    "avgCount": 810,
+    "minCount": 669,
+    "maxCount": 850,
+    "over850Count": 0,
+    "maxHitStreak": 34,
+    "maxMissStreak": 5,
+    "dataRange": "02005 - 26280"
+  },
+  "generatedAt": "2026-10-22T07:37:05.526Z"
+}
