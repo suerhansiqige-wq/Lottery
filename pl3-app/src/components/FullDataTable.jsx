@@ -413,8 +413,9 @@ const SHOW_ADDSUB_V2_COL = true;
 // 隔三用一列开关
 const SHOW_ADDSUB_V3_COL = true;
 
-// 容错10 / 容错 / 交集号码 三列开关：2026-11-04 用户要求隐藏
+// 容错10 / 容错9 / 容错 / 交集号码 四列开关：2026-11-04 用户要求隐藏
 const SHOW_RC10_COL = true;
+const SHOW_RC9_COL = true;
 const SHOW_RC_COL = true;
 const SHOW_JJ_COL = true;
 
@@ -1034,6 +1035,37 @@ function FullDataTable({
     return (
       <td key="addSubV3" style={{ padding: '2px 4px', background: rec.hit ? '#e8f5e9' : '#ffebee' }}>
         {<ClickableCount count={rec.size} hit={rec.hit} numbers={getAddSubV3Numbers(poolData, index)} />}
+      </td>
+    );
+  };
+
+  // 容错9列：智取分解容错9 ∪ 博众分解容错9（包含组三）
+  const renderRongCuo9Cell = (issue) => {
+    // 计算智取分解容错9
+    const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
+    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+    const decompRc9 = decompResult && decompResult.buckets && decompResult.buckets[9] ? decompResult.buckets[9] : [];
+
+    // 计算博众分解容错9
+    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
+    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+    const bozhongRc9 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[9] ? bozhongResult.buckets[9] : [];
+
+    // 合并去重
+    const merged = [...new Set([...decompRc9, ...bozhongRc9])].sort();
+
+    if (merged.length === 0) {
+      return <td key="rc9" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+
+    // 验证当期开奖号是否在容错9中
+    const item = displayData.find(d => d.issue === issue);
+    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
+    const hit = drawNum && merged.includes(drawNum);
+
+    return (
+      <td key="rc9" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
+        {<ClickableCount count={merged.length} hit={hit} numbers={merged} />}
       </td>
     );
   };
@@ -1681,6 +1713,7 @@ function FullDataTable({
                 {SHOW_JJ_COL && <th title="智取容错0~9 ∩ 博众容错0~9（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_JIAOJI_COL && <th title="加减号码候选池 ∩ 综合列候选池；✓=在池内，✗=不在池内">交集</th>}
+                {SHOW_RC9_COL && <th title="智取分解容错9 ∪ 博众分解容错9（包含组三）；✓=在池内，✗=不在池内">容错9</th>}
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
                 {SHOW_DUANZU_RC_COL && <th title="智取断组容错3 ∪ 博众断组容错3（合并号码池）；✓=在池内，✗=不在池内">断组容错</th>}
@@ -1790,6 +1823,8 @@ function FullDataTable({
                   {SHOW_ZONGHE_COL && renderZongHeCell(item.issue)}
                   {/* 交集：加减号码候选池 ∩ 综合列候选池 */}
                   {SHOW_JIAOJI_COL && renderJiaoJiCell(item.issue, issueIndexMap.get(item.issue))}
+                  {/* 容错9：智取分解容错9 ∪ 博众分解容错9 */}
+                  {SHOW_RC9_COL && renderRongCuo9Cell(item.issue)}
                   {/* 容错10：智取分解容错10 ∪ 博众分解容错10 */}
                   {SHOW_RC10_COL && renderRongCuo10Cell(item.issue)}
                   {/* 容错：对称差集 */}
@@ -1931,6 +1966,21 @@ function FullDataTable({
                     return (
                       <td key="jiaojiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
+                      </td>
+                    );
+                  })()}
+                  {/* 容错9 - 预留行：下期容错9注数（尚未开奖，无对错） */}
+                  {SHOW_RC9_COL && (() => {
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
+                    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+                    const decompRc9 = decompResult && decompResult.buckets && decompResult.buckets[9] ? decompResult.buckets[9] : [];
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
+                    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+                    const bozhongRc9 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[9] ? bozhongResult.buckets[9] : [];
+                    const merged = [...new Set([...decompRc9, ...bozhongRc9])].sort();
+                    return (
+                      <td key="rc9Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
                       </td>
                     );
                   })()}
