@@ -468,7 +468,7 @@ function FullDataTable({
       >
         {count}注
         {copied && (
-          <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', opacity: 0.4, fontSize: 16, color: '#2e7d32', fontWeight: 900 }}>✓</span>
+          <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', fontSize: 20, color: '#c62828', fontWeight: 900, background: 'rgba(255, 200, 200, 0.85)', borderRadius: 4, padding: '0 4px', lineHeight: '24px' }}>✓</span>
         )}
       </span>
     );
