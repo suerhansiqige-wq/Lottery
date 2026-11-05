@@ -54,10 +54,12 @@ function ClickableCount({ count, hit, numbers, color }) {
 const DecompTextarea = React.memo(function DecompTextarea({ value, locked, hasData, boxW, title, kind, issue, setText, onRequestUnlock }) {
   const [localValue, setLocalValue] = useState(value);
   const textareaRef = useRef(null);
+  const prevValueRef = useRef(value);
 
-  // 当外部值变化时同步（如从 Gist 加载新数据）
+  // 仅当外部值真正变化时同步（如从 Gist 加载新数据），用户输入时不重置
   useEffect(() => {
-    if (localValue !== value) {
+    if (prevValueRef.current !== value) {
+      prevValueRef.current = value;
       setLocalValue(value);
     }
   }, [value]);
@@ -67,6 +69,7 @@ const DecompTextarea = React.memo(function DecompTextarea({ value, locked, hasDa
   }, []);
 
   const handleBlur = useCallback(() => {
+    prevValueRef.current = localValue;
     if (setText && localValue !== value) {
       setText(issue, localValue);
     }
