@@ -772,7 +772,7 @@ function FullDataTable({
       fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
     };
 
-    const filtered = computeRepeat1Numbers(issue, index);
+    const filtered = computeRepeat3Numbers(issue, index);
 
     if (filtered.length === 0) {
       return <td key="repeat3" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
