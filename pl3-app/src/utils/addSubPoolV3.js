@@ -1,4 +1,4 @@
-// 隔一用三号码：隔一期用三期（跳期模式），回溯 4L/3 期实际取 L 期
+// 隔三用一号码：隔三期用一期（跳期模式），回溯 4L 期实际取 L 期
 
 export const ADD_SUB_V3_LOOKBACK = 200;
 
@@ -24,7 +24,7 @@ SUB_PAT.forEach(v => v.sort((x, y) => x - y));
 const toStr = (n) => String(n).padStart(3, '0');
 
 // 滑动窗口统计每个索引 i 对应的候选池注数与命中情况
-// 隔一用三：周期为4，使用第0期，跳过第1、2、3期
+// 隔三用一：周期为4，跳过前3期（余数0、1、2），使用第4期（余数3）
 export function buildAddSubV3Index(data, L = ADD_SUB_V3_LOOKBACK) {
   const cAdd = new Int32Array(1000);
   const cSub = new Int32Array(1000);
@@ -58,12 +58,12 @@ export function buildAddSubV3Index(data, L = ADD_SUB_V3_LOOKBACK) {
   };
 
   const map = new Map();
-  // 隔一用三：周期为4，使用L期需要回溯4L期
-  const lookback = L * 4 / 3;
+  // 隔三用一：周期为4，使用L期需要回溯4L期
+  const lookback = L * 4;
   for (let i = 0; i < data.length; i++) {
-    // 隔一用三：周期为4，使用余数0的期，跳过余数1、2、3的期
-    if (i >= 1 && (i - 1) % 4 === 0) pushPeriod(data[i - 1]);
-    if (i - lookback - 1 >= 0 && (i - lookback - 1) % 4 === 0) popPeriod(data[i - lookback - 1]);
+    // 隔三用一：周期为4，跳过前3期（余数0、1、2），使用第4期（余数3）
+    if (i >= 1 && (i - 1) % 4 === 3) pushPeriod(data[i - 1]);
+    if (i - lookback - 1 >= 0 && (i - lookback - 1) % 4 === 3) popPeriod(data[i - lookback - 1]);
     if (i < lookback) continue;
     const t = numKey(data[i]);
     map.set(data[i].issue, { size: covered, hit: cAdd[t] + cSub[t] > 0 });
@@ -72,16 +72,16 @@ export function buildAddSubV3Index(data, L = ADD_SUB_V3_LOOKBACK) {
 }
 
 // 单期候选池号码（点复制时才现算，避免全量存字符串）
-// 隔一用三：周期为4，使用余数0的期，跳过余数1、2、3的期
+// 隔三用一：周期为4，跳过余数0、1、2，使用余数3
 export function getAddSubV3Numbers(data, targetIndex, L = ADD_SUB_V3_LOOKBACK) {
-  const lookback = L * 4 / 3;
+  const lookback = L * 4;
   if (targetIndex < lookback) return [];
   const start = targetIndex - lookback;
   const aPats = new Set();
   const sPats = new Set();
-  // 隔一用三，周期为4，使用余数0的期
+  // 隔三用一：周期为4，使用余数3的期（与buildAddSubV3Index的(i-1)%4基准一致）
   for (let j = start; j < targetIndex; j++) {
-    if (j % 4 === 0) {
+    if (j % 4 === 3) {
       aPats.add(hAddKey(data[j]));
       sPats.add(hSubKey(data[j]));
     }

@@ -24,7 +24,7 @@ SUB_PAT.forEach(v => v.sort((x, y) => x - y));
 const toStr = (n) => String(n).padStart(3, '0');
 
 // 滑动窗口统计每个索引 i 对应的候选池注数与命中情况
-// 隔一用一：周期为2，使用第0期，跳过第1期
+// 隔一用一：周期为2，跳过第1期（余数0），使用第2期（余数1）
 export function buildAddSubV2Index(data, L = ADD_SUB_V2_LOOKBACK) {
   const cAdd = new Int32Array(1000);
   const cSub = new Int32Array(1000);
@@ -61,9 +61,9 @@ export function buildAddSubV2Index(data, L = ADD_SUB_V2_LOOKBACK) {
   // 隔一用一：周期为2，使用L期需要回溯2L期
   const lookback = L * 2;
   for (let i = 0; i < data.length; i++) {
-    // 隔一用一：周期为2，使用偶数期（余数0），跳过奇数期（余数1）
-    if (i >= 1 && (i - 1) % 2 === 0) pushPeriod(data[i - 1]);
-    if (i - lookback - 1 >= 0 && (i - lookback - 1) % 2 === 0) popPeriod(data[i - lookback - 1]);
+    // 隔一用一：周期为2，跳过第1期（余数0），使用第2期（余数1）
+    if (i >= 1 && (i - 1) % 2 === 1) pushPeriod(data[i - 1]);
+    if (i - lookback - 1 >= 0 && (i - lookback - 1) % 2 === 1) popPeriod(data[i - lookback - 1]);
     if (i < lookback) continue;
     const t = numKey(data[i]);
     map.set(data[i].issue, { size: covered, hit: cAdd[t] + cSub[t] > 0 });
@@ -72,16 +72,16 @@ export function buildAddSubV2Index(data, L = ADD_SUB_V2_LOOKBACK) {
 }
 
 // 单期候选池号码（点复制时才现算，避免全量存字符串）
-// 隔一用一：周期为2，使用偶数期，跳过奇数期
+// 隔一用一：周期为2，跳过余数0，使用余数1
 export function getAddSubV2Numbers(data, targetIndex, L = ADD_SUB_V2_LOOKBACK) {
   const lookback = L * 2;
   if (targetIndex < lookback) return [];
   const start = targetIndex - lookback;
   const aPats = new Set();
   const sPats = new Set();
-  // 隔一用一，周期为2，使用偶数索引期
+  // 隔一用一：周期为2，使用余数1的期（与buildAddSubV2Index的(i-1)%2基准一致）
   for (let j = start; j < targetIndex; j++) {
-    if (j % 2 === 0) {
+    if (j % 2 === 1) {
       aPats.add(hAddKey(data[j]));
       sPats.add(hSubKey(data[j]));
     }

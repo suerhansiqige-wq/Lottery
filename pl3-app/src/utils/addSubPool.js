@@ -61,9 +61,9 @@ export function buildAddSubIndex(data, L = ADD_SUB_LOOKBACK) {
   // 需要回溯的总期数：使用 L 期，每3期用2期，所以总期数 = L * 3 / 2
   const lookback = Math.ceil(L * 3 / 2);
   for (let i = 0; i < data.length; i++) {
-    // 隔一期用二期：周期为3，使用前2期（余数0和1），跳过第3期（余数2）
-    if (i >= 1 && (i - 1) % 3 !== 2) pushPeriod(data[i - 1]);
-    if (i - lookback - 1 >= 0 && (i - lookback - 1) % 3 !== 2) popPeriod(data[i - lookback - 1]);
+    // 隔一用二：周期为3，跳过第1期（余数0），使用第2、3期（余数1和2）
+    if (i >= 1 && (i - 1) % 3 !== 0) pushPeriod(data[i - 1]);
+    if (i - lookback - 1 >= 0 && (i - lookback - 1) % 3 !== 0) popPeriod(data[i - lookback - 1]);
     if (i < lookback) continue;
     const t = numKey(data[i]);
     map.set(data[i].issue, { size: covered, hit: cAdd[t] + cSub[t] > 0 });
@@ -72,16 +72,16 @@ export function buildAddSubIndex(data, L = ADD_SUB_LOOKBACK) {
 }
 
 // 单期候选池号码（点复制时才现算，避免全量存字符串）
-// 隔一期用二期：周期为3，使用前2期，跳过第3期
+// 隔一用二：周期为3，跳过第1期（余数0），使用第2、3期（余数1和2）
 export function getAddSubNumbers(data, targetIndex, L = ADD_SUB_LOOKBACK) {
   const lookback = Math.ceil(L * 3 / 2);
   if (targetIndex < lookback) return [];
   const start = targetIndex - lookback;
   const aPats = new Set();
   const sPats = new Set();
-  // 隔一期用二期，周期为3，步长为3但取前2个（与buildAddSubIndex的k%3基准一致）
+  // 隔一用二：周期为3，跳过余数0，使用余数1和2（与buildAddSubIndex的(i-1)%3基准一致）
   for (let j = start; j < targetIndex; j++) {
-    if (j % 3 !== 2) {
+    if (j % 3 !== 0) {
       aPats.add(hAddKey(data[j]));
       sPats.add(hSubKey(data[j]));
     }
