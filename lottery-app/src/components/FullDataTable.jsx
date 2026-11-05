@@ -463,7 +463,7 @@ function FullDataTable({
     return (
       <span
         onClick={() => handleCopy(copyKey, numbers)}
-        style={{ fontWeight: 800, color: baseColor, cursor: 'pointer', position: 'relative', userSelect: 'none', display: 'inline-block' }}
+        style={{ fontWeight: 800, fontSize: 13, color: baseColor, cursor: 'pointer', position: 'relative', userSelect: 'none', display: 'inline-block' }}
         title="点击复制号码"
       >
         {count}注
