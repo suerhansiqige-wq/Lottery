@@ -175,7 +175,7 @@ const HJS_COLS = [
 const SHOW_HJS_COLS = true;
 
 // 生号/连号/必出号 三列开关：2026-11-04 用户要求隐藏
-const SHOW_SLBC_COLS = true;
+const SHOW_SLBC_COLS = false;
 
 // 加减号码列开关：2026-11-04 用户要求删除
 const SHOW_ADDSUB_COL = true;
