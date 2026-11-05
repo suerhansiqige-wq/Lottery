@@ -1765,8 +1765,8 @@ function FullDataTable({
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
                 {SHOW_DUANZU_RC_COL && <th title="智取断组容错3 ∪ 博众断组容错3（合并号码池）；✓=在池内，✗=不在池内">断组容错</th>}
-                {SHOW_ZJZJ_COL && <th title="交集号码 - 容错列 - 容错10列（分解组号）；✓=在池内，✗=不在池内">分解组号</th>}
                 {SHOW_ZJZJ_COL && <th title="加减号码/交集号码/综合/交集/分解组号五列中恰好出现3次的号码；✓=在池内，✗=不在池内">重复3次</th>}
+                {SHOW_ZJZJ_COL && <th title="交集号码 - 容错列 - 容错10列（分解组号）；✓=在池内，✗=不在池内">分解组号</th>}
                 {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
                 {/* 参考一/参考二/胆码三列表头已彻底删除 - 用户要求 */}
                 {/* 智取分解 / 博众分解 两列（表格最右侧，与福彩3D 同位置逻辑） */}
@@ -1872,10 +1872,10 @@ function FullDataTable({
                   {SHOW_RC_COL && renderRongCuoCell(item.issue)}
                   {/* 断组容错：智取断组容错3 ∪ 博众断组容错3 */}
                   {SHOW_DUANZU_RC_COL && renderDuanZuRongCuoCell(item.issue)}
+                  {/* 重复3次：五列中恰好出现3次的号码 */}
+                  {SHOW_ZJZJ_COL && renderRepeat3Cell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 祝君中奖：交集号码 - 容错列 - 容错10列 */}
                   {SHOW_ZJZJ_COL && renderZhuJunZhongJiangCell(item.issue)}
-                  {/* 重复3次：五列中出现≥3次的号码 */}
-                  {SHOW_ZJZJ_COL && renderRepeat3Cell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 断组334：012/345/6789 断1组 */}
                   {SHOW_DUANZU_COL && renderDuanZuCell(item.issue)}
                   {/* 参考一/参考二/胆码三列单元格已彻底删除 - 用户要求 */}
@@ -2175,6 +2175,30 @@ function FullDataTable({
                       </td>
                     );
                   })()}
+                  {/* 重复3次 - 预留行：下期五列重复恰好3次号码 + 复制（尚未开奖，无对错） */}
+                  {SHOW_ZJZJ_COL && (() => {
+                    const cpd = copiedIssues.has('repeat3_next_' + nextIssue);
+                    const filtered = computeRepeat3Numbers(nextIssue, poolData.length);
+                    return (
+                      <td key="repeat3Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{filtered.length}注</span>
+                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
+                          <button
+                            style={{
+                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
+                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+                            }}
+                            onClick={() => handleCopy('repeat3_next_' + nextIssue, filtered)}
+                          >
+                            {cpd ? '✓' : '复制'}
+                          </button>
+                        </div>
+                      </td>
+                    );
+                  })()}
                   {/* 祝君中奖 - 预留行：下期祝君中奖注数 + 复制（尚未开奖，无对错） */}
                   {SHOW_ZJZJ_COL && (() => {
                     const cpd = copiedIssues.has('zjzj_next_' + nextIssue);
@@ -2192,30 +2216,6 @@ function FullDataTable({
                               fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
                             }}
                             onClick={() => handleCopy('zjzj_next_' + nextIssue, filtered)}
-                          >
-                            {cpd ? '✓' : '复制'}
-                          </button>
-                        </div>
-                      </td>
-                    );
-                  })()}
-                  {/* 重复3次 - 预留行：下期五列重复≥3次号码 + 复制（尚未开奖，无对错） */}
-                  {SHOW_ZJZJ_COL && (() => {
-                    const cpd = copiedIssues.has('repeat3_next_' + nextIssue);
-                    const filtered = computeRepeat3Numbers(nextIssue, poolData.length);
-                    return (
-                      <td key="repeat3Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-                          <span style={{ fontWeight: 800, color: '#1b5e20' }}>{filtered.length}注</span>
-                          <span style={{ fontWeight: 700, fontSize: 12, color: '#78909c' }}>待开奖</span>
-                          <button
-                            style={{
-                              fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                              border: `1px solid ${cpd ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                              background: cpd ? '#c8e6c9' : '#fff', color: cpd ? '#1b5e20' : '#555',
-                              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-                            }}
-                            onClick={() => handleCopy('repeat3_next_' + nextIssue, filtered)}
                           >
                             {cpd ? '✓' : '复制'}
                           </button>
