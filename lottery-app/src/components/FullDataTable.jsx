@@ -3,6 +3,7 @@ import { parseDecompGroups, verifyDraw, computeRongCuo } from '../utils/decompRo
 import { verifyDuanZuDraw, computeDuanZuRongCuo } from '../utils/duanZuRongCuo.js'
 import { ADD_SUB_LOOKBACK, buildAddSubIndex, getAddSubNumbers } from '../utils/addSubPool.js'
 import { ADD_SUB_V2_LOOKBACK, buildAddSubV2Index, getAddSubV2Numbers } from '../utils/addSubPoolV2.js'
+import { ADD_SUB_V3_LOOKBACK, buildAddSubV3Index, getAddSubV3Numbers } from '../utils/addSubPoolV3.js'
 import { generateByBrokenGroups } from '../utils/brokenGroup.js'
 
 // ============================================================
@@ -183,6 +184,9 @@ const SHOW_ADDSUB_COL = true;
 
 // 隔一用一列开关
 const SHOW_ADDSUB_V2_COL = true;
+
+// 隔一用三列开关
+const SHOW_ADDSUB_V3_COL = true;
 
 // 容错10 / 容错 / 交集号码 三列开关：2026-11-04 用户要求隐藏
 const SHOW_RC10_COL = true;
@@ -520,6 +524,7 @@ function FullDataTable({
   }, [fullData, data]);
   const addSubIndex = useMemo(() => buildAddSubIndex(poolData), [poolData]);
   const addSubV2Index = useMemo(() => buildAddSubV2Index(poolData), [poolData]);
+  const addSubV3Index = useMemo(() => buildAddSubV3Index(poolData), [poolData]);
   const issueIndexMap = useMemo(() => {
     const m = new Map();
     poolData.forEach((d, i) => { if (!m.has(d.issue)) m.set(d.issue, i); });
@@ -528,6 +533,7 @@ function FullDataTable({
   // 下期预留行：用最后一期往前200期建池，尚无开奖号故只出注数与复制，不出对错
   const tailAddSubNumbers = useMemo(() => getAddSubNumbers(poolData, poolData.length), [poolData]);
   const tailAddSubV2Numbers = useMemo(() => getAddSubV2Numbers(poolData, poolData.length), [poolData]);
+  const tailAddSubV3Numbers = useMemo(() => getAddSubV3Numbers(poolData, poolData.length), [poolData]);
 
   // 计算任意期号的综合列候选池：交集号码 - 容错列（对称差集） - 容错10列
   const computeZongHeNumbers = (issue) => {
@@ -845,6 +851,19 @@ function FullDataTable({
     return (
       <td key="addSubV2" style={{ padding: '2px 4px', background: rec.hit ? '#e8f5e9' : '#ffebee' }}>
         {renderClickableCount(rec.size, rec.hit, 'v2_' + issue, getAddSubV2Numbers(poolData, index))}
+      </td>
+    );
+  };
+
+  const renderAddSubV3Cell = (issue, index) => {
+    if (!SHOW_ADDSUB_V3_COL) return null;
+    const rec = addSubV3Index.get(issue);
+    if (!rec) {
+      return <td key="addSubV3" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+    return (
+      <td key="addSubV3" style={{ padding: '2px 4px', background: rec.hit ? '#e8f5e9' : '#ffebee' }}>
+        {renderClickableCount(rec.size, rec.hit, 'v3_' + issue, getAddSubV3Numbers(poolData, index))}
       </td>
     );
   };
@@ -1304,6 +1323,7 @@ function FullDataTable({
                 {SHOW_SLBC_COLS && <th>必出号</th>}
                 {SHOW_ADDSUB_COL && <th title={`用其前${ADD_SUB_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>隔一用二</th>}
                 {SHOW_ADDSUB_V2_COL && <th title={`隔一期用一期（周期2取1），用其前${ADD_SUB_V2_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>隔一用一</th>}
+                {SHOW_ADDSUB_V3_COL && <th title={`隔一期用三期（周期4取1），用其前${ADD_SUB_V3_LOOKBACK}期的横相加∪横相减候选号码验证当期开奖号；✓=在池内，✗=不在池内`}>隔一用三</th>}
                 {SHOW_JJ_COL && <th title="智取容错0~9 ∩ 博众容错0~9（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_JIAOJI_COL && <th title="加减号码候选池 ∩ 综合列候选池；✓=在池内，✗=不在池内">交集</th>}
@@ -1405,6 +1425,8 @@ function FullDataTable({
                   {renderAddSubCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 隔一用一：隔一期用一期，前200期横相加∪横相减候选池注数 + 对错 + 复制 */}
                   {renderAddSubV2Cell(item.issue, issueIndexMap.get(item.issue))}
+                  {/* 隔一用三：隔一期用三期，前200期横相加∪横相减候选池注数 + 对错 + 复制 */}
+                  {renderAddSubV3Cell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 交集号码：智取容错0~9 ∩ 博众容错0~9 */}
                   {SHOW_JJ_COL && renderJiJiaoCell(item.issue)}
                   {/* 综合：交集号码 - 容错列 - 容错10列 */}
@@ -1474,6 +1496,12 @@ function FullDataTable({
                   {SHOW_ADDSUB_V2_COL && (
                     <td key="addSubV2Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                       {renderClickableCount(tailAddSubV2Numbers.length, null, 'v2_next_' + nextIssue, tailAddSubV2Numbers, '#1b5e20')}
+                    </td>
+                  )}
+                  {/* 隔一用三 - 预留行：下期候选池注数（尚未开奖，无对错） */}
+                  {SHOW_ADDSUB_V3_COL && (
+                    <td key="addSubV3Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                      {renderClickableCount(tailAddSubV3Numbers.length, null, 'v3_next_' + nextIssue, tailAddSubV3Numbers, '#1b5e20')}
                     </td>
                   )}
                   {/* 交集号码 - 预留行：下期交集注数（尚未开奖，无对错） */}
