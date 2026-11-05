@@ -629,7 +629,7 @@ function FullDataTable({
       .sort();
   };
 
-  // 重复3次：五列（加减号码/交集号码/综合/交集/分解组号）中出现≥3次的号码
+  // 重复3次：五列（加减号码/交集号码/综合/交集/分解组号）中恰好出现3次的号码
   const computeRepeat3Numbers = (issue, index) => {
     if (!issue) return [];
     const cols = [];
@@ -691,7 +691,7 @@ function FullDataTable({
       for (const n of seen) { freq[n] = (freq[n] || 0) + 1; }
     }
     return Object.entries(freq)
-      .filter(([, count]) => count >= 3)
+      .filter(([, count]) => count === 3)
       .map(([n]) => n)
       .sort();
   };
@@ -1453,7 +1453,7 @@ function FullDataTable({
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
                 {SHOW_DUANZU_RC_COL && <th title="智取断组容错3 ∪ 博众断组容错3（合并号码池）；✓=在池内，✗=不在池内">断组容错</th>}
                 {SHOW_ZJZJ_COL && <th title="交集号码 - 容错列 - 容错10列（分解组号）；✓=在池内，✗=不在池内">分解组号</th>}
-                {SHOW_ZJZJ_COL && <th title="加减号码/交集号码/综合/交集/分解组号五列中出现≥3次的号码；✓=在池内，✗=不在池内">重复3次</th>}
+                {SHOW_ZJZJ_COL && <th title="加减号码/交集号码/综合/交集/分解组号五列中恰好出现3次的号码；✓=在池内，✗=不在池内">重复3次</th>}
                 {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
                 {/* 智取分解 / 博众分解 两列 */}
                 {DECOMP_COLS.map(c => (
