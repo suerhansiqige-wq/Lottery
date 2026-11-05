@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { getFrequencyStats } from '../data/lotteryData.js'
+import { getFrequencyStats } from '../data/lotteryDataOptimized.js'
 
 function FrequencyChart({ data }) {
   const stats = useMemo(() => getFrequencyStats(data), [data])

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { getSumDistribution } from '../data/lotteryData.js'
+import { getSumDistribution } from '../data/lotteryDataOptimized.js'
 
 function SumAnalysis({ data }) {
   const sumDist = useMemo(() => getSumDistribution(data), [data])

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { getHAddSubRecovery } from '../data/lotteryData.js'
+import { getHAddSubRecovery } from '../data/lotteryDataOptimized.js'
 
 function HAddSubAnalysis({ data }) {
   const recovery = useMemo(() => getHAddSubRecovery(data), [data])

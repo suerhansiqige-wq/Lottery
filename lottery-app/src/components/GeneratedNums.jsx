@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { getRecentGeneratedNums } from '../data/lotteryData.js'
+import { getRecentGeneratedNums } from '../data/lotteryDataOptimized.js'
 
 function GeneratedNums({ data }) {
   const recent = data.slice(-15).reverse()

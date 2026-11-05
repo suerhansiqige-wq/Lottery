@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { getMissingNumbers } from '../data/lotteryData.js'
+import { getMissingNumbers } from '../data/lotteryDataOptimized.js'
 
 function MissingAnalysis({ data }) {
   const missing = useMemo(() => getMissingNumbers(data, data.length), [data])

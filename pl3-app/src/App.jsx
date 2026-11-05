@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
-import { lotteryData as staticLotteryData, enrichData } from './data/lotteryData.js'
+import { lotteryData as staticLotteryData, enrichData } from './data/lotteryDataOptimized.js'
 import decompositionData from './data/decompositionData.json'
 import bozhongData from './data/bozhongData.json'
 import { parseDecompGroups, computeRongCuo } from './utils/decompRongCuo.js'

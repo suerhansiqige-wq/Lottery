@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { getVAddSubRecovery } from '../data/lotteryData.js'
+import { getVAddSubRecovery } from '../data/lotteryDataOptimized.js'
 
 function VAddSubAnalysis({ data }) {
   const recovery = useMemo(() => getVAddSubRecovery(data), [data])

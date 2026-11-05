@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
-import { lotteryData as staticLotteryData } from './data/lotteryData.js'
+import { lotteryData as staticLotteryData } from './data/lotteryDataOptimized.js'
 import { enrichData } from './data/enrichDataOptimized.js'
 import decompositionData from './data/decompositionData.json'
 import bozhongData from './data/bozhongData.json'
