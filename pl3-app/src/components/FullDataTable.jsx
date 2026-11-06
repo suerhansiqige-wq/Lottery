@@ -827,7 +827,7 @@ function FullDataTable({
     const bozhongZu6 = [];
     const bozhongZu3 = [];
     if (bozhongResult && bozhongResult.buckets) {
-      for (let i = 1; i <= 9; i++) {
+      for (let i = 2; i <= 8; i++) {
         if (bozhongResult.buckets[i]) bozhongZu6.push(...bozhongResult.buckets[i]);
       }
       for (let i = 2; i <= 12; i++) {
@@ -1164,13 +1164,13 @@ function FullDataTable({
       }
     }
 
-    // 计算博众分解容错（组六1~9，组三2~12）
+    // 计算博众分解容错（组六2~8，组三2~12）
     const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-    const bozhongZu6 = []; // 组六池 1~9
+    const bozhongZu6 = []; // 组六池 2~8
     const bozhongZu3 = []; // 组三池 2~12
     if (bozhongResult && bozhongResult.buckets) {
-      for (let i = 1; i <= 9; i++) {
+      for (let i = 2; i <= 8; i++) {
         if (bozhongResult.buckets[i]) bozhongZu6.push(...bozhongResult.buckets[i]);
       }
       for (let i = 2; i <= 12; i++) {
@@ -1178,7 +1178,7 @@ function FullDataTable({
       }
     }
 
-    // 交集号码列 = 智取容错 ∩ 博众容错（组六均1~9，组三均2~12）
+    // 交集号码列 = 智取容错 ∩ 博众容错（智取组六1~9，博众组六2~8，组三均2~12）
     const decompZu6Set = new Set(decompZu6);
     const bozhongZu6Set = new Set(bozhongZu6);
     const decompZu3Set = new Set(decompZu3);
