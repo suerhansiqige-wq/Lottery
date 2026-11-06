@@ -1970,9 +1970,10 @@ function FullDataTable({
                       {<ClickableCount count={tailAddSubNumbersPro.length} hit={null} numbers={tailAddSubNumbersPro} color="#1b5e20" />}
                     </td>
                   )}
-                  {/* 交集号码 - 预留行：下期交集注数（尚未开奖，无对错） */}
+                  {/* 交集号码 - 预留行：继承最后一期分解数据计算交集注数 */}
                   {SHOW_JJ_COL && (() => {
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
+                    const lastIssue = lastItem?.issue;
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[lastIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompZu6 = [];
                     const decompZu3 = [];
@@ -1984,7 +1985,7 @@ function FullDataTable({
                         if (decompResult.buckets[i]) decompZu3.push(...decompResult.buckets[i]);
                       }
                     }
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[lastIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
                     const bozhongZu6 = [];
                     const bozhongZu3 = [];
@@ -2019,9 +2020,10 @@ function FullDataTable({
                       </td>
                     );
                   })()}
-                  {/* 交集 - 预留行：下期交集注数（尚未开奖，无对错） */}
+                  {/* 交集 - 预留行：继承最后一期数据计算交集注数 */}
                   {SHOW_JIAOJI_COL && (() => {
-                    const zongHe = computeZongHeNumbers(nextIssue);
+                    const lastIssue = lastItem?.issue;
+                    const zongHe = computeZongHeNumbers(lastIssue);
                     const addSubSet = new Set(tailAddSubNumbersPro);
                     const filtered = zongHe.filter(n => addSubSet.has(n));
                     return (
@@ -2030,12 +2032,13 @@ function FullDataTable({
                       </td>
                     );
                   })()}
-                  {/* 容错9 - 预留行：下期容错8注数（尚未开奖，无对错） */}
+                  {/* 容错9 - 预留行：继承最后一期分解数据计算容错8注数 */}
                   {SHOW_RC9_COL && (() => {
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
+                    const lastIssue = lastItem?.issue;
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[lastIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompRc8 = decompResult && decompResult.buckets && decompResult.buckets[8] ? decompResult.buckets[8] : [];
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[lastIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
                     const bozhongRc8 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[8] ? bozhongResult.buckets[8] : [];
                     const merged = [...new Set([...decompRc8, ...bozhongRc8])].sort();
@@ -2045,12 +2048,13 @@ function FullDataTable({
                       </td>
                     );
                   })()}
-                  {/* 容错10 - 预留行：下期容错10注数（尚未开奖，无对错） */}
+                  {/* 容错10 - 预留行：继承最后一期分解数据计算容错10注数 */}
                   {SHOW_RC10_COL && (() => {
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
+                    const lastIssue = lastItem?.issue;
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[lastIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompRc10 = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[lastIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
                     const bozhongRc10 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
                     const merged = [...new Set([...decompRc10, ...bozhongRc10])].sort();
@@ -2060,9 +2064,10 @@ function FullDataTable({
                       </td>
                     );
                   })()}
-                  {/* 容错 - 预留行：下期对称差集注数（尚未开奖，无对错） */}
+                  {/* 容错 - 预留行：继承最后一期分解数据计算对称差集注数 */}
                   {SHOW_RC_COL && (() => {
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
+                    const lastIssue = lastItem?.issue;
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[lastIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompRc12 = [];
                     if (decompResult && decompResult.buckets) {
@@ -2070,7 +2075,7 @@ function FullDataTable({
                         if (decompResult.buckets[i]) decompRc12.push(...decompResult.buckets[i]);
                       }
                     }
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[lastIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
                     const bozhongRc12 = [];
                     if (bozhongResult && bozhongResult.buckets) {
@@ -2198,27 +2203,28 @@ function FullDataTable({
                       </td>
                     );
                   })()}
-                  {/* 断组容错 - 预留行：下期断组容错注数（尚未开奖，无对错） */}
+                  {/* 断组容错 - 预留行：继承最后一期断组数据计算容错注数 */}
                   {SHOW_DUANZU_RC_COL && (() => {
-                    const zqText = (duanZuZQTexts && duanZuZQTexts[nextIssue]) || '';
-                    const bzText = (duanZuBZTexts && duanZuBZTexts[nextIssue]) || '';
+                    const lastIssue = lastItem?.issue;
+                    const zqText = (duanZuZQTexts && duanZuZQTexts[lastIssue]) || '';
+                    const bzText = (duanZuBZTexts && duanZuBZTexts[lastIssue]) || '';
                     const zqGroups = parseDuanZuGroups(zqText);
                     const bzGroups = parseDuanZuGroups(bzText);
-                    let zqRongCuo2 = [];
-                    let bzRongCuo2 = [];
+                    let zqRongCuo4 = [];
+                    let bzRongCuo4 = [];
                     if (zqGroups.length > 0 && zqGroups[0].groups.length > 0) {
                       const zqResult = computeDuanZuRongCuo(zqGroups);
-                      if (zqResult.levels && zqResult.levels.length >= 2) {
-                        zqRongCuo2 = zqResult.levels[1].numbers || [];
+                      if (zqResult.levels && zqResult.levels.length >= 4) {
+                        zqRongCuo4 = zqResult.levels[3].numbers || [];
                       }
                     }
                     if (bzGroups.length > 0 && bzGroups[0].groups.length > 0) {
                       const bzResult = computeDuanZuRongCuo(bzGroups);
-                      if (bzResult.levels && bzResult.levels.length >= 2) {
-                        bzRongCuo2 = bzResult.levels[1].numbers || [];
+                      if (bzResult.levels && bzResult.levels.length >= 4) {
+                        bzRongCuo4 = bzResult.levels[3].numbers || [];
                       }
                     }
-                    const merged = Array.from(new Set([...zqRongCuo2, ...bzRongCuo2])).sort();
+                    const merged = Array.from(new Set([...zqRongCuo4, ...bzRongCuo4])).sort();
                     return (
                       <td key="duanzurcNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
@@ -2227,7 +2233,7 @@ function FullDataTable({
                   })()}
                   {/* 交集容错 - 预留行：下期交集容错注数（尚未开奖，无对错） */}
                   {SHOW_JJRONGCUO_COL && (() => {
-                    const filtered = computeZhuJunZhongJiangNumbers(nextIssue);
+                    const filtered = computeZhuJunZhongJiangNumbers(lastItem?.issue);
                     return (
                       <td key="jjrongcuoNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
@@ -2236,7 +2242,7 @@ function FullDataTable({
                   })()}
                   {/* 综合 - 预留行：下期综合注数（尚未开奖，无对错） */}
                   {SHOW_ZONGHE_COL && (() => {
-                    const filtered = computeZongHeNumbers(nextIssue);
+                    const filtered = computeZongHeNumbers(lastItem?.issue);
                     return (
                       <td key="zhNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
