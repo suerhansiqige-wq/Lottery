@@ -710,7 +710,7 @@ function FullDataTable({
       .sort();
   };
 
-  // 重复3次：五列（加减号码/交集号码/综合/交集/交集容错）中恰好出现3次的号码
+  // 重复3次：四列（加减号码/交集号码/综合/交集）中恰好出现3次的号码
   const computeRepeat3Numbers = (issue, index) => {
     if (!issue) return [];
     const cols = [];
@@ -761,10 +761,6 @@ function FullDataTable({
     const jiaoJiNumbers = decompRc0_9.filter(n => bozhongRcSet.has(n));
     if (jiaoJiNumbers.length > 0) cols.push(jiaoJiNumbers);
 
-    // 5. 交集容错
-    const zjzj = computeZhuJunZhongJiangNumbers(issue);
-    if (zjzj.length > 0) cols.push(zjzj);
-
     // 统计每个号码出现在几列中
     const freq = {};
     for (const col of cols) {
@@ -777,7 +773,7 @@ function FullDataTable({
       .sort();
   };
 
-  // 重复1次：五列（加减号码/交集号码/综合/交集/交集容错）中恰好出现1次的号码
+  // 重复1次：四列（加减号码/交集号码/综合/交集）中恰好出现1次的号码
   const computeRepeat1Numbers = (issue, index) => {
     if (!issue) return [];
     const cols = [];
@@ -828,10 +824,6 @@ function FullDataTable({
     const jiaoJiNumbers = decompRc0_9.filter(n => bozhongRcSet.has(n));
     if (jiaoJiNumbers.length > 0) cols.push(jiaoJiNumbers);
 
-    // 5. 交集容错
-    const zjzj = computeZhuJunZhongJiangNumbers(issue);
-    if (zjzj.length > 0) cols.push(zjzj);
-
     // 统计每个号码出现在几列中
     const freq = {};
     for (const col of cols) {
@@ -862,7 +854,7 @@ function FullDataTable({
     );
   };
 
-  // 重复组号：五列中恰好出现1次的号码（仅显示注数+复制打勾）
+  // 重复组号：四列中恰好出现1次的号码（仅显示注数+复制打勾）
   const renderRepeatGroupCell = (issue, index) => {
     const filtered = computeRepeat1Numbers(issue, index);
 
@@ -1423,8 +1415,8 @@ function FullDataTable({
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_DUANZU_RC_COL && <th title="智取断组容错3 ∪ 博众断组容错3（合并号码池）；✓=在池内，✗=不在池内">断组容错</th>}
-                {SHOW_JJRONGCUO_COL && <th title="加减号码/交集号码/综合/交集/交集容错五列中恰好出现3次的号码；✓=在池内，✗=不在池内">重复3次</th>}
-                {SHOW_JJRONGCUO_COL && <th title="五列中恰好出现1次的号码（重复1次）；✓=在池内，✗=不在池内">重复1次</th>}
+                {SHOW_JJRONGCUO_COL && <th title="加减号码/交集号码/综合/交集四列中恰好出现3次的号码；✓=在池内，✗=不在池内">重复3次</th>}
+                {SHOW_JJRONGCUO_COL && <th title="四列中恰好出现1次的号码（重复1次）；✓=在池内，✗=不在池内">重复1次</th>}
                 {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
                 {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
                 {/* 智取分解 / 博众分解 两列 */}
@@ -1536,9 +1528,9 @@ function FullDataTable({
                   {SHOW_ZONGHE_COL && renderZongHeCell(item.issue)}
                   {/* 断组容错：智取断组容错2 ∪ 博众断组容错2 */}
                   {SHOW_DUANZU_RC_COL && renderDuanZuRongCuoCell(item.issue)}
-                  {/* 重复3次：五列中恰好出现3次的号码 */}
+                  {/* 重复3次：四列中恰好出现3次的号码 */}
                   {SHOW_JJRONGCUO_COL && renderRepeat3Cell(item.issue, issueIndexMap.get(item.issue))}
-                  {/* 重复组号：显示五列中恰好出现3次的实际号码 */}
+                  {/* 重复组号：显示四列中恰好出现3次的实际号码 */}
                   {SHOW_JJRONGCUO_COL && renderRepeatGroupCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 交集容错：交集号码 - 容错列 - 容错10列 */}
                   {SHOW_JJRONGCUO_COL && renderJiJiaoRongCuoCell(item.issue)}
@@ -1757,7 +1749,7 @@ function FullDataTable({
                       </td>
                     );
                   })()}
-                  {/* 重复3次 - 预留行：下期五列重复恰好3次号码（尚未开奖，无对错） */}
+                  {/* 重复3次 - 预留行：下期四列重复恰好3次号码（尚未开奖，无对错） */}
                   {SHOW_JJRONGCUO_COL && (() => {
                     const filtered = computeRepeat3Numbers(nextIssue, poolData.length);
                     return (
@@ -1766,7 +1758,7 @@ function FullDataTable({
                       </td>
                     );
                   })()}
-                  {/* 重复组号 - 预留行：下期五列重复恰好1次号码注数（尚未开奖，无对错） */}
+                  {/* 重复组号 - 预留行：下期四列重复恰好1次号码注数（尚未开奖，无对错） */}
                   {SHOW_JJRONGCUO_COL && (() => {
                     const filtered = computeRepeat1Numbers(nextIssue, poolData.length);
                     return (
