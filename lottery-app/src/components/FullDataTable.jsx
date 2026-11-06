@@ -710,20 +710,20 @@ function FullDataTable({
     );
   };
 
-  // 容错9列：智取分解容错9 ∪ 博众分解容错9（包含组三）
+  // 容错9列：智取分解容错11 ∪ 博众分解容错11（包含组三）
   const renderRongCuo9Cell = (issue) => {
-    // 计算智取分解容错9
+    // 计算智取分解容错11
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-    const decompRc9 = decompResult && decompResult.buckets && decompResult.buckets[9] ? decompResult.buckets[9] : [];
+    const decompRc11 = decompResult && decompResult.buckets && decompResult.buckets[11] ? decompResult.buckets[11] : [];
 
-    // 计算博众分解容错9
+    // 计算博众分解容错11
     const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-    const bozhongRc9 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[9] ? bozhongResult.buckets[9] : [];
+    const bozhongRc11 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[11] ? bozhongResult.buckets[11] : [];
 
     // 合并去重
-    const merged = [...new Set([...decompRc9, ...bozhongRc9])].sort();
+    const merged = [...new Set([...decompRc11, ...bozhongRc11])].sort();
 
     if (merged.length === 0) {
       return <td key="rc9" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
@@ -1206,7 +1206,7 @@ function FullDataTable({
                 {SHOW_ADDSUB_PRO_COL && <th title={`隔一用二增强：横向得票≥1 + 和值出现≥12次，命中率~93%，~930注；✓=在池内，✗=不在池内`}>增强93.1%</th>}
                 {SHOW_JJ_COL && <th title="智取容错0~9 ∩ 博众容错0~9（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
                 {SHOW_JIAOJI_COL && <th title="加减号码候选池 ∩ 综合列候选池；✓=在池内，✗=不在池内">交集</th>}
-                {SHOW_RC9_COL && <th title="智取分解容错9 ∪ 博众分解容错9（包含组三）；✓=在池内，✗=不在池内">容错9</th>}
+                {SHOW_RC9_COL && <th title="智取分解容错11 ∪ 博众分解容错11（包含组三）；✓=在池内，✗=不在池内">容错9</th>}
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
@@ -1308,7 +1308,7 @@ function FullDataTable({
                   {SHOW_JJ_COL && renderJiJiaoCell(item.issue)}
                   {/* 交集：加减号码候选池 ∩ 综合列候选池 */}
                   {SHOW_JIAOJI_COL && renderJiaoJiCell(item.issue, issueIndexMap.get(item.issue))}
-                  {/* 容错9：智取分解容错9 ∪ 博众分解容错9 */}
+                  {/* 容错9：智取分解容错11 ∪ 博众分解容错11 */}
                   {SHOW_RC9_COL && renderRongCuo9Cell(item.issue)}
                   {/* 容错10：智取分解容错10 ∪ 博众分解容错10 */}
                   {SHOW_RC10_COL && renderRongCuo10Cell(item.issue)}
@@ -1427,15 +1427,15 @@ function FullDataTable({
                       </td>
                     );
                   })()}
-                  {/* 容错9 - 预留行：下期容错9注数（尚未开奖，无对错） */}
+                  {/* 容错9 - 预留行：下期容错11注数（尚未开奖，无对错） */}
                   {SHOW_RC9_COL && (() => {
                     const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-                    const decompRc9 = decompResult && decompResult.buckets && decompResult.buckets[9] ? decompResult.buckets[9] : [];
+                    const decompRc11 = decompResult && decompResult.buckets && decompResult.buckets[11] ? decompResult.buckets[11] : [];
                     const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-                    const bozhongRc9 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[9] ? bozhongResult.buckets[9] : [];
-                    const merged = [...new Set([...decompRc9, ...bozhongRc9])].sort();
+                    const bozhongRc11 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[11] ? bozhongResult.buckets[11] : [];
+                    const merged = [...new Set([...decompRc11, ...bozhongRc11])].sort();
                     return (
                       <td key="rc9Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
