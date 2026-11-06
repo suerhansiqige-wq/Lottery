@@ -1,7 +1,8 @@
 // 加减号码：隔一期用二期（跳期模式），回溯 3L/2 期实际取 L 期
-// 改进版：增加竖相加/竖相减/和值模式，提高命中率
+// 投票评分制：5种模式投票，只保留得票≥3的号码
 
 export const ADD_SUB_LOOKBACK = 200;
+export const MIN_VOTES = 3; // 最少得票数（3~5可调，越大注数越少越精准）
 
 // 横相加/横相减（同原有逻辑）
 const hAddKey = (d) => ((d.d1 + d.d2) % 10) * 100 + ((d.d2 + d.d3) % 10) * 10 + ((d.d1 + d.d3) % 10);
@@ -64,14 +65,9 @@ SUM_PAT.forEach(v => v.sort((x, y) => x - y));
 
 const toStr = (n) => String(n).padStart(3, '0');
 
-// 滑动窗口统计每个索引 i 对应的候选池注数与命中情况
-// 隔一期用二期：使用2期，跳过1期，周期为3
+// 滑动窗口统计：每个号码的得票数（0~5）
 export function buildAddSubIndex(data, L = ADD_SUB_LOOKBACK) {
-  const cAdd = new Int32Array(1000);
-  const cSub = new Int32Array(1000);
-  const cVAdd = new Int32Array(1000);
-  const cVSub = new Int32Array(1000);
-  const cSum = new Int32Array(1000);
+  const votes = new Int32Array(1000);
   const pAdd = new Int32Array(1000);
   const pSub = new Int32Array(1000);
   const pVAdd = new Int32Array(1000);
@@ -79,78 +75,46 @@ export function buildAddSubIndex(data, L = ADD_SUB_LOOKBACK) {
   const pSum = new Int32Array(28);
   let covered = 0;
 
-  const bumpAdd = (n, delta) => {
-    const before = cAdd[n] + cSub[n] + cVAdd[n] + cVSub[n] + cSum[n] > 0;
-    cAdd[n] += delta;
-    const after = cAdd[n] + cSub[n] + cVAdd[n] + cVSub[n] + cSum[n] > 0;
-    if (before !== after) covered += after ? 1 : -1;
-  };
-  const bumpSub = (n, delta) => {
-    const before = cAdd[n] + cSub[n] + cVAdd[n] + cVSub[n] + cSum[n] > 0;
-    cSub[n] += delta;
-    const after = cAdd[n] + cSub[n] + cVAdd[n] + cVSub[n] + cSum[n] > 0;
-    if (before !== after) covered += after ? 1 : -1;
-  };
-  const bumpVAdd = (n, delta) => {
-    const before = cAdd[n] + cSub[n] + cVAdd[n] + cVSub[n] + cSum[n] > 0;
-    cVAdd[n] += delta;
-    const after = cAdd[n] + cSub[n] + cVAdd[n] + cVSub[n] + cSum[n] > 0;
-    if (before !== after) covered += after ? 1 : -1;
-  };
-  const bumpVSub = (n, delta) => {
-    const before = cAdd[n] + cSub[n] + cVAdd[n] + cVSub[n] + cSum[n] > 0;
-    cVSub[n] += delta;
-    const after = cAdd[n] + cSub[n] + cVAdd[n] + cVSub[n] + cSum[n] > 0;
-    if (before !== after) covered += after ? 1 : -1;
-  };
-  const bumpSum = (n, delta) => {
-    const before = cAdd[n] + cSub[n] + cVAdd[n] + cVSub[n] + cSum[n] > 0;
-    cSum[n] += delta;
-    const after = cAdd[n] + cSub[n] + cVAdd[n] + cVSub[n] + cSum[n] > 0;
+  const bumpVote = (n, delta) => {
+    const before = votes[n] >= MIN_VOTES;
+    votes[n] += delta;
+    const after = votes[n] >= MIN_VOTES;
     if (before !== after) covered += after ? 1 : -1;
   };
 
   const pushPeriod = (d, prev) => {
-    // 横相加/横相减
     const ak = hAddKey(d);
-    if (pAdd[ak]++ === 0) for (const n of ADD_PAT.get(ak)) bumpAdd(n, 1);
+    if (pAdd[ak]++ === 0) for (const n of ADD_PAT.get(ak)) bumpVote(n, 1);
     const sk = hSubKey(d);
-    if (pSub[sk]++ === 0) for (const n of SUB_PAT.get(sk)) bumpSub(n, 1);
-    // 竖相加/竖相减（需要上期数据）
+    if (pSub[sk]++ === 0) for (const n of SUB_PAT.get(sk)) bumpVote(n, 1);
     if (prev) {
       const vak = vAddKey(d, prev);
-      if (pVAdd[vak]++ === 0) for (const n of VADD_PAT.get(vak)) bumpVAdd(n, 1);
+      if (pVAdd[vak]++ === 0) for (const n of VADD_PAT.get(vak)) bumpVote(n, 1);
       const vsk = vSubKey(d, prev);
-      if (pVSub[vsk]++ === 0) for (const n of VSUB_PAT.get(vsk)) bumpVSub(n, 1);
+      if (pVSub[vsk]++ === 0) for (const n of VSUB_PAT.get(vsk)) bumpVote(n, 1);
     }
-    // 和值
     const sumk = sumKey(d);
-    if (pSum[sumk]++ === 0) for (const n of SUM_PAT.get(sumk)) bumpSum(n, 1);
+    if (pSum[sumk]++ === 0) for (const n of SUM_PAT.get(sumk)) bumpVote(n, 1);
   };
 
   const popPeriod = (d, prev) => {
-    // 横相加/横相减
     const ak = hAddKey(d);
-    if (--pAdd[ak] === 0) for (const n of ADD_PAT.get(ak)) bumpAdd(n, -1);
+    if (--pAdd[ak] === 0) for (const n of ADD_PAT.get(ak)) bumpVote(n, -1);
     const sk = hSubKey(d);
-    if (--pSub[sk] === 0) for (const n of SUB_PAT.get(sk)) bumpSub(n, -1);
-    // 竖相加/竖相减
+    if (--pSub[sk] === 0) for (const n of SUB_PAT.get(sk)) bumpVote(n, -1);
     if (prev) {
       const vak = vAddKey(d, prev);
-      if (--pVAdd[vak] === 0) for (const n of VADD_PAT.get(vak)) bumpVAdd(n, -1);
+      if (--pVAdd[vak] === 0) for (const n of VADD_PAT.get(vak)) bumpVote(n, -1);
       const vsk = vSubKey(d, prev);
-      if (--pVSub[vsk] === 0) for (const n of VSUB_PAT.get(vsk)) bumpVSub(n, -1);
+      if (--pVSub[vsk] === 0) for (const n of VSUB_PAT.get(vsk)) bumpVote(n, -1);
     }
-    // 和值
     const sumk = sumKey(d);
-    if (--pSum[sumk] === 0) for (const n of SUM_PAT.get(sumk)) bumpSum(n, -1);
+    if (--pSum[sumk] === 0) for (const n of SUM_PAT.get(sumk)) bumpVote(n, -1);
   };
 
   const map = new Map();
-  // 需要回溯的总期数：使用 L 期，每3期用2期，所以总期数 = L * 3 / 2
   const lookback = Math.ceil(L * 3 / 2);
   for (let i = 0; i < data.length; i++) {
-    // 隔一用二：周期为3，跳过第1期（余数0），使用第2、3期（余数1和2）
     if (i >= 1 && (i - 1) % 3 !== 0) {
       const prev = i >= 2 ? data[i - 2] : null;
       pushPeriod(data[i - 1], prev);
@@ -161,6 +125,11 @@ export function buildAddSubIndex(data, L = ADD_SUB_LOOKBACK) {
       popPeriod(data[i - lookback - 1], prev);
     }
     if (i < lookback) continue;
+    const t = numKey(data[i]);
+    map.set(data[i].issue, { size: covered, hit: votes[t] >= MIN_VOTES });
+  }
+  return map;
+}
     const t = numKey(data[i]);
     map.set(data[i].issue, { size: covered, hit: cAdd[t] + cSub[t] + cVAdd[t] + cVSub[t] + cSum[t] > 0 });
   }
@@ -193,11 +162,40 @@ export function getAddSubNumbers(data, targetIndex, L = ADD_SUB_LOOKBACK) {
     }
   }
 
-  const nums = new Set();
-  for (const k of aPats) for (const n of ADD_PAT.get(k)) nums.add(n);
-  for (const k of sPats) for (const n of SUB_PAT.get(k)) nums.add(n);
-  for (const k of vaPats) for (const n of VADD_PAT.get(k)) nums.add(n);
-  for (const k of vsPats) for (const n of VSUB_PAT.get(k)) nums.add(n);
-  for (const k of sumPats) for (const n of SUM_PAT.get(k)) nums.add(n);
-  return [...nums].sort((a, b) => a - b).map(toStr);
+// 单期候选池号码（只返回得票>=MIN_VOTES的号码）
+export function getAddSubNumbers(data, targetIndex, L = ADD_SUB_LOOKBACK) {
+  const lookback = Math.ceil(L * 3 / 2);
+  if (targetIndex < lookback) return [];
+  const start = targetIndex - lookback;
+
+  const voteCount = new Int32Array(1000);
+  const aPats = new Set();
+  const sPats = new Set();
+  const vaPats = new Set();
+  const vsPats = new Set();
+  const sumPats = new Set();
+
+  for (let j = start; j < targetIndex; j++) {
+    if (j % 3 !== 0) {
+      aPats.add(hAddKey(data[j]));
+      sPats.add(hSubKey(data[j]));
+      sumPats.add(sumKey(data[j]));
+      if (j > 0) {
+        vaPats.add(vAddKey(data[j], data[j - 1]));
+        vsPats.add(vSubKey(data[j], data[j - 1]));
+      }
+    }
+  }
+
+  for (const k of aPats) for (const n of ADD_PAT.get(k)) voteCount[n]++;
+  for (const k of sPats) for (const n of SUB_PAT.get(k)) voteCount[n]++;
+  for (const k of vaPats) for (const n of VADD_PAT.get(k)) voteCount[n]++;
+  for (const k of vsPats) for (const n of VSUB_PAT.get(k)) voteCount[n]++;
+  for (const k of sumPats) for (const n of SUM_PAT.get(k)) voteCount[n]++;
+
+  const result = [];
+  for (let n = 0; n < 1000; n++) {
+    if (voteCount[n] >= MIN_VOTES) result.push(n);
+  }
+  return result.map(toStr);
 }
