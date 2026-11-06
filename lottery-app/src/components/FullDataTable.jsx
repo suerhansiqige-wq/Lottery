@@ -1322,6 +1322,9 @@ function FullDataTable({
   const bozhongBoxW = useMemo(() => calcDecompBoxWidth(bozhongTexts, decompIssues), [bozhongTexts, decompIssues]);
   const duanZuZQBoxW = useMemo(() => calcDecompBoxWidth(duanZuZQTexts, decompIssues), [duanZuZQTexts, decompIssues]);
   const duanZuBZBoxW = useMemo(() => calcDecompBoxWidth(duanZuBZTexts, decompIssues), [duanZuBZTexts, decompIssues]);
+  // 智取/博众分解取最大宽度保持一致，智取/博众断组取最大宽度保持一致
+  const decompUnifiedBoxW = useMemo(() => Math.max(decompBoxW, bozhongBoxW), [decompBoxW, bozhongBoxW]);
+  const duanZuUnifiedBoxW = useMemo(() => Math.max(duanZuZQBoxW, duanZuBZBoxW), [duanZuZQBoxW, duanZuBZBoxW]);
 
   // 渲染一个分解文本框单元格；hasData 决定白底/灰底
   const renderDecompCell = (kind, issue, title) => {
@@ -1332,7 +1335,8 @@ function FullDataTable({
     // 密码保护已解除：强制所有文本框可编辑
     const locked = false;
     const v = (kind === 'decomp' ? verifyMaps.dm : (kind === 'bozhong' ? verifyMaps.bz : (kind === 'duanzuZQ' ? verifyMaps.dzq : verifyMaps.dzbz))).get(issue);
-    const boxW = kind === 'decomp' ? decompBoxW : (kind === 'bozhong' ? bozhongBoxW : (kind === 'duanzuZQ' ? duanZuZQBoxW : duanZuBZBoxW));
+    // 智取/博众分解统一宽度，智取/博众断组统一宽度
+    const boxW = kind === 'decomp' || kind === 'bozhong' ? decompUnifiedBoxW : duanZuUnifiedBoxW;
 
     return (      <td key={'dc_' + kind} style={{ padding: 2, background: hasData ? '#fff' : '#e0e0e0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
