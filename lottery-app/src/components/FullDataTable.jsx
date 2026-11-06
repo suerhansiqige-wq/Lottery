@@ -290,7 +290,7 @@ const SHOW_JJ_COL = true;
 const SHOW_ZONGHE_COL = true;
 
 // 交集列开关：2026-11-04 用户要求删除
-const SHOW_JIAOJI_COL = true;
+const SHOW_JIAOJI_COL = false;
 
 // 祝君中奖列开关：2026-11-04 用户要求新增
 const SHOW_JJRONGCUO_COL = true;
