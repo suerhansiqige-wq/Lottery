@@ -1532,13 +1532,13 @@ function FullDataTable({
     return { dm, bz, dzq, dzbz };
   }, [displayData, decompTexts, bozhongTexts, duanZuZQTexts, duanZuBZTexts]);
 
-  // 参与列宽计算的期号：所有展示行 + 下期预留行（预留行也可能已录入分解）
+  // 参与列宽计算的期号：所有数据期号（确保切换期数视图时宽度稳定）
   const decompIssues = useMemo(() => {
-    const arr = displayData.map(i => i.issue);
+    const arr = data.map(i => i.issue);
     const nx = appNextIssue || (data.length ? String(Number(data[data.length - 1].issue) + 1) : null);
     if (nx && !arr.includes(nx)) arr.push(nx);
     return arr;
-  }, [displayData, data, appNextIssue]);
+  }, [data, appNextIssue]);
   const decompBoxW = useMemo(() => calcDecompBoxWidth(decompTexts, decompIssues), [decompTexts, decompIssues]);
   const bozhongBoxW = useMemo(() => calcDecompBoxWidth(bozhongTexts, decompIssues), [bozhongTexts, decompIssues]);
   const duanZuZQBoxW = useMemo(() => calcDecompBoxWidth(duanZuZQTexts, decompIssues), [duanZuZQTexts, decompIssues]);
