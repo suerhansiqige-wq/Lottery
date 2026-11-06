@@ -1972,14 +1972,57 @@ function FullDataTable({
                       </td>
                     );
                   })()}
-                  {/* 前1期容错 - 预留行：尚未开奖，无数据 */}
-                  {SHOW_QIAN1QI_RC_COL && (
-                    <td key="qian1qircNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>-</td>
-                  )}
-                  {/* 前1期 - 预留行：尚未开奖，无数据 */}
-                  {SHOW_QIAN1QI_COL && (
-                    <td key="qian1qiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>-</td>
-                  )}
+                  {/* 前1期容错 - 预留行：用最后一期分解数据容错0~12对称差集预测下期 */}
+                  {SHOW_QIAN1QI_RC_COL && (() => {
+                    const lastIssue = lastItem?.issue;
+                    const lastDecompText = (decompTexts && decompTexts[lastIssue]) || '';
+                    const lastBozhongText = (bozhongTexts && bozhongTexts[lastIssue]) || '';
+                    const lastDecompGroups = parseDecompGroups(lastDecompText);
+                    const lastDecompResult = lastDecompGroups.length > 0 ? computeRongCuo(lastDecompGroups, null) : null;
+                    const lastDecompRc12 = [];
+                    if (lastDecompResult && lastDecompResult.buckets) {
+                      for (let i = 0; i <= 12; i++) {
+                        if (lastDecompResult.buckets[i]) lastDecompRc12.push(...lastDecompResult.buckets[i]);
+                      }
+                    }
+                    const lastBozhongGroups = parseDecompGroups(lastBozhongText);
+                    const lastBozhongResult = lastBozhongGroups.length > 0 ? computeRongCuo(lastBozhongGroups, null) : null;
+                    const lastBozhongRc12 = [];
+                    if (lastBozhongResult && lastBozhongResult.buckets) {
+                      for (let i = 0; i <= 12; i++) {
+                        if (lastBozhongResult.buckets[i]) lastBozhongRc12.push(...lastBozhongResult.buckets[i]);
+                      }
+                    }
+                    const lastDecompSet = new Set(lastDecompRc12);
+                    const lastBozhongSet = new Set(lastBozhongRc12);
+                    const lastIntersection = lastDecompRc12.filter(n => lastBozhongSet.has(n));
+                    const lastIntersectionSet = new Set(lastIntersection);
+                    const lastUnion = [...new Set([...lastDecompRc12, ...lastBozhongRc12])];
+                    const merged = lastUnion.filter(n => !lastIntersectionSet.has(n)).sort();
+                    return (
+                      <td key="qian1qircNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
+                      </td>
+                    );
+                  })()}
+                  {/* 前1期 - 预留行：用最后一期分解数据容错10并集预测下期 */}
+                  {SHOW_QIAN1QI_COL && (() => {
+                    const lastIssue = lastItem?.issue;
+                    const lastDecompText = (decompTexts && decompTexts[lastIssue]) || '';
+                    const lastBozhongText = (bozhongTexts && bozhongTexts[lastIssue]) || '';
+                    const lastDecompGroups = parseDecompGroups(lastDecompText);
+                    const lastDecompResult = lastDecompGroups.length > 0 ? computeRongCuo(lastDecompGroups, null) : null;
+                    const lastDecompRc10 = lastDecompResult && lastDecompResult.buckets && lastDecompResult.buckets[10] ? lastDecompResult.buckets[10] : [];
+                    const lastBozhongGroups = parseDecompGroups(lastBozhongText);
+                    const lastBozhongResult = lastBozhongGroups.length > 0 ? computeRongCuo(lastBozhongGroups, null) : null;
+                    const lastBozhongRc10 = lastBozhongResult && lastBozhongResult.buckets && lastBozhongResult.buckets[10] ? lastBozhongResult.buckets[10] : [];
+                    const merged = [...new Set([...lastDecompRc10, ...lastBozhongRc10])].sort();
+                    return (
+                      <td key="qian1qiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
+                      </td>
+                    );
+                  })()}
                   {/* 综合 - 预留行：下期综合注数（尚未开奖，无对错） */}
                   {SHOW_ZONGHE_COL && (() => {
                     const filtered = computeZongHeNumbers(nextIssue);
