@@ -853,16 +853,6 @@ function FullDataTable({
       }
     });
 
-    // 智取分解无容错号码（buckets[0]）
-    const decompWuRongCuo = decompResult && decompResult.buckets && decompResult.buckets[0] ? decompResult.buckets[0] : [];
-    // 博众分解无容错号码（buckets[0]）
-    const bozhongWuRongCuo = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[0] ? bozhongResult.buckets[0] : [];
-    // 所有豹子号码
-    const baoZi = ['000', '111', '222', '333', '444', '555', '666', '777', '888', '999'];
-
-    // 合并所有号码并去重
-    const allJiaoji = [...new Set([...jiaojiNumbers, ...decompWuRongCuo, ...bozhongWuRongCuo, ...baoZi])];
-
     // 2. 计算容错列（1~12对称差集）
     const decompRc12 = [];
     const bozhongRc12 = [];
@@ -889,8 +879,8 @@ function FullDataTable({
     const bozhongRc10 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
     const rc10Set = new Set([...decompRc10, ...bozhongRc10]);
 
-    // 祝君中奖 = 交集号码 - 容错列 - 容错10列
-    return allJiaoji
+    // 交集容错 = 交集号码 - 容错列 - 容错10列
+    return jiaojiNumbers
       .filter(n => !rongCuoSet.has(n))
       .filter(n => !rc10Set.has(n))
       .sort();
