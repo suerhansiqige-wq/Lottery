@@ -1203,7 +1203,7 @@ function FullDataTable({
                 {SHOW_SLBC_COLS && <th>生号</th>}
                 {SHOW_SLBC_COLS && <th>连号</th>}
                 {SHOW_SLBC_COLS && <th>必出号</th>}
-                {SHOW_ADDSUB_PRO_COL && <th title={`隔一用二增强：横向得票≥1 + 和值出现≥12次，命中率~93%，~930注；✓=在池内，✗=不在池内`}>隔一用二增强</th>}
+                {SHOW_ADDSUB_PRO_COL && <th title={`隔一用二增强：横向得票≥1 + 和值出现≥12次，命中率~93%，~930注；✓=在池内，✗=不在池内`}>增强93.1%</th>}
                 {SHOW_JJ_COL && <th title="智取容错0~9 ∩ 博众容错0~9（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
                 {SHOW_JIAOJI_COL && <th title="加减号码候选池 ∩ 综合列候选池；✓=在池内，✗=不在池内">交集</th>}
                 {SHOW_RC9_COL && <th title="智取分解容错9 ∪ 博众分解容错9（包含组三）；✓=在池内，✗=不在池内">容错9</th>}
