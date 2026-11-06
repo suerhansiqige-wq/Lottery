@@ -1257,6 +1257,7 @@ function FullDataTable({
                 {SHOW_RC9_COL && <th title="智取分解容错8 ∪ 博众分解容错8（包含组三）；✓=在池内，✗=不在池内">容错9</th>}
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
+                {SHOW_QIAN1QI_COL && <th title="采用前一期智取分解容错10 ∪ 博众分解容错10验证当期开奖号；✓=命中，✗=未命中">前1期</th>}
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_DUANZU_RC_COL && <th title="智取断组容错2 ∪ 博众断组容错2（合并号码池）；✓=在池内，✗=不在池内">断组容错</th>}
                 {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
@@ -1268,7 +1269,6 @@ function FullDataTable({
                     {c.th}
                   </th>
                 ))}
-                {SHOW_QIAN1QI_COL && <th title="采用前一期智取分解容错10 ∪ 博众分解容错10验证当期开奖号；✓=命中，✗=未命中">前1期</th>}
               </tr>
             </thead>
             <tbody>
@@ -1363,6 +1363,8 @@ function FullDataTable({
                   {SHOW_RC10_COL && renderRongCuo10Cell(item.issue)}
                   {/* 容错：对称差集 */}
                   {SHOW_RC_COL && renderRongCuoCell(item.issue)}
+                  {/* 前1期：采用前一期智取分解容错10 ∪ 博众分解容错10验证当期 */}
+                  {SHOW_QIAN1QI_COL && renderQian1QiCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 综合：交集号码 - 容错列 - 容错10列 */}
                   {SHOW_ZONGHE_COL && renderZongHeCell(item.issue)}
                   {/* 断组容错：智取断组容错2 ∪ 博众断组容错2 */}
@@ -1373,8 +1375,6 @@ function FullDataTable({
                   {SHOW_DUANZU_COL && renderDuanZuCell(item.issue)}
                   {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数 */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, item.issue, c.title))}
-                  {/* 前1期：采用前一期智取分解容错10 ∪ 博众分解容错10验证当期 */}
-                  {SHOW_QIAN1QI_COL && renderQian1QiCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 杀百十合、杀百个合、杀十个合三列已彻底删除 - 用户要求 */}
                 </tr>
                 );
@@ -1538,6 +1538,10 @@ function FullDataTable({
                       </td>
                     );
                   })()}
+                  {/* 前1期 - 预留行：尚未开奖，无数据 */}
+                  {SHOW_QIAN1QI_COL && (
+                    <td key="qian1qiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>-</td>
+                  )}
                   {/* 综合 - 预留行：下期综合注数（尚未开奖，无对错） */}
                   {SHOW_ZONGHE_COL && (() => {
                     const filtered = computeZongHeNumbers(nextIssue);
@@ -1638,10 +1642,6 @@ function FullDataTable({
                   })()}
                   {/* 智取分解 / 博众分解 - 预留行：下期分解条件录入框（点按钮后锁定，密码解锁再编辑） */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, appNextIssue || nextIssue, c.title))}
-                  {/* 前1期 - 预留行：尚未开奖，无数据 */}
-                  {SHOW_QIAN1QI_COL && (
-                    <td key="qian1qiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>-</td>
-                  )}
                   {/* 杀百十合、杀百个合、杀十个合三列预留行已彻底删除 - 用户要求 */}
                 </tr>
                 );
