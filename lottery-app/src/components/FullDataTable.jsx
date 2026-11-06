@@ -94,7 +94,7 @@ const DecompTextarea = React.memo(function DecompTextarea({ value, locked, hasDa
       onBlur={handleBlur}
       onClick={handleClick}
       style={{
-        width: boxW, minWidth: boxW, flex: '1 1 auto', height: 40, resize: 'none', overflow: 'hidden', display: 'block',
+        width: boxW, minWidth: boxW, flex: '0 0 auto', height: 40, resize: 'none', overflow: 'hidden', display: 'block',
         fontSize: 11, lineHeight: '19px', fontFamily: 'Consolas,Menlo,monospace',
         padding: '0 3px', boxSizing: 'border-box', borderRadius: 3,
         border: `1px solid ${locked ? '#cfd8dc' : (hasData ? '#90caf9' : '#bdbdbd')}`,
