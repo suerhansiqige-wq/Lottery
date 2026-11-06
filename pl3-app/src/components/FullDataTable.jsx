@@ -1546,8 +1546,6 @@ function FullDataTable({
   // 智取/博众分解取最大宽度保持一致，智取/博众断组取最大宽度保持一致
   const decompUnifiedBoxW = useMemo(() => Math.max(decompBoxW, bozhongBoxW), [decompBoxW, bozhongBoxW]);
   const duanZuUnifiedBoxW = useMemo(() => Math.max(duanZuZQBoxW, duanZuBZBoxW), [duanZuZQBoxW, duanZuBZBoxW]);
-  // 四列统一使用最大宽度，确保分解和断组列宽度一致
-  const unifiedBoxW = useMemo(() => Math.max(decompUnifiedBoxW, duanZuUnifiedBoxW), [decompUnifiedBoxW, duanZuUnifiedBoxW]);
 
   // 渲染一个分解文本框单元格；hasData 决定白底/灰底
   const renderDecompCell = (kind, issue, title) => {
@@ -1559,7 +1557,7 @@ function FullDataTable({
     const locked = false;
     const v = (kind === 'decomp' ? verifyMaps.dm : (kind === 'bozhong' ? verifyMaps.bz : (kind === 'duanzuZQ' ? verifyMaps.dzq : verifyMaps.dzbz))).get(issue);
     // 智取/博众分解统一宽度，智取/博众断组统一宽度
-    const boxW = unifiedBoxW;
+    const boxW = kind === 'decomp' || kind === 'bozhong' ? decompUnifiedBoxW : duanZuUnifiedBoxW;
 
     const tdWidth = boxW + 82; // boxW + badge(70) + gap(4) + padding(4) + border(4)
     return (
