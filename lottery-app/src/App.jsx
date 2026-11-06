@@ -4,7 +4,7 @@ import { enrichData } from './data/enrichDataOptimized.js'
 import decompositionData from './data/decompositionData.json'
 import bozhongData from './data/bozhongData.json'
 import { parseDecompGroups, computeRongCuo } from './utils/decompRongCuo.js'
-import { getAddSubNumbers } from './utils/addSubPool.js'
+import { getAddSubNumbersPro } from './utils/addSubPool.js'
 import FullDataTable, { parsePickNumbers, expandZuxuanToZhixuan } from './components/FullDataTable.jsx'
 import DecompRongCuoPanel from './components/DecompRongCuoPanel.jsx'
 import { loadFromGist, saveToGist, setGistToken, getGistToken, clearGistToken, testGistToken } from './utils/gistSync.js'
@@ -380,7 +380,7 @@ function App() {
   }, [baseData, enrichedData]);
 
   const addSubTailPool = useMemo(
-    () => new Set(getAddSubNumbers(addSubPoolData, addSubPoolData.length)),
+    () => new Set(getAddSubNumbersPro(addSubPoolData, addSubPoolData.length)),
     [addSubPoolData]
   );
 

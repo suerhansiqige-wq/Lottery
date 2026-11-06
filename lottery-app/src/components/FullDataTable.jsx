@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { parseDecompGroups, verifyDraw, computeRongCuo } from '../utils/decompRongCuo.js'
 import { verifyDuanZuDraw, computeDuanZuRongCuo } from '../utils/duanZuRongCuo.js'
-import { ADD_SUB_LOOKBACK, buildAddSubIndex, getAddSubNumbers, buildAddSubIndexPro, getAddSubNumbersPro } from '../utils/addSubPool.js'
+import { buildAddSubIndexPro, getAddSubNumbersPro } from '../utils/addSubPool.js'
 import { generateByBrokenGroups } from '../utils/brokenGroup.js'
 
 // 可点击注数组件：独立管理复制状态，避免点击时整个表格重渲染
@@ -278,8 +278,6 @@ const SHOW_HJS_COLS = false;
 // 生号/连号/必出号 三列开关：2026-11-04 用户要求隐藏
 const SHOW_SLBC_COLS = false;
 
-// 加减号码列开关：2026-11-04 用户要求删除
-const SHOW_ADDSUB_COL = true;
 const SHOW_ADDSUB_PRO_COL = true; // 隔一用二增强列
 
 // 容错10 / 容错9 / 容错 / 交集号码 四列开关：2026-11-04 用户要求隐藏
@@ -567,7 +565,6 @@ function FullDataTable({
     const extra = data.filter(d => !known.has(d.issue));
     return extra.length ? [...base, ...extra] : base;
   }, [fullData, data]);
-  const addSubIndex = useMemo(() => buildAddSubIndex(poolData), [poolData]);
   const addSubIndexPro = useMemo(() => buildAddSubIndexPro(poolData), [poolData]);
   const issueIndexMap = useMemo(() => {
     const m = new Map();
@@ -575,7 +572,6 @@ function FullDataTable({
     return m;
   }, [poolData]);
   // 下期预留行：用最后一期往前200期建池，尚无开奖号故只出注数与复制，不出对错
-  const tailAddSubNumbers = useMemo(() => getAddSubNumbers(poolData, poolData.length), [poolData]);
   const tailAddSubNumbersPro = useMemo(() => getAddSubNumbersPro(poolData, poolData.length), [poolData]);
 
   // 计算任意期号的综合列候选池：交集号码 - 容错列（对称差集） - 容错10列
@@ -699,19 +695,6 @@ function FullDataTable({
       .filter(n => !rongCuoSet.has(n))
       .filter(n => !rc10Set.has(n))
       .sort();
-  };
-
-  const renderAddSubCell = (issue, index) => {
-    if (!SHOW_ADDSUB_COL) return null;
-    const rec = addSubIndex.get(issue);
-    if (!rec) {
-      return <td key="addSub" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-    return (
-      <td key="addSub" style={{ padding: '2px 4px', background: rec.hit ? '#e8f5e9' : '#ffebee' }}>
-        {<ClickableCount count={rec.size} hit={rec.hit} numbers={getAddSubNumbers(poolData, index)} />}
-      </td>
-    );
   };
 
   const renderAddSubProCell = (issue, index) => {
@@ -1220,7 +1203,6 @@ function FullDataTable({
                 {SHOW_SLBC_COLS && <th>生号</th>}
                 {SHOW_SLBC_COLS && <th>连号</th>}
                 {SHOW_SLBC_COLS && <th>必出号</th>}
-                {SHOW_ADDSUB_COL && <th title={`隔一用二（横向模式）：横相加/横相减模式，得票≥1，命中率~84%，~835注；✓=在池内，✗=不在池内`}>隔一用二</th>}
                 {SHOW_ADDSUB_PRO_COL && <th title={`隔一用二增强：横向得票≥1 + 和值出现≥12次，命中率~93%，~930注；✓=在池内，✗=不在池内`}>隔一用二增强</th>}
                 {SHOW_JJ_COL && <th title="智取容错0~9 ∩ 博众容错0~9（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
                 {SHOW_JIAOJI_COL && <th title="加减号码候选池 ∩ 综合列候选池；✓=在池内，✗=不在池内">交集</th>}
@@ -1320,8 +1302,7 @@ function FullDataTable({
                       {mustOutDigits.length > 0 ? mustOutDigits.join('') : '-'}
                     </td>
                   )}
-                  {/* 加减号码：前200期横相加∪横相减候选池注数 + 对错符号 + 复制 */}
-                  {renderAddSubCell(item.issue, issueIndexMap.get(item.issue))}
+                  {/* 隔一用二增强：横向得票≥1 + 和值出现≥12次 */}
                   {renderAddSubProCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 交集号码：智取容错0~9 ∩ 博众容错0~9 */}
                   {SHOW_JJ_COL && renderJiJiaoCell(item.issue)}
@@ -1378,12 +1359,6 @@ function FullDataTable({
                   {SHOW_SLBC_COLS && (
                     <td style={{ color: '#fff', fontWeight: 600, background: '#1e8449' }}>
                       {(() => { const d = lastItem.mustOutNums.filter(v => v !== -1); return d.length > 0 ? d.join('') : '-'; })()}
-                    </td>
-                  )}
-                  {/* 加减号码 - 预留行：下期候选池注数（尚未开奖，无对错） */}
-                  {SHOW_ADDSUB_COL && (
-                    <td key="addSubNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                      {<ClickableCount count={tailAddSubNumbers.length} hit={null} numbers={tailAddSubNumbers} color="#1b5e20" />}
                     </td>
                   )}
                   {/* 加减号码增强 - 预留行：下期候选池注数（尚未开奖，无对错） */}
@@ -1444,7 +1419,7 @@ function FullDataTable({
                   {/* 交集 - 预留行：下期交集注数（尚未开奖，无对错） */}
                   {SHOW_JIAOJI_COL && (() => {
                     const zongHe = computeZongHeNumbers(nextIssue);
-                    const addSubSet = new Set(tailAddSubNumbers);
+                    const addSubSet = new Set(tailAddSubNumbersPro);
                     const filtered = zongHe.filter(n => addSubSet.has(n));
                     return (
                       <td key="jiaojiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
