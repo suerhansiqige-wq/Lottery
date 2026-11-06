@@ -482,7 +482,7 @@ const SHOW_ZONGHE_COL = true;
 const SHOW_JIAOJI_COL = true;
 
 // 祝君中奖列开关：2026-11-04 用户要求新增
-const SHOW_ZJZJ_COL = true;
+const SHOW_JJRONGCUO_COL = true;
 
 // 断组容错列开关：2026-11-04 用户要求新增（智取断组+博众断组容错2合并）
 const SHOW_DUANZU_RC_COL = true;
@@ -896,7 +896,7 @@ function FullDataTable({
       .sort();
   };
 
-  // 重复3次：五列（加减号码/交集号码/综合/交集/分解组号）中恰好出现3次的号码
+  // 重复3次：五列（加减号码/交集号码/综合/交集/交集容错）中恰好出现3次的号码
   const computeRepeat3Numbers = (issue, index) => {
     if (!issue) return [];
     const cols = [];
@@ -947,7 +947,7 @@ function FullDataTable({
     const jiaoJiNumbers = decompRc0_9.filter(n => bozhongRcSet.has(n));
     if (jiaoJiNumbers.length > 0) cols.push(jiaoJiNumbers);
 
-    // 5. 分解组号
+    // 5. 交集容错
     const zjzj = computeZhuJunZhongJiangNumbers(issue);
     if (zjzj.length > 0) cols.push(zjzj);
 
@@ -963,7 +963,7 @@ function FullDataTable({
       .sort();
   };
 
-  // 重复1次：五列（加减号码/交集号码/综合/交集/分解组号）中恰好出现1次的号码
+  // 重复1次：五列（加减号码/交集号码/综合/交集/交集容错）中恰好出现1次的号码
   const computeRepeat1Numbers = (issue, index) => {
     if (!issue) return [];
     const cols = [];
@@ -1014,7 +1014,7 @@ function FullDataTable({
     const jiaoJiNumbers = decompRc0_9.filter(n => bozhongRcSet.has(n));
     if (jiaoJiNumbers.length > 0) cols.push(jiaoJiNumbers);
 
-    // 5. 分解组号
+    // 5. 交集容错
     const zjzj = computeZhuJunZhongJiangNumbers(issue);
     if (zjzj.length > 0) cols.push(zjzj);
 
@@ -1317,22 +1317,22 @@ function FullDataTable({
   };
 
   // 祝君中奖列：交集号码 - 容错列 - 容错10列
-  const renderZhuJunZhongJiangCell = (issue) => {
-    if (!SHOW_ZJZJ_COL) return null;
+  const renderJiJiaoRongCuoCell = (issue) => {
+    if (!SHOW_JJRONGCUO_COL) return null;
 
     const filtered = computeZhuJunZhongJiangNumbers(issue);
 
     if (filtered.length === 0) {
-      return <td key="zjzj" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+      return <td key="jjrongcuo" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
     }
 
-    // 验证当期开奖号是否在祝君中奖列中
+    // 验证当期开奖号是否在交集容错列中
     const item = displayData.find(d => d.issue === issue);
     const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
     const hit = drawNum && filtered.includes(drawNum);
 
     return (
-      <td key="zjzj" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
+      <td key="jjrongcuo" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
         {<ClickableCount count={filtered.length} hit={hit} numbers={filtered} />}
       </td>
     );
@@ -1792,9 +1792,9 @@ function FullDataTable({
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_DUANZU_RC_COL && <th title="智取断组容错3 ∪ 博众断组容错3（合并号码池）；✓=在池内，✗=不在池内">断组容错</th>}
-                {SHOW_ZJZJ_COL && <th title="加减号码/交集号码/综合/交集/分解组号五列中恰好出现3次的号码；✓=在池内，✗=不在池内">重复3次</th>}
-                {SHOW_ZJZJ_COL && <th title="五列中恰好出现1次的号码（重复1次）；✓=在池内，✗=不在池内">重复1次</th>}
-                {SHOW_ZJZJ_COL && <th title="交集号码 - 容错列 - 容错10列（分解组号）；✓=在池内，✗=不在池内">分解组号</th>}
+                {SHOW_JJRONGCUO_COL && <th title="加减号码/交集号码/综合/交集/交集容错五列中恰好出现3次的号码；✓=在池内，✗=不在池内">重复3次</th>}
+                {SHOW_JJRONGCUO_COL && <th title="五列中恰好出现1次的号码（重复1次）；✓=在池内，✗=不在池内">重复1次</th>}
+                {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
                 {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
                 {/* 参考一/参考二/胆码三列表头已彻底删除 - 用户要求 */}
                 {/* 智取分解 / 博众分解 两列（表格最右侧，与福彩3D 同位置逻辑） */}
@@ -1909,11 +1909,11 @@ function FullDataTable({
                   {/* 断组容错：智取断组容错3 ∪ 博众断组容错3 */}
                   {SHOW_DUANZU_RC_COL && renderDuanZuRongCuoCell(item.issue)}
                   {/* 重复3次：五列中恰好出现3次的号码 */}
-                  {SHOW_ZJZJ_COL && renderRepeat3Cell(item.issue, issueIndexMap.get(item.issue))}
+                  {SHOW_JJRONGCUO_COL && renderRepeat3Cell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 重复组号：显示五列中恰好出现3次的实际号码 */}
-                  {SHOW_ZJZJ_COL && renderRepeatGroupCell(item.issue, issueIndexMap.get(item.issue))}
-                  {/* 祝君中奖：交集号码 - 容错列 - 容错10列 */}
-                  {SHOW_ZJZJ_COL && renderZhuJunZhongJiangCell(item.issue)}
+                  {SHOW_JJRONGCUO_COL && renderRepeatGroupCell(item.issue, issueIndexMap.get(item.issue))}
+                  {/* 交集容错：交集号码 - 容错列 - 容错10列 */}
+                  {SHOW_JJRONGCUO_COL && renderJiJiaoRongCuoCell(item.issue)}
                   {/* 断组334：012/345/6789 断1组 */}
                   {SHOW_DUANZU_COL && renderDuanZuCell(item.issue)}
                   {/* 参考一/参考二/胆码三列单元格已彻底删除 - 用户要求 */}
@@ -2134,7 +2134,7 @@ function FullDataTable({
                     );
                   })()}
                   {/* 重复3次 - 预留行：下期五列重复恰好3次号码（尚未开奖，无对错） */}
-                  {SHOW_ZJZJ_COL && (() => {
+                  {SHOW_JJRONGCUO_COL && (() => {
                     const filtered = computeRepeat3Numbers(nextIssue, poolData.length);
                     return (
                       <td key="repeat3Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
@@ -2143,7 +2143,7 @@ function FullDataTable({
                     );
                   })()}
                   {/* 重复组号 - 预留行：下期五列重复恰好1次号码注数（尚未开奖，无对错） */}
-                  {SHOW_ZJZJ_COL && (() => {
+                  {SHOW_JJRONGCUO_COL && (() => {
                     const filtered = computeRepeat1Numbers(nextIssue, poolData.length);
                     return (
                       <td key="repeatGroupNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
@@ -2151,11 +2151,11 @@ function FullDataTable({
                       </td>
                     );
                   })()}
-                  {/* 祝君中奖 - 预留行：下期祝君中奖注数（尚未开奖，无对错） */}
-                  {SHOW_ZJZJ_COL && (() => {
+                  {/* 交集容错 - 预留行：下期交集容错注数（尚未开奖，无对错） */}
+                  {SHOW_JJRONGCUO_COL && (() => {
                     const filtered = computeZhuJunZhongJiangNumbers(nextIssue);
                     return (
-                      <td key="zjzjNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                      <td key="jjrongcuoNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
                       </td>
                     );
