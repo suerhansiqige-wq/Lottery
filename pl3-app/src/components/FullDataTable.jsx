@@ -484,6 +484,9 @@ const SHOW_DUANZU_COL = false; // 已迁移到 DECOMP_COLS 的 duanzuZQ/duanzuBZ
 // 前1期列开关：2026-11-06 用户要求新增（采用前一期分解数据容错10验证当期）
 const SHOW_QIAN1QI_COL = true;
 
+// 前1期容错列开关：2026-11-06 用户要求新增（采用前一期分解数据容错0~12对称差集验证当期）
+const SHOW_QIAN1QI_RC_COL = true;
+
 function renderHjsCells(src) {
   if (!SHOW_HJS_COLS) return [];
   return HJS_COLS.map((c, i) => {
@@ -1167,6 +1170,67 @@ function FullDataTable({
     );
   };
 
+  // 前1期容错列：采用前一期智取分解容错0~12与博众分解容错0~12的对称差集验证当期开奖号
+  const renderQian1QiRongCuoCell = (issue, issueIndex) => {
+    if (!SHOW_QIAN1QI_RC_COL) return null;
+
+    // 获取前一期的期号
+    if (issueIndex <= 0) {
+      return <td key="qian1qirc" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+    const prevIssue = poolData[issueIndex - 1]?.issue;
+    if (!prevIssue) {
+      return <td key="qian1qirc" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+
+    // 获取前一期智取分解和博众分解数据
+    const prevDecompText = (decompTexts && decompTexts[prevIssue]) || '';
+    const prevBozhongText = (bozhongTexts && bozhongTexts[prevIssue]) || '';
+
+    // 计算前一期智取分解容错0~12
+    const prevDecompGroups = parseDecompGroups(prevDecompText);
+    const prevDecompResult = prevDecompGroups.length > 0 ? computeRongCuo(prevDecompGroups, null) : null;
+    const prevDecompRc12 = [];
+    if (prevDecompResult && prevDecompResult.buckets) {
+      for (let i = 0; i <= 12; i++) {
+        if (prevDecompResult.buckets[i]) prevDecompRc12.push(...prevDecompResult.buckets[i]);
+      }
+    }
+
+    // 计算前一期博众分解容错0~12
+    const prevBozhongGroups = parseDecompGroups(prevBozhongText);
+    const prevBozhongResult = prevBozhongGroups.length > 0 ? computeRongCuo(prevBozhongGroups, null) : null;
+    const prevBozhongRc12 = [];
+    if (prevBozhongResult && prevBozhongResult.buckets) {
+      for (let i = 0; i <= 12; i++) {
+        if (prevBozhongResult.buckets[i]) prevBozhongRc12.push(...prevBozhongResult.buckets[i]);
+      }
+    }
+
+    // 对称差集 = (智取 ∪ 博众) - (智取 ∩ 博众)
+    const prevDecompSet = new Set(prevDecompRc12);
+    const prevBozhongSet = new Set(prevBozhongRc12);
+    const prevIntersection = prevDecompRc12.filter(n => prevBozhongSet.has(n));
+    const prevIntersectionSet = new Set(prevIntersection);
+    const prevUnion = [...new Set([...prevDecompRc12, ...prevBozhongRc12])];
+    const merged = prevUnion.filter(n => !prevIntersectionSet.has(n)).sort();
+
+    if (merged.length === 0) {
+      return <td key="qian1qirc" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+
+    // 验证当期开奖号是否在前1期容错中
+    const item = displayData.find(d => d.issue === issue);
+    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
+    const hit = drawNum && merged.includes(drawNum);
+
+    return (
+      <td key="qian1qirc" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
+        {<ClickableCount count={merged.length} hit={hit} numbers={merged} />}
+      </td>
+    );
+  };
+
   // 解析用户输入的断组分组（支持多组，每行一组）
   // 支持三种格式：
   // 格式1（逗号分隔）：'307,189,6245'（3位+3位+4位数字串）
@@ -1617,6 +1681,7 @@ function FullDataTable({
                 {SHOW_RC9_COL && <th title="智取分解容错8 ∪ 博众分解容错8（包含组三）；✓=在池内，✗=不在池内">容错9</th>}
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
+                {SHOW_QIAN1QI_RC_COL && <th title="采用前一期智取分解容错0~12与博众分解容错0~12的对称差集验证当期开奖号；✓=命中，✗=未命中">前1期容错</th>}
                 {SHOW_QIAN1QI_COL && <th title="采用前一期智取分解容错10 ∪ 博众分解容错10验证当期开奖号；✓=命中，✗=未命中">前1期</th>}
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_DUANZU_RC_COL && <th title="智取断组容错2 ∪ 博众断组容错2（合并号码池）；✓=在池内，✗=不在池内">断组容错</th>}
@@ -1726,6 +1791,8 @@ function FullDataTable({
                   {SHOW_RC10_COL && renderRongCuo10Cell(item.issue)}
                   {/* 容错：对称差集 */}
                   {SHOW_RC_COL && renderRongCuoCell(item.issue)}
+                  {/* 前1期容错：采用前一期智取分解容错0~12与博众分解容错0~12的对称差集验证当期 */}
+                  {SHOW_QIAN1QI_RC_COL && renderQian1QiRongCuoCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 前1期：采用前一期智取分解容错10 ∪ 博众分解容错10验证当期 */}
                   {SHOW_QIAN1QI_COL && renderQian1QiCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 综合：交集号码 - 容错列 - 容错10列 */}
@@ -1905,6 +1972,10 @@ function FullDataTable({
                       </td>
                     );
                   })()}
+                  {/* 前1期容错 - 预留行：尚未开奖，无数据 */}
+                  {SHOW_QIAN1QI_RC_COL && (
+                    <td key="qian1qircNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>-</td>
+                  )}
                   {/* 前1期 - 预留行：尚未开奖，无数据 */}
                   {SHOW_QIAN1QI_COL && (
                     <td key="qian1qiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>-</td>
