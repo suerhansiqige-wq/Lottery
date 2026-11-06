@@ -1,14 +1,29 @@
 // 加减号码：隔一期用二期（跳期模式），回溯 3L/2 期实际取 L 期
+// 改进版：增加竖相加/竖相减/和值模式，提高命中率
 
 export const ADD_SUB_LOOKBACK = 200;
 
+// 横相加/横相减（同原有逻辑）
 const hAddKey = (d) => ((d.d1 + d.d2) % 10) * 100 + ((d.d2 + d.d3) % 10) * 10 + ((d.d1 + d.d3) % 10);
 const hSubKey = (d) => Math.abs(d.d1 - d.d2) * 100 + Math.abs(d.d2 - d.d3) * 10 + Math.abs(d.d1 - d.d3);
+
+// 竖相加/竖相减（需要两期数据）
+const vAddKey = (curr, prev) => ((curr.d1 + prev.d1) % 10) * 100 + ((curr.d2 + prev.d2) % 10) * 10 + ((curr.d3 + prev.d3) % 10);
+const vSubKey = (curr, prev) => Math.abs(curr.d1 - prev.d1) * 100 + Math.abs(curr.d2 - prev.d2) * 10 + Math.abs(curr.d3 - prev.d3);
+
+// 和值（0-27）
+const sumKey = (d) => d.d1 + d.d2 + d.d3;
+
 const numKey = (d) => d.d1 * 100 + d.d2 * 10 + d.d3;
 
-// 模式 -> 号码集合（横相加500种、每种2注；横相减136种、每种2~18注）
-const ADD_PAT = new Map();
-const SUB_PAT = new Map();
+// 模式 -> 号码集合
+const ADD_PAT = new Map();  // 横相加
+const SUB_PAT = new Map();  // 横相减
+const VADD_PAT = new Map(); // 竖相加
+const VSUB_PAT = new Map(); // 竖相减
+const SUM_PAT = new Map();  // 和值
+
+// 构建横相加/横相减模式表（单期）
 for (let a = 0; a <= 9; a++) for (let b = 0; b <= 9; b++) for (let c = 0; c <= 9; c++) {
   const d = { d1: a, d2: b, d3: c };
   const ak = hAddKey(d);
@@ -18,8 +33,34 @@ for (let a = 0; a <= 9; a++) for (let b = 0; b <= 9; b++) for (let c = 0; c <= 9
   if (!SUB_PAT.has(sk)) SUB_PAT.set(sk, []);
   SUB_PAT.get(sk).push(numKey(d));
 }
+
+// 构建竖相加/竖相减模式表（两期）
+for (let a1 = 0; a1 <= 9; a1++) for (let b1 = 0; b1 <= 9; b1++) for (let c1 = 0; c1 <= 9; c1++) {
+  for (let a2 = 0; a2 <= 9; a2++) for (let b2 = 0; b2 <= 9; b2++) for (let c2 = 0; c2 <= 9; c2++) {
+    const curr = { d1: a1, d2: b1, d3: c1 };
+    const prev = { d1: a2, d2: b2, d3: c2 };
+    const vak = vAddKey(curr, prev);
+    if (!VADD_PAT.has(vak)) VADD_PAT.set(vak, []);
+    VADD_PAT.get(vak).push(numKey(curr));
+    const vsk = vSubKey(curr, prev);
+    if (!VSUB_PAT.has(vsk)) VSUB_PAT.set(vsk, []);
+    VSUB_PAT.get(vsk).push(numKey(curr));
+  }
+}
+
+// 构建和值模式表
+for (let a = 0; a <= 9; a++) for (let b = 0; b <= 9; b++) for (let c = 0; c <= 9; c++) {
+  const sk = a + b + c;
+  if (!SUM_PAT.has(sk)) SUM_PAT.set(sk, []);
+  SUM_PAT.get(sk).push(a * 100 + b * 10 + c);
+}
+
+// 排序所有模式表
 ADD_PAT.forEach(v => v.sort((x, y) => x - y));
 SUB_PAT.forEach(v => v.sort((x, y) => x - y));
+VADD_PAT.forEach(v => v.sort((x, y) => x - y));
+VSUB_PAT.forEach(v => v.sort((x, y) => x - y));
+SUM_PAT.forEach(v => v.sort((x, y) => x - y));
 
 const toStr = (n) => String(n).padStart(3, '0');
 
@@ -28,33 +69,81 @@ const toStr = (n) => String(n).padStart(3, '0');
 export function buildAddSubIndex(data, L = ADD_SUB_LOOKBACK) {
   const cAdd = new Int32Array(1000);
   const cSub = new Int32Array(1000);
+  const cVAdd = new Int32Array(1000);
+  const cVSub = new Int32Array(1000);
+  const cSum = new Int32Array(1000);
   const pAdd = new Int32Array(1000);
   const pSub = new Int32Array(1000);
+  const pVAdd = new Int32Array(1000);
+  const pVSub = new Int32Array(1000);
+  const pSum = new Int32Array(28);
   let covered = 0;
 
   const bumpAdd = (n, delta) => {
-    const before = cAdd[n] + cSub[n] > 0;
+    const before = cAdd[n] + cSub[n] + cVAdd[n] + cVSub[n] + cSum[n] > 0;
     cAdd[n] += delta;
-    const after = cAdd[n] + cSub[n] > 0;
+    const after = cAdd[n] + cSub[n] + cVAdd[n] + cVSub[n] + cSum[n] > 0;
     if (before !== after) covered += after ? 1 : -1;
   };
   const bumpSub = (n, delta) => {
-    const before = cAdd[n] + cSub[n] > 0;
+    const before = cAdd[n] + cSub[n] + cVAdd[n] + cVSub[n] + cSum[n] > 0;
     cSub[n] += delta;
-    const after = cAdd[n] + cSub[n] > 0;
+    const after = cAdd[n] + cSub[n] + cVAdd[n] + cVSub[n] + cSum[n] > 0;
     if (before !== after) covered += after ? 1 : -1;
   };
-  const pushPeriod = (d) => {
+  const bumpVAdd = (n, delta) => {
+    const before = cAdd[n] + cSub[n] + cVAdd[n] + cVSub[n] + cSum[n] > 0;
+    cVAdd[n] += delta;
+    const after = cAdd[n] + cSub[n] + cVAdd[n] + cVSub[n] + cSum[n] > 0;
+    if (before !== after) covered += after ? 1 : -1;
+  };
+  const bumpVSub = (n, delta) => {
+    const before = cAdd[n] + cSub[n] + cVAdd[n] + cVSub[n] + cSum[n] > 0;
+    cVSub[n] += delta;
+    const after = cAdd[n] + cSub[n] + cVAdd[n] + cVSub[n] + cSum[n] > 0;
+    if (before !== after) covered += after ? 1 : -1;
+  };
+  const bumpSum = (n, delta) => {
+    const before = cAdd[n] + cSub[n] + cVAdd[n] + cVSub[n] + cSum[n] > 0;
+    cSum[n] += delta;
+    const after = cAdd[n] + cSub[n] + cVAdd[n] + cVSub[n] + cSum[n] > 0;
+    if (before !== after) covered += after ? 1 : -1;
+  };
+
+  const pushPeriod = (d, prev) => {
+    // 横相加/横相减
     const ak = hAddKey(d);
     if (pAdd[ak]++ === 0) for (const n of ADD_PAT.get(ak)) bumpAdd(n, 1);
     const sk = hSubKey(d);
     if (pSub[sk]++ === 0) for (const n of SUB_PAT.get(sk)) bumpSub(n, 1);
+    // 竖相加/竖相减（需要上期数据）
+    if (prev) {
+      const vak = vAddKey(d, prev);
+      if (pVAdd[vak]++ === 0) for (const n of VADD_PAT.get(vak)) bumpVAdd(n, 1);
+      const vsk = vSubKey(d, prev);
+      if (pVSub[vsk]++ === 0) for (const n of VSUB_PAT.get(vsk)) bumpVSub(n, 1);
+    }
+    // 和值
+    const sumk = sumKey(d);
+    if (pSum[sumk]++ === 0) for (const n of SUM_PAT.get(sumk)) bumpSum(n, 1);
   };
-  const popPeriod = (d) => {
+
+  const popPeriod = (d, prev) => {
+    // 横相加/横相减
     const ak = hAddKey(d);
     if (--pAdd[ak] === 0) for (const n of ADD_PAT.get(ak)) bumpAdd(n, -1);
     const sk = hSubKey(d);
     if (--pSub[sk] === 0) for (const n of SUB_PAT.get(sk)) bumpSub(n, -1);
+    // 竖相加/竖相减
+    if (prev) {
+      const vak = vAddKey(d, prev);
+      if (--pVAdd[vak] === 0) for (const n of VADD_PAT.get(vak)) bumpVAdd(n, -1);
+      const vsk = vSubKey(d, prev);
+      if (--pVSub[vsk] === 0) for (const n of VSUB_PAT.get(vsk)) bumpVSub(n, -1);
+    }
+    // 和值
+    const sumk = sumKey(d);
+    if (--pSum[sumk] === 0) for (const n of SUM_PAT.get(sumk)) bumpSum(n, -1);
   };
 
   const map = new Map();
@@ -62,11 +151,18 @@ export function buildAddSubIndex(data, L = ADD_SUB_LOOKBACK) {
   const lookback = Math.ceil(L * 3 / 2);
   for (let i = 0; i < data.length; i++) {
     // 隔一用二：周期为3，跳过第1期（余数0），使用第2、3期（余数1和2）
-    if (i >= 1 && (i - 1) % 3 !== 0) pushPeriod(data[i - 1]);
-    if (i - lookback - 1 >= 0 && (i - lookback - 1) % 3 !== 0) popPeriod(data[i - lookback - 1]);
+    if (i >= 1 && (i - 1) % 3 !== 0) {
+      const prev = i >= 2 ? data[i - 2] : null;
+      pushPeriod(data[i - 1], prev);
+    }
+    if (i - lookback - 1 >= 0 && (i - lookback - 1) % 3 !== 0) {
+      const prevIdx = i - lookback - 2;
+      const prev = prevIdx >= 0 ? data[prevIdx] : null;
+      popPeriod(data[i - lookback - 1], prev);
+    }
     if (i < lookback) continue;
     const t = numKey(data[i]);
-    map.set(data[i].issue, { size: covered, hit: cAdd[t] + cSub[t] > 0 });
+    map.set(data[i].issue, { size: covered, hit: cAdd[t] + cSub[t] + cVAdd[t] + cVSub[t] + cSum[t] > 0 });
   }
   return map;
 }
@@ -79,15 +175,29 @@ export function getAddSubNumbers(data, targetIndex, L = ADD_SUB_LOOKBACK) {
   const start = targetIndex - lookback;
   const aPats = new Set();
   const sPats = new Set();
+  const vaPats = new Set();
+  const vsPats = new Set();
+  const sumPats = new Set();
+
   // 隔一用二：周期为3，跳过余数0，使用余数1和2（与buildAddSubIndex的(i-1)%3基准一致）
   for (let j = start; j < targetIndex; j++) {
     if (j % 3 !== 0) {
       aPats.add(hAddKey(data[j]));
       sPats.add(hSubKey(data[j]));
+      sumPats.add(sumKey(data[j]));
+      // 竖相加/竖相减需要上期数据
+      if (j > 0) {
+        vaPats.add(vAddKey(data[j], data[j - 1]));
+        vsPats.add(vSubKey(data[j], data[j - 1]));
+      }
     }
   }
+
   const nums = new Set();
   for (const k of aPats) for (const n of ADD_PAT.get(k)) nums.add(n);
   for (const k of sPats) for (const n of SUB_PAT.get(k)) nums.add(n);
+  for (const k of vaPats) for (const n of VADD_PAT.get(k)) nums.add(n);
+  for (const k of vsPats) for (const n of VSUB_PAT.get(k)) nums.add(n);
+  for (const k of sumPats) for (const n of SUM_PAT.get(k)) nums.add(n);
   return [...nums].sort((a, b) => a - b).map(toStr);
 }
