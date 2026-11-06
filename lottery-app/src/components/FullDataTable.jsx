@@ -301,6 +301,9 @@ const SHOW_DUANZU_RC_COL = true;
 // 断组334列开关：2026-11-04 用户要求新增
 const SHOW_DUANZU_COL = false; // 已迁移到 DECOMP_COLS 的 duanzuZQ/duanzuBZ
 
+// 前1期列开关：2026-11-06 用户要求新增（采用前一期分解数据容错10验证当期）
+const SHOW_QIAN1QI_COL = true;
+
 // 渲染横加减/竖加减4个合并单元格；src 为空或该组无上期数据（全 null）时显示 -
 function renderHjsCells(src) {
   if (!SHOW_HJS_COLS) return [];
@@ -943,6 +946,51 @@ function FullDataTable({
     );
   };
 
+  // 前1期列：采用前一期智取分解容错10 ∪ 博众分解容错10验证当期开奖号
+  const renderQian1QiCell = (issue, issueIndex) => {
+    if (!SHOW_QIAN1QI_COL) return null;
+
+    // 获取前一期的期号
+    if (issueIndex <= 0) {
+      return <td key="qian1qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+    const prevIssue = poolData[issueIndex - 1]?.issue;
+    if (!prevIssue) {
+      return <td key="qian1qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+
+    // 获取前一期智取分解和博众分解数据
+    const prevDecompText = (decompTexts && decompTexts[prevIssue]) || '';
+    const prevBozhongText = (bozhongTexts && bozhongTexts[prevIssue]) || '';
+
+    // 解析并计算容错10
+    const prevDecompGroups = parseDecompGroups(prevDecompText);
+    const prevDecompResult = prevDecompGroups.length > 0 ? computeRongCuo(prevDecompGroups, null) : null;
+    const prevDecompRc10 = prevDecompResult && prevDecompResult.buckets && prevDecompResult.buckets[10] ? prevDecompResult.buckets[10] : [];
+
+    const prevBozhongGroups = parseDecompGroups(prevBozhongText);
+    const prevBozhongResult = prevBozhongGroups.length > 0 ? computeRongCuo(prevBozhongGroups, null) : null;
+    const prevBozhongRc10 = prevBozhongResult && prevBozhongResult.buckets && prevBozhongResult.buckets[10] ? prevBozhongResult.buckets[10] : [];
+
+    // 合并去重
+    const merged = [...new Set([...prevDecompRc10, ...prevBozhongRc10])].sort();
+
+    if (merged.length === 0) {
+      return <td key="qian1qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+
+    // 验证当期开奖号是否在前1期池中
+    const item = displayData.find(d => d.issue === issue);
+    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
+    const hit = drawNum && merged.includes(drawNum);
+
+    return (
+      <td key="qian1qi" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
+        {<ClickableCount count={merged.length} hit={hit} numbers={merged} />}
+      </td>
+    );
+  };
+
   // 解析用户输入的断组分组（支持多组，每行一组）
   // 支持三种格式：
   // 格式1（逗号分隔）：'307,189,6245'（3位+3位+4位数字串）
@@ -1220,6 +1268,7 @@ function FullDataTable({
                     {c.th}
                   </th>
                 ))}
+                {SHOW_QIAN1QI_COL && <th title="采用前一期智取分解容错10 ∪ 博众分解容错10验证当期开奖号；✓=命中，✗=未命中">前1期</th>}
               </tr>
             </thead>
             <tbody>
@@ -1324,6 +1373,8 @@ function FullDataTable({
                   {SHOW_DUANZU_COL && renderDuanZuCell(item.issue)}
                   {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数 */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, item.issue, c.title))}
+                  {/* 前1期：采用前一期智取分解容错10 ∪ 博众分解容错10验证当期 */}
+                  {SHOW_QIAN1QI_COL && renderQian1QiCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 杀百十合、杀百个合、杀十个合三列已彻底删除 - 用户要求 */}
                 </tr>
                 );
@@ -1587,6 +1638,10 @@ function FullDataTable({
                   })()}
                   {/* 智取分解 / 博众分解 - 预留行：下期分解条件录入框（点按钮后锁定，密码解锁再编辑） */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, appNextIssue || nextIssue, c.title))}
+                  {/* 前1期 - 预留行：尚未开奖，无数据 */}
+                  {SHOW_QIAN1QI_COL && (
+                    <td key="qian1qiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>-</td>
+                  )}
                   {/* 杀百十合、杀百个合、杀十个合三列预留行已彻底删除 - 用户要求 */}
                 </tr>
                 );
