@@ -632,16 +632,16 @@ function FullDataTable({
   const computeZhuJunZhongJiangNumbers = (issue) => {
     if (!issue) return [];
 
-    // 1. 计算交集号码（组六1~8，组三1~12）
+    // 1. 计算交集号码（智取组六1~9，博众组六2~8，组三均2~12）
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
     const decompZu6 = [];
     const decompZu3 = [];
     if (decompResult && decompResult.buckets) {
-      for (let i = 1; i <= 8; i++) {
+      for (let i = 1; i <= 9; i++) {
         if (decompResult.buckets[i]) decompZu6.push(...decompResult.buckets[i]);
       }
-      for (let i = 1; i <= 12; i++) {
+      for (let i = 2; i <= 12; i++) {
         if (decompResult.buckets[i]) decompZu3.push(...decompResult.buckets[i]);
       }
     }
@@ -651,15 +651,15 @@ function FullDataTable({
     const bozhongZu6 = [];
     const bozhongZu3 = [];
     if (bozhongResult && bozhongResult.buckets) {
-      for (let i = 1; i <= 8; i++) {
+      for (let i = 2; i <= 8; i++) {
         if (bozhongResult.buckets[i]) bozhongZu6.push(...bozhongResult.buckets[i]);
       }
-      for (let i = 1; i <= 12; i++) {
+      for (let i = 2; i <= 12; i++) {
         if (bozhongResult.buckets[i]) bozhongZu3.push(...bozhongResult.buckets[i]);
       }
     }
 
-    // 交集号码 = 智取 ∩ 博众（组六用1~8池，组三用1~12池）
+    // 交集号码 = 智取 ∩ 博众（按类型过滤）
     const decompZu6Set = new Set(decompZu6);
     const bozhongZu6Set = new Set(bozhongZu6);
     const decompZu3Set = new Set(decompZu3);
@@ -676,6 +676,16 @@ function FullDataTable({
         return decompZu6Set.has(n) && bozhongZu6Set.has(n);
       }
     });
+
+    // 智取分解无容错号码（buckets[0]）
+    const decompWuRongCuo = decompResult && decompResult.buckets && decompResult.buckets[0] ? decompResult.buckets[0] : [];
+    // 博众分解无容错号码（buckets[0]）
+    const bozhongWuRongCuo = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[0] ? bozhongResult.buckets[0] : [];
+    // 所有豹子号码
+    const baoZi = ['000', '111', '222', '333', '444', '555', '666', '777', '888', '999'];
+
+    // 合并所有号码并去重
+    const allJiaoji = [...new Set([...jiaojiNumbers, ...decompWuRongCuo, ...bozhongWuRongCuo, ...baoZi])];
 
     // 2. 计算容错列（1~12对称差集）
     const decompRc12 = [];
@@ -704,7 +714,7 @@ function FullDataTable({
     const rc10Set = new Set([...decompRc10, ...bozhongRc10]);
 
     // 祝君中奖 = 交集号码 - 容错列 - 容错10列
-    return jiaojiNumbers
+    return allJiaoji
       .filter(n => !rongCuoSet.has(n))
       .filter(n => !rc10Set.has(n))
       .sort();
