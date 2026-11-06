@@ -1158,13 +1158,13 @@ function FullDataTable({
   };
 
   const renderJiJiaoCell = (issue) => {
-    // 计算智取分解容错（组六2~8，组三2~12）
+    // 计算智取分解容错（组六2~9，组三2~12）
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-    const decompZu6 = []; // 组六池 2~8
+    const decompZu6 = []; // 组六池 2~9
     const decompZu3 = []; // 组三池 2~12
     if (decompResult && decompResult.buckets) {
-      for (let i = 2; i <= 8; i++) {
+      for (let i = 2; i <= 9; i++) {
         if (decompResult.buckets[i]) decompZu6.push(...decompResult.buckets[i]);
       }
       for (let i = 2; i <= 12; i++) {
@@ -1186,7 +1186,7 @@ function FullDataTable({
       }
     }
 
-    // 交集号码列 = 智取容错 ∩ 博众容错（组六用2~8池，组三用2~12池）
+    // 交集号码列 = 智取容错 ∩ 博众容错（智取组六2~9，博众组六2~8，组三均2~12）
     const decompZu6Set = new Set(decompZu6);
     const bozhongZu6Set = new Set(bozhongZu6);
     const decompZu3Set = new Set(decompZu3);
