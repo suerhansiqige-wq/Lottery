@@ -872,7 +872,7 @@ function FullDataTable({
     );
   };
 
-  // 断组容错列：智取断组容错3 ∪ 博众断组容错3
+  // 断组容错列：智取断组容错2 ∪ 博众断组容错2
   const renderDuanZuRongCuoCell = (issue) => {
     if (!SHOW_DUANZU_RC_COL) return null;
 
@@ -884,26 +884,26 @@ function FullDataTable({
     const zqGroups = parseDuanZuGroups(zqText);
     const bzGroups = parseDuanZuGroups(bzText);
 
-    // 计算容错3的号码池
-    let zqRongCuo3 = [];
-    let bzRongCuo3 = [];
+    // 计算容错2的号码池
+    let zqRongCuo2 = [];
+    let bzRongCuo2 = [];
 
     if (zqGroups.length > 0 && zqGroups[0].groups.length > 0) {
       const zqResult = computeDuanZuRongCuo(zqGroups);
-      if (zqResult.levels && zqResult.levels.length >= 3) {
-        zqRongCuo3 = zqResult.levels[2].numbers || []; // 容错3
+      if (zqResult.levels && zqResult.levels.length >= 2) {
+        zqRongCuo2 = zqResult.levels[1].numbers || []; // 容错2
       }
     }
 
     if (bzGroups.length > 0 && bzGroups[0].groups.length > 0) {
       const bzResult = computeDuanZuRongCuo(bzGroups);
-      if (bzResult.levels && bzResult.levels.length >= 3) {
-        bzRongCuo3 = bzResult.levels[2].numbers || []; // 容错3
+      if (bzResult.levels && bzResult.levels.length >= 2) {
+        bzRongCuo2 = bzResult.levels[1].numbers || []; // 容错2
       }
     }
 
     // 合并两个号码池并去重
-    const merged = Array.from(new Set([...zqRongCuo3, ...bzRongCuo3])).sort();
+    const merged = Array.from(new Set([...zqRongCuo2, ...bzRongCuo2])).sort();
 
     if (merged.length === 0) {
       return <td key="duanzurc" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
@@ -1210,7 +1210,7 @@ function FullDataTable({
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
-                {SHOW_DUANZU_RC_COL && <th title="智取断组容错3 ∪ 博众断组容错3（合并号码池）；✓=在池内，✗=不在池内">断组容错</th>}
+                {SHOW_DUANZU_RC_COL && <th title="智取断组容错2 ∪ 博众断组容错2（合并号码池）；✓=在池内，✗=不在池内">断组容错</th>}
                 {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
                 {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
                 {/* 智取分解 / 博众分解 两列 */}
@@ -1502,21 +1502,21 @@ function FullDataTable({
                     const bzText = (duanZuBZTexts && duanZuBZTexts[nextIssue]) || '';
                     const zqGroups = parseDuanZuGroups(zqText);
                     const bzGroups = parseDuanZuGroups(bzText);
-                    let zqRongCuo3 = [];
-                    let bzRongCuo3 = [];
+                    let zqRongCuo2 = [];
+                    let bzRongCuo2 = [];
                     if (zqGroups.length > 0 && zqGroups[0].groups.length > 0) {
                       const zqResult = computeDuanZuRongCuo(zqGroups);
-                      if (zqResult.levels && zqResult.levels.length >= 3) {
-                        zqRongCuo3 = zqResult.levels[2].numbers || [];
+                      if (zqResult.levels && zqResult.levels.length >= 2) {
+                        zqRongCuo2 = zqResult.levels[1].numbers || [];
                       }
                     }
                     if (bzGroups.length > 0 && bzGroups[0].groups.length > 0) {
                       const bzResult = computeDuanZuRongCuo(bzGroups);
-                      if (bzResult.levels && bzResult.levels.length >= 3) {
-                        bzRongCuo3 = bzResult.levels[2].numbers || [];
+                      if (bzResult.levels && bzResult.levels.length >= 2) {
+                        bzRongCuo2 = bzResult.levels[1].numbers || [];
                       }
                     }
-                    const merged = Array.from(new Set([...zqRongCuo3, ...bzRongCuo3])).sort();
+                    const merged = Array.from(new Set([...zqRongCuo2, ...bzRongCuo2])).sort();
                     return (
                       <td key="duanzurcNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
