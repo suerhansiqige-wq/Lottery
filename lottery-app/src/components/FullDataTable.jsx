@@ -310,6 +310,9 @@ const SHOW_QIAN1QI_RC_COL = true;
 // 前2期容错列开关：2026-11-06 用户要求新增（采用前2期分解数据容错0~12对称差集验证当期）
 const SHOW_QIAN2QI_RC_COL = true;
 
+// 前2期列开关：2026-11-06 用户要求新增（采用前2期分解数据容错10并集验证当期）
+const SHOW_QIAN2QI_COL = true;
+
 // 渲染横加减/竖加减4个合并单元格；src 为空或该组无上期数据（全 null）时显示 -
 function renderHjsCells(src) {
   if (!SHOW_HJS_COLS) return [];
@@ -1119,6 +1122,51 @@ function FullDataTable({
     );
   };
 
+  // 前2期列：采用前2期智取分解容错10 ∪ 博众分解容错10验证当期开奖号
+  const renderQian2QiCell = (issue, issueIndex) => {
+    if (!SHOW_QIAN2QI_COL) return null;
+
+    // 获取前2期的期号
+    if (issueIndex <= 1) {
+      return <td key="qian2qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+    const prev2Issue = poolData[issueIndex - 2]?.issue;
+    if (!prev2Issue) {
+      return <td key="qian2qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+
+    // 获取前2期智取分解和博众分解数据
+    const prev2DecompText = (decompTexts && decompTexts[prev2Issue]) || '';
+    const prev2BozhongText = (bozhongTexts && bozhongTexts[prev2Issue]) || '';
+
+    // 解析并计算容错10
+    const prev2DecompGroups = parseDecompGroups(prev2DecompText);
+    const prev2DecompResult = prev2DecompGroups.length > 0 ? computeRongCuo(prev2DecompGroups, null) : null;
+    const prev2DecompRc10 = prev2DecompResult && prev2DecompResult.buckets && prev2DecompResult.buckets[10] ? prev2DecompResult.buckets[10] : [];
+
+    const prev2BozhongGroups = parseDecompGroups(prev2BozhongText);
+    const prev2BozhongResult = prev2BozhongGroups.length > 0 ? computeRongCuo(prev2BozhongGroups, null) : null;
+    const prev2BozhongRc10 = prev2BozhongResult && prev2BozhongResult.buckets && prev2BozhongResult.buckets[10] ? prev2BozhongResult.buckets[10] : [];
+
+    // 合并去重
+    const merged = [...new Set([...prev2DecompRc10, ...prev2BozhongRc10])].sort();
+
+    if (merged.length === 0) {
+      return <td key="qian2qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+
+    // 验证当期开奖号是否在前2期池中
+    const item = displayData.find(d => d.issue === issue);
+    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
+    const hit = drawNum && merged.includes(drawNum);
+
+    return (
+      <td key="qian2qi" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
+        {<ClickableCount count={merged.length} hit={hit} numbers={merged} />}
+      </td>
+    );
+  };
+
   // 解析用户输入的断组分组（支持多组，每行一组）
   // 支持三种格式：
   // 格式1（逗号分隔）：'307,189,6245'（3位+3位+4位数字串）
@@ -1387,6 +1435,7 @@ function FullDataTable({
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
                 {SHOW_QIAN1QI_RC_COL && <th title="采用前一期智取分解容错0~12与博众分解容错0~12的对称差集验证当期开奖号；✓=命中，✗=未命中">前1期容错</th>}
                 {SHOW_QIAN2QI_RC_COL && <th title="采用前2期智取分解容错0~12与博众分解容错0~12的对称差集验证当期开奖号；✓=命中，✗=未命中">前2期容错</th>}
+                {SHOW_QIAN2QI_COL && <th title="采用前2期智取分解容错10 ∪ 博众分解容错10验证当期开奖号；✓=命中，✗=未命中">前2期</th>}
                 {SHOW_QIAN1QI_COL && <th title="采用前一期智取分解容错10 ∪ 博众分解容错10验证当期开奖号；✓=命中，✗=未命中">前1期</th>}
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_DUANZU_RC_COL && <th title="智取断组容错2 ∪ 博众断组容错2（合并号码池）；✓=在池内，✗=不在池内">断组容错</th>}
@@ -1497,6 +1546,8 @@ function FullDataTable({
                   {SHOW_QIAN1QI_RC_COL && renderQian1QiRongCuoCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 前2期容错：采用前2期智取分解容错0~12与博众分解容错0~12的对称差集验证当期 */}
                   {SHOW_QIAN2QI_RC_COL && renderQian2QiRongCuoCell(item.issue, issueIndexMap.get(item.issue))}
+                  {/* 前2期：采用前2期智取分解容错10 ∪ 博众分解容错10验证当期 */}
+                  {SHOW_QIAN2QI_COL && renderQian2QiCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 前1期：采用前一期智取分解容错10 ∪ 博众分解容错10验证当期 */}
                   {SHOW_QIAN1QI_COL && renderQian1QiCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 综合：交集号码 - 容错列 - 容错10列 */}
@@ -1737,6 +1788,27 @@ function FullDataTable({
                     const merged = prev2Union.filter(n => !prev2IntersectionSet.has(n)).sort();
                     return (
                       <td key="qian2qircNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
+                      </td>
+                    );
+                  })()}
+                  {/* 前2期 - 预留行：用倒数第2期分解数据容错10并集预测下期 */}
+                  {SHOW_QIAN2QI_COL && (() => {
+                    const prev2Issue = data.length >= 2 ? data[data.length - 2]?.issue : null;
+                    if (!prev2Issue) {
+                      return <td key="qian2qiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>-</td>;
+                    }
+                    const prev2DecompText = (decompTexts && decompTexts[prev2Issue]) || '';
+                    const prev2BozhongText = (bozhongTexts && bozhongTexts[prev2Issue]) || '';
+                    const prev2DecompGroups = parseDecompGroups(prev2DecompText);
+                    const prev2DecompResult = prev2DecompGroups.length > 0 ? computeRongCuo(prev2DecompGroups, null) : null;
+                    const prev2DecompRc10 = prev2DecompResult && prev2DecompResult.buckets && prev2DecompResult.buckets[10] ? prev2DecompResult.buckets[10] : [];
+                    const prev2BozhongGroups = parseDecompGroups(prev2BozhongText);
+                    const prev2BozhongResult = prev2BozhongGroups.length > 0 ? computeRongCuo(prev2BozhongGroups, null) : null;
+                    const prev2BozhongRc10 = prev2BozhongResult && prev2BozhongResult.buckets && prev2BozhongResult.buckets[10] ? prev2BozhongResult.buckets[10] : [];
+                    const merged = [...new Set([...prev2DecompRc10, ...prev2BozhongRc10])].sort();
+                    return (
+                      <td key="qian2qiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
                       </td>
                     );
