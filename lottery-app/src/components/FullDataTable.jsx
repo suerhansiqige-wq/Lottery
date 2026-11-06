@@ -1438,8 +1438,8 @@ function FullDataTable({
                 {SHOW_QIAN2QI_COL && <th title="采用前2期智取分解容错10 ∪ 博众分解容错10验证当期开奖号；✓=命中，✗=未命中">前2期</th>}
                 {SHOW_QIAN1QI_COL && <th title="采用前一期智取分解容错10 ∪ 博众分解容错10验证当期开奖号；✓=命中，✗=未命中">前1期</th>}
                 {SHOW_DUANZU_RC_COL && <th title="智取断组容错4 ∪ 博众断组容错4（合并号码池）；✓=在池内，✗=不在池内">断组容错</th>}
-                {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
+                {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
                 {/* 智取分解 / 博众分解 两列 */}
                 {DECOMP_COLS.map(c => (
@@ -1552,10 +1552,10 @@ function FullDataTable({
                   {SHOW_QIAN1QI_COL && renderQian1QiCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 断组容错：智取断组容错4 ∪ 博众断组容错4 */}
                   {SHOW_DUANZU_RC_COL && renderDuanZuRongCuoCell(item.issue)}
-                  {/* 综合：交集号码 - 容错列 - 容错10列 */}
-                  {SHOW_ZONGHE_COL && renderZongHeCell(item.issue)}
                   {/* 交集容错：交集号码 - 容错列 - 容错10列 */}
                   {SHOW_JJRONGCUO_COL && renderJiJiaoRongCuoCell(item.issue)}
+                  {/* 综合：交集号码 - 容错列 - 容错10列 */}
+                  {SHOW_ZONGHE_COL && renderZongHeCell(item.issue)}
                   {/* 断组334：默认分组012/345/6789，断1组预测 */}
                   {SHOW_DUANZU_COL && renderDuanZuCell(item.issue)}
                   {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数 */}
@@ -1858,20 +1858,20 @@ function FullDataTable({
                       </td>
                     );
                   })()}
-                  {/* 综合 - 预留行：下期综合注数（尚未开奖，无对错） */}
-                  {SHOW_ZONGHE_COL && (() => {
-                    const filtered = computeZongHeNumbers(nextIssue);
-                    return (
-                      <td key="zhNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
                   {/* 交集容错 - 预留行：下期交集容错注数（尚未开奖，无对错） */}
                   {SHOW_JJRONGCUO_COL && (() => {
                     const filtered = computeZhuJunZhongJiangNumbers(nextIssue);
                     return (
                       <td key="jjrongcuoNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
+                      </td>
+                    );
+                  })()}
+                  {/* 综合 - 预留行：下期综合注数（尚未开奖，无对错） */}
+                  {SHOW_ZONGHE_COL && (() => {
+                    const filtered = computeZongHeNumbers(nextIssue);
+                    return (
+                      <td key="zhNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
                       </td>
                     );
