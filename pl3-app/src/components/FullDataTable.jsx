@@ -1970,10 +1970,9 @@ function FullDataTable({
                       {<ClickableCount count={tailAddSubNumbersPro.length} hit={null} numbers={tailAddSubNumbersPro} color="#1b5e20" />}
                     </td>
                   )}
-                  {/* 交集号码 - 预留行：继承最后一期分解数据计算交集注数 */}
+                  {/* 交集号码 - 预留行：用下一期分解数据计算交集注数 */}
                   {SHOW_JJ_COL && (() => {
-                    const lastIssue = lastItem?.issue;
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[lastIssue]) || '');
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompZu6 = [];
                     const decompZu3 = [];
@@ -2032,10 +2031,9 @@ function FullDataTable({
                       </td>
                     );
                   })()}
-                  {/* 容错9 - 预留行：继承最后一期分解数据计算容错8注数 */}
+                  {/* 容错9 - 预留行：用下一期分解数据计算容错8注数 */}
                   {SHOW_RC9_COL && (() => {
-                    const lastIssue = lastItem?.issue;
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[lastIssue]) || '');
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompRc8 = decompResult && decompResult.buckets && decompResult.buckets[8] ? decompResult.buckets[8] : [];
                     const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[lastIssue]) || '');
@@ -2048,10 +2046,9 @@ function FullDataTable({
                       </td>
                     );
                   })()}
-                  {/* 容错10 - 预留行：继承最后一期分解数据计算容错10注数 */}
+                  {/* 容错10 - 预留行：用下一期分解数据计算容错10注数 */}
                   {SHOW_RC10_COL && (() => {
-                    const lastIssue = lastItem?.issue;
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[lastIssue]) || '');
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompRc10 = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
                     const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[lastIssue]) || '');
@@ -2064,10 +2061,9 @@ function FullDataTable({
                       </td>
                     );
                   })()}
-                  {/* 容错 - 预留行：继承最后一期分解数据计算对称差集注数 */}
+                  {/* 容错 - 预留行：用下一期分解数据计算对称差集注数 */}
                   {SHOW_RC_COL && (() => {
-                    const lastIssue = lastItem?.issue;
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[lastIssue]) || '');
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompRc12 = [];
                     if (decompResult && decompResult.buckets) {
@@ -2232,7 +2228,7 @@ function FullDataTable({
                   })()}
                   {/* 交集容错 - 预留行：下期交集容错注数（尚未开奖，无对错） */}
                   {SHOW_JJRONGCUO_COL && (() => {
-                    const filtered = computeZhuJunZhongJiangNumbers(lastItem?.issue);
+                    const filtered = computeZhuJunZhongJiangNumbers(nextIssue);
                     return (
                       <td key="jjrongcuoNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
@@ -2241,7 +2237,7 @@ function FullDataTable({
                   })()}
                   {/* 综合 - 预留行：下期综合注数（尚未开奖，无对错） */}
                   {SHOW_ZONGHE_COL && (() => {
-                    const filtered = computeZongHeNumbers(lastItem?.issue);
+                    const filtered = computeZongHeNumbers(nextIssue);
                     return (
                       <td key="zhNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
