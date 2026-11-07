@@ -1605,7 +1605,7 @@ function FullDataTable({
                   )}
                   {/* 交集号码 - 预留行：下期交集注数（尚未开奖，无对错） */}
                   {SHOW_JJ_COL && (() => {
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[lastItem?.issue]) || '');
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompZu6 = [];
                     const decompZu3 = [];
@@ -1665,10 +1665,10 @@ function FullDataTable({
                   })()}
                   {/* 容错9 - 预留行：下期容错8注数（尚未开奖，无对错） */}
                   {SHOW_RC9_COL && (() => {
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[lastItem?.issue]) || '');
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompRc8 = decompResult && decompResult.buckets && decompResult.buckets[8] ? decompResult.buckets[8] : [];
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[lastItem?.issue]) || '');
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
                     const bozhongRc8 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[8] ? bozhongResult.buckets[8] : [];
                     const merged = [...new Set([...decompRc8, ...bozhongRc8])].sort();
@@ -1680,10 +1680,10 @@ function FullDataTable({
                   })()}
                   {/* 容错10 - 预留行：下期容错10注数（尚未开奖，无对错） */}
                   {SHOW_RC10_COL && (() => {
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[lastItem?.issue]) || '');
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompRc10 = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[lastItem?.issue]) || '');
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
                     const bozhongRc10 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
                     const merged = [...new Set([...decompRc10, ...bozhongRc10])].sort();
@@ -1695,7 +1695,7 @@ function FullDataTable({
                   })()}
                   {/* 容错 - 预留行：下期对称差集注数（尚未开奖，无对错） */}
                   {SHOW_RC_COL && (() => {
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[lastItem?.issue]) || '');
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompRc12 = [];
                     if (decompResult && decompResult.buckets) {
@@ -1703,7 +1703,7 @@ function FullDataTable({
                         if (decompResult.buckets[i]) decompRc12.push(...decompResult.buckets[i]);
                       }
                     }
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[lastItem?.issue]) || '');
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
                     const bozhongRc12 = [];
                     if (bozhongResult && bozhongResult.buckets) {
@@ -1833,8 +1833,8 @@ function FullDataTable({
                   })()}
                   {/* 断组容错 - 预留行：下期断组容错注数（尚未开奖，无对错） */}
                   {SHOW_DUANZU_RC_COL && (() => {
-                    const zqText = (duanZuZQTexts && duanZuZQTexts[lastItem?.issue]) || '';
-                    const bzText = (duanZuBZTexts && duanZuBZTexts[lastItem?.issue]) || '';
+                    const zqText = (duanZuZQTexts && duanZuZQTexts[nextIssue]) || '';
+                    const bzText = (duanZuBZTexts && duanZuBZTexts[nextIssue]) || '';
                     const zqGroups = parseDuanZuGroups(zqText);
                     const bzGroups = parseDuanZuGroups(bzText);
                     let zqRongCuo4 = [];
@@ -1860,7 +1860,7 @@ function FullDataTable({
                   })()}
                   {/* 交集容错 - 预留行：下期交集容错注数（尚未开奖，无对错） */}
                   {SHOW_JJRONGCUO_COL && (() => {
-                    const filtered = computeZhuJunZhongJiangNumbers(lastItem?.issue);
+                    const filtered = computeZhuJunZhongJiangNumbers(nextIssue);
                     return (
                       <td key="jjrongcuoNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
