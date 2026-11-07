@@ -1984,7 +1984,7 @@ function FullDataTable({
                         if (decompResult.buckets[i]) decompZu3.push(...decompResult.buckets[i]);
                       }
                     }
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[lastIssue]) || '');
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
                     const bozhongZu6 = [];
                     const bozhongZu3 = [];
@@ -2021,8 +2021,7 @@ function FullDataTable({
                   })()}
                   {/* 交集 - 预留行：继承最后一期数据计算交集注数 */}
                   {SHOW_JIAOJI_COL && (() => {
-                    const lastIssue = lastItem?.issue;
-                    const zongHe = computeZongHeNumbers(lastIssue);
+                    const zongHe = computeZongHeNumbers(nextIssue);
                     const addSubSet = new Set(tailAddSubNumbersPro);
                     const filtered = zongHe.filter(n => addSubSet.has(n));
                     return (
@@ -2036,7 +2035,7 @@ function FullDataTable({
                     const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompRc8 = decompResult && decompResult.buckets && decompResult.buckets[8] ? decompResult.buckets[8] : [];
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[lastIssue]) || '');
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
                     const bozhongRc8 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[8] ? bozhongResult.buckets[8] : [];
                     const merged = [...new Set([...decompRc8, ...bozhongRc8])].sort();
@@ -2051,7 +2050,7 @@ function FullDataTable({
                     const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompRc10 = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[lastIssue]) || '');
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
                     const bozhongRc10 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
                     const merged = [...new Set([...decompRc10, ...bozhongRc10])].sort();
@@ -2071,7 +2070,7 @@ function FullDataTable({
                         if (decompResult.buckets[i]) decompRc12.push(...decompResult.buckets[i]);
                       }
                     }
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[lastIssue]) || '');
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
                     const bozhongRc12 = [];
                     if (bozhongResult && bozhongResult.buckets) {
