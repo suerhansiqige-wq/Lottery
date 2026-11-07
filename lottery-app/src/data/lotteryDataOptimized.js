@@ -8739,7 +8739,8 @@ const COMPACT_DATA = `02002,2,3,7
 26293,1,8,5
 26294,2,6,1
 26295,7,4,1
-26296,9,0,7`;
+26296,9,0,7
+26297,1,2,3`;
 
 // 解析紧凑数据为对象数组并直接导出
 export const lotteryData = COMPACT_DATA.split('\n').map(line => {
