@@ -7770,6 +7770,7 @@ export const lotteryData = [
   { issue: '26294', d1: 3, d2: 2, d3: 9 },
   { issue: '26295', d1: 2, d2: 9, d3: 1 },
   { issue: '26296', d1: 3, d2: 2, d3: 0 },
+  { issue: '26297', d1: 7, d2: 7, d3: 7 },
 ];
 export function enrichData(data) {
   // 优化版本：一次性计算所有trackGroups，避免O(n²)复杂度
