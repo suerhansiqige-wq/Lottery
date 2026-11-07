@@ -1879,8 +1879,10 @@ function FullDataTable({
                   {/* 断组334 - 预留行：录入框（与数据行一致，支持多组） */}
                   {SHOW_DUANZU_COL && (() => {
                     const nextDzIssue = appNextIssue || nextIssue;
-                    // 兼容旧代码：duanZuTexts 已废弃，实际使用 duanZuZQTexts / duanZuBZTexts
-                    const value = '';
+                    // 从 duanZuZQTexts 和 duanZuBZTexts 读取下一期数据
+                    const zqValue = (duanZuZQTexts && duanZuZQTexts[nextDzIssue]) || '';
+                    const bzValue = (duanZuBZTexts && duanZuBZTexts[nextDzIssue]) || '';
+                    const value = zqValue || bzValue; // 优先智取，其次博众
                     const hasData = value.trim().length > 0;
                     const allGroupsList = parseDuanZuGroups(value);
                     let filtered = [];
