@@ -2203,11 +2203,10 @@ function FullDataTable({
                       </td>
                     );
                   })()}
-                  {/* 断组容错 - 预留行：继承最后一期断组数据计算容错注数 */}
+                  {/* 断组容错 - 预留行：用下一期断组数据计算容错注数 */}
                   {SHOW_DUANZU_RC_COL && (() => {
-                    const lastIssue = lastItem?.issue;
-                    const zqText = (duanZuZQTexts && duanZuZQTexts[lastIssue]) || '';
-                    const bzText = (duanZuBZTexts && duanZuBZTexts[lastIssue]) || '';
+                    const zqText = (duanZuZQTexts && duanZuZQTexts[nextIssue]) || '';
+                    const bzText = (duanZuBZTexts && duanZuBZTexts[nextIssue]) || '';
                     const zqGroups = parseDuanZuGroups(zqText);
                     const bzGroups = parseDuanZuGroups(bzText);
                     let zqRongCuo4 = [];
