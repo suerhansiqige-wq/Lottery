@@ -1617,7 +1617,7 @@ function FullDataTable({
                         if (decompResult.buckets[i]) decompZu3.push(...decompResult.buckets[i]);
                       }
                     }
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[lastItem?.issue]) || '');
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
                     const bozhongZu6 = [];
                     const bozhongZu3 = [];
@@ -1654,7 +1654,7 @@ function FullDataTable({
                   })()}
                   {/* 交集 - 预留行：下期交集注数（尚未开奖，无对错） */}
                   {SHOW_JIAOJI_COL && (() => {
-                    const zongHe = computeZongHeNumbers(lastItem?.issue);
+                    const zongHe = computeZongHeNumbers(nextIssue);
                     const addSubSet = new Set(tailAddSubNumbersPro);
                     const filtered = zongHe.filter(n => addSubSet.has(n));
                     return (
@@ -1869,7 +1869,7 @@ function FullDataTable({
                   })()}
                   {/* 综合 - 预留行：下期综合注数（尚未开奖，无对错） */}
                   {SHOW_ZONGHE_COL && (() => {
-                    const filtered = computeZongHeNumbers(lastItem?.issue);
+                    const filtered = computeZongHeNumbers(nextIssue);
                     return (
                       <td key="zhNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
