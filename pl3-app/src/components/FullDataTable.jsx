@@ -462,14 +462,9 @@ const SHOW_SLBC_COLS = false;
 
 const SHOW_ADDSUB_PRO_COL = true; // 隔一用二增强列
 
-// 容错00 / 容错 / 容错1 / 前1期 / 交集号码 五列开关
+// 容错00 / 容错 / 前1期 / 交集号码 列开关
 const SHOW_RC10_COL = true;
 const SHOW_RC_COL = true;
-const SHOW_RC2_COL = true;
-const SHOW_QIAN1QI_COL = true;
-const SHOW_QIAN2QI_COL = true;
-const SHOW_QIAN3QI_COL = true;
-const SHOW_QIAN4QI_COL = true;
 const SHOW_JJ_COL = true;
 
 // 综合列开关：2026-11-04 用户要求删除
@@ -933,184 +928,6 @@ function FullDataTable({
     return (
       <td key="rc10" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
         {<ClickableCount count={merged.length} hit={hit} numbers={merged} />}
-      </td>
-    );
-  };
-
-  // 容错1列：(智取容错1 ∪ 博众容错1) - (智取容错1 ∩ 博众容错1) = 对称差集
-  const renderRongCuo2Cell = (issue) => {
-    const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
-    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-    const decompRc2 = decompResult && decompResult.buckets && decompResult.buckets[2] ? decompResult.buckets[2] : [];
-
-    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
-    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-    const bozhongRc2 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[2] ? bozhongResult.buckets[2] : [];
-
-    const intersection = decompRc2.filter(n => bozhongRc2.includes(n));
-    const union = [...new Set([...decompRc2, ...bozhongRc2])];
-    const symmetricDiff = union.filter(n => !intersection.includes(n)).sort();
-
-    if (symmetricDiff.length === 0) {
-      return <td key="rc2" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    const item = displayData.find(d => d.issue === issue);
-    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
-    const hit = drawNum && symmetricDiff.includes(drawNum);
-
-    return (
-      <td key="rc2" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {<ClickableCount count={symmetricDiff.length} hit={hit} numbers={symmetricDiff} />}
-      </td>
-    );
-  };
-
-  // 前1期列：(前1期智取容错2 ∪ 前1期博众容错2) - (前1期智取容错2 ∩ 前1期博众容错2) = 对称差集
-  const renderQian1QiCell = (issue) => {
-    // 找到前1期的期号
-    const currentIndex = displayData.findIndex(d => d.issue === issue);
-    const prevIndex = currentIndex - 1;
-    const prevIssue = prevIndex >= 0 ? displayData[prevIndex].issue : null;
-
-    if (!prevIssue) {
-      return <td key="qian1qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    const decompGroups = parseDecompGroups((decompTexts && decompTexts[prevIssue]) || '');
-    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-    const decompRc2 = decompResult && decompResult.buckets && decompResult.buckets[2] ? decompResult.buckets[2] : [];
-
-    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[prevIssue]) || '');
-    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-    const bozhongRc2 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[2] ? bozhongResult.buckets[2] : [];
-
-    const intersection = decompRc2.filter(n => bozhongRc2.includes(n));
-    const union = [...new Set([...decompRc2, ...bozhongRc2])];
-    const symmetricDiff = union.filter(n => !intersection.includes(n)).sort();
-
-    if (symmetricDiff.length === 0) {
-      return <td key="qian1qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    const item = displayData.find(d => d.issue === issue);
-    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
-    const hit = drawNum && symmetricDiff.includes(drawNum);
-
-    return (
-      <td key="qian1qi" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {<ClickableCount count={symmetricDiff.length} hit={hit} numbers={symmetricDiff} />}
-      </td>
-    );
-  };
-
-  const renderQian2QiCell = (issue) => {
-    // 找到前2期的期号
-    const currentIndex = displayData.findIndex(d => d.issue === issue);
-    const prevIndex = currentIndex - 2;
-    const prevIssue = prevIndex >= 0 ? displayData[prevIndex].issue : null;
-
-    if (!prevIssue) {
-      return <td key="qian2qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    const decompGroups = parseDecompGroups((decompTexts && decompTexts[prevIssue]) || '');
-    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-    const decompRc2 = decompResult && decompResult.buckets && decompResult.buckets[2] ? decompResult.buckets[2] : [];
-
-    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[prevIssue]) || '');
-    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-    const bozhongRc2 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[2] ? bozhongResult.buckets[2] : [];
-
-    const intersection = decompRc2.filter(n => bozhongRc2.includes(n));
-    const union = [...new Set([...decompRc2, ...bozhongRc2])];
-    const symmetricDiff = union.filter(n => !intersection.includes(n)).sort();
-
-    if (symmetricDiff.length === 0) {
-      return <td key="qian2qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    const item = displayData.find(d => d.issue === issue);
-    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
-    const hit = drawNum && symmetricDiff.includes(drawNum);
-
-    return (
-      <td key="qian2qi" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {<ClickableCount count={symmetricDiff.length} hit={hit} numbers={symmetricDiff} />}
-      </td>
-    );
-  };
-
-  const renderQian3QiCell = (issue) => {
-    // 找到前3期的期号
-    const currentIndex = displayData.findIndex(d => d.issue === issue);
-    const prevIndex = currentIndex - 3;
-    const prevIssue = prevIndex >= 0 ? displayData[prevIndex].issue : null;
-
-    if (!prevIssue) {
-      return <td key="qian3qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    const decompGroups = parseDecompGroups((decompTexts && decompTexts[prevIssue]) || '');
-    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-    const decompRc2 = decompResult && decompResult.buckets && decompResult.buckets[2] ? decompResult.buckets[2] : [];
-
-    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[prevIssue]) || '');
-    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-    const bozhongRc2 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[2] ? bozhongResult.buckets[2] : [];
-
-    const intersection = decompRc2.filter(n => bozhongRc2.includes(n));
-    const union = [...new Set([...decompRc2, ...bozhongRc2])];
-    const symmetricDiff = union.filter(n => !intersection.includes(n)).sort();
-
-    if (symmetricDiff.length === 0) {
-      return <td key="qian3qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    const item = displayData.find(d => d.issue === issue);
-    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
-    const hit = drawNum && symmetricDiff.includes(drawNum);
-
-    return (
-      <td key="qian3qi" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {<ClickableCount count={symmetricDiff.length} hit={hit} numbers={symmetricDiff} />}
-      </td>
-    );
-  };
-
-  const renderQian4QiCell = (issue) => {
-    // 找到前4期的期号
-    const currentIndex = displayData.findIndex(d => d.issue === issue);
-    const prevIndex = currentIndex - 4;
-    const prevIssue = prevIndex >= 0 ? displayData[prevIndex].issue : null;
-
-    if (!prevIssue) {
-      return <td key="qian4qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    const decompGroups = parseDecompGroups((decompTexts && decompTexts[prevIssue]) || '');
-    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-    const decompRc2 = decompResult && decompResult.buckets && decompResult.buckets[2] ? decompResult.buckets[2] : [];
-
-    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[prevIssue]) || '');
-    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-    const bozhongRc2 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[2] ? bozhongResult.buckets[2] : [];
-
-    const intersection = decompRc2.filter(n => bozhongRc2.includes(n));
-    const union = [...new Set([...decompRc2, ...bozhongRc2])];
-    const symmetricDiff = union.filter(n => !intersection.includes(n)).sort();
-
-    if (symmetricDiff.length === 0) {
-      return <td key="qian4qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    const item = displayData.find(d => d.issue === issue);
-    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
-    const hit = drawNum && symmetricDiff.includes(drawNum);
-
-    return (
-      <td key="qian4qi" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {<ClickableCount count={symmetricDiff.length} hit={hit} numbers={symmetricDiff} />}
       </td>
     );
   };
@@ -1705,11 +1522,6 @@ function FullDataTable({
                 {SHOW_SLBC_COLS && <th>必出号</th>}
                 {SHOW_ADDSUB_PRO_COL && <th title={`隔一用二增强：横向得票≥1 + 和值出现≥12次，命中率~93%，~930注；✓=在池内，✗=不在池内`}>增强93.1%</th>}
                 {SHOW_JJ_COL && <th title="智取容错0~9 ∩ 博众容错0~9（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
-                {SHOW_RC2_COL && <th title="(智取容错2∪博众容错2)−(智取容错2∩博众容错2)=对称差集；✓=在池内，✗=不在池内">容错2</th>}
-                {SHOW_QIAN1QI_COL && <th title="(前1期智取容错1∪前1期博众容错1)−(前1期智取容错1∩前1期博众容错1)=对称差集；✓=在池内，✗=不在池内">前1期</th>}
-                {SHOW_QIAN2QI_COL && <th title="(前2期智取容错1∪前2期博众容错1)−(前2期智取容错1∩前2期博众容错1)=对称差集；✓=在池内，✗=不在池内">前2期</th>}
-                {SHOW_QIAN3QI_COL && <th title="(前3期智取容错1∪前3期博众容错1)−(前3期智取容错1∩前3期博众容错1)=对称差集；✓=在池内，✗=不在池内">前3期</th>}
-                {SHOW_QIAN4QI_COL && <th title="(前4期智取容错1∪前4期博众容错1)−(前4期智取容错1∩前4期博众容错1)=对称差集；✓=在池内，✗=不在池内">前4期</th>}
                 {SHOW_JIAOJI_COL && <th title="加减号码候选池 ∩ 综合列候选池；✓=在池内，✗=不在池内">交集</th>}
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
@@ -1812,13 +1624,6 @@ function FullDataTable({
                   {renderAddSubProCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 交集号码：智取容错0~9 ∩ 博众容错0~9 */}
                   {SHOW_JJ_COL && renderJiJiaoCell(item.issue)}
-                  {/* 容错1：(智取容错1∪博众容错1)−(智取容错1∩博众容错1) */}
-                  {SHOW_RC2_COL && renderRongCuo2Cell(item.issue)}
-                  {/* 前1期：(前1期智取容错1∪前1期博众容错1)−(前1期智取容错1∩前1期博众容错1) */}
-                  {SHOW_QIAN1QI_COL && renderQian1QiCell(item.issue)}
-                  {SHOW_QIAN2QI_COL && renderQian2QiCell(item.issue)}
-                  {SHOW_QIAN3QI_COL && renderQian3QiCell(item.issue)}
-                  {SHOW_QIAN4QI_COL && renderQian4QiCell(item.issue)}
                   {/* 交集：加减号码候选池 ∩ 综合列候选池 */}
                   {SHOW_JIAOJI_COL && renderJiaoJiCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 容错10：智取分解容错10 ∪ 博众分解容错10 */}
@@ -1957,103 +1762,6 @@ function FullDataTable({
                     return (
                       <td key="jjNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
-                  {/* 容错2 - 预留行：下期对称差集注数（尚未开奖，无对错） */}
-                  {SHOW_RC2_COL && (() => {
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[appNextIssue]) || '');
-                    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-                    const decompRc2 = decompResult && decompResult.buckets && decompResult.buckets[2] ? decompResult.buckets[2] : [];
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[appNextIssue]) || '');
-                    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-                    const bozhongRc2 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[2] ? bozhongResult.buckets[2] : [];
-                    const intersection = decompRc2.filter(n => bozhongRc2.includes(n));
-                    const union = [...new Set([...decompRc2, ...bozhongRc2])];
-                    const symmetricDiff = union.filter(n => !intersection.includes(n)).sort();
-                    return (
-                      <td key="rc2Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={symmetricDiff.length} hit={null} numbers={symmetricDiff} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
-                  {/* 前1期 - 预留行：最后一期的容错2对称差集 */}
-                  {SHOW_QIAN1QI_COL && (() => {
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[lastItem.issue]) || '');
-                    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-                    const decompRc2 = decompResult && decompResult.buckets && decompResult.buckets[2] ? decompResult.buckets[2] : [];
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[lastItem.issue]) || '');
-                    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-                    const bozhongRc2 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[2] ? bozhongResult.buckets[2] : [];
-                    const intersection = decompRc2.filter(n => bozhongRc2.includes(n));
-                    const union = [...new Set([...decompRc2, ...bozhongRc2])];
-                    const symmetricDiff = union.filter(n => !intersection.includes(n)).sort();
-                    return (
-                      <td key="qian1qiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={symmetricDiff.length} hit={null} numbers={symmetricDiff} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
-                  {/* 前2期 - 预留行：倒数第二期的容错2对称差集 */}
-                  {SHOW_QIAN2QI_COL && (() => {
-                    const prevIssue = displayData.length >= 2 ? displayData[displayData.length - 2].issue : null;
-                    if (!prevIssue) {
-                      return <td key="qian2qiNext" style={{ color: '#999', background: '#f0f8ff' }}>-</td>;
-                    }
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[prevIssue]) || '');
-                    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-                    const decompRc2 = decompResult && decompResult.buckets && decompResult.buckets[2] ? decompResult.buckets[2] : [];
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[prevIssue]) || '');
-                    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-                    const bozhongRc2 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[2] ? bozhongResult.buckets[2] : [];
-                    const intersection = decompRc2.filter(n => bozhongRc2.includes(n));
-                    const union = [...new Set([...decompRc2, ...bozhongRc2])];
-                    const symmetricDiff = union.filter(n => !intersection.includes(n)).sort();
-                    return (
-                      <td key="qian2qiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={symmetricDiff.length} hit={null} numbers={symmetricDiff} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
-                  {/* 前3期 - 预留行：倒数第三期的容错2对称差集 */}
-                  {SHOW_QIAN3QI_COL && (() => {
-                    const prevIssue = displayData.length >= 3 ? displayData[displayData.length - 3].issue : null;
-                    if (!prevIssue) {
-                      return <td key="qian3qiNext" style={{ color: '#999', background: '#f0f8ff' }}>-</td>;
-                    }
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[prevIssue]) || '');
-                    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-                    const decompRc2 = decompResult && decompResult.buckets && decompResult.buckets[2] ? decompResult.buckets[2] : [];
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[prevIssue]) || '');
-                    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-                    const bozhongRc2 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[2] ? bozhongResult.buckets[2] : [];
-                    const intersection = decompRc2.filter(n => bozhongRc2.includes(n));
-                    const union = [...new Set([...decompRc2, ...bozhongRc2])];
-                    const symmetricDiff = union.filter(n => !intersection.includes(n)).sort();
-                    return (
-                      <td key="qian3qiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={symmetricDiff.length} hit={null} numbers={symmetricDiff} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
-                  {/* 前4期 - 预留行：倒数第四期的容错2对称差集 */}
-                  {SHOW_QIAN4QI_COL && (() => {
-                    const prevIssue = displayData.length >= 4 ? displayData[displayData.length - 4].issue : null;
-                    if (!prevIssue) {
-                      return <td key="qian4qiNext" style={{ color: '#999', background: '#f0f8ff' }}>-</td>;
-                    }
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[prevIssue]) || '');
-                    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-                    const decompRc2 = decompResult && decompResult.buckets && decompResult.buckets[2] ? decompResult.buckets[2] : [];
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[prevIssue]) || '');
-                    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-                    const bozhongRc2 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[2] ? bozhongResult.buckets[2] : [];
-                    const intersection = decompRc2.filter(n => bozhongRc2.includes(n));
-                    const union = [...new Set([...decompRc2, ...bozhongRc2])];
-                    const symmetricDiff = union.filter(n => !intersection.includes(n)).sort();
-                    return (
-                      <td key="qian4qiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={symmetricDiff.length} hit={null} numbers={symmetricDiff} color="#1b5e20" />}
                       </td>
                     );
                   })()}
