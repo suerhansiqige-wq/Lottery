@@ -499,7 +499,7 @@ function ZhiXuanGaoBeiModule({ issue, reservedNumbers = [] }) {
   };
 
   return (
-    <div style={{ width: '100%', border: '2px solid #00838f', borderRadius: 6, background: '#e0f7fa', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ width: '100%', flex: 1, border: '2px solid #00838f', borderRadius: 6, background: '#e0f7fa', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <div style={{
         padding: '6px 10px', background: '#00838f', color: '#fff',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap',
@@ -517,9 +517,9 @@ function ZhiXuanGaoBeiModule({ issue, reservedNumbers = [] }) {
           {issue ? `${issue} 期` : '—'}
         </span>
       </div>
-      <div style={{ padding: 8, flex: 1, display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto' }}>
+      <div style={{ padding: 8, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto' }}>
         <div style={{
-          fontSize: 11, fontFamily: 'Consolas,monospace', lineHeight: '16px',
+          fontSize: 10, fontFamily: 'Consolas,monospace', lineHeight: '14px',
           padding: 4, border: '1px solid #4dd0e1', borderRadius: 3,
           background: '#fff', color: '#00695c', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
         }}>
@@ -570,7 +570,7 @@ function BaoBenTouZhuModule({ issue, reservedNumbers = [], wuRongCuoNumbers = []
   };
 
   return (
-    <div style={{ width: '100%', border: '2px solid #c62828', borderRadius: 6, background: '#ffebee', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ width: '100%', flex: 1, border: '2px solid #c62828', borderRadius: 6, background: '#ffebee', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <div style={{
         padding: '6px 10px', background: '#c62828', color: '#fff',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap',
@@ -588,7 +588,7 @@ function BaoBenTouZhuModule({ issue, reservedNumbers = [], wuRongCuoNumbers = []
           {issue ? `${issue} 期` : '—'}
         </span>
       </div>
-      <div style={{ padding: 8, flex: 1, display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto' }}>
+      <div style={{ padding: 8, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           {baoBenNumbers.length > 0 && (
             <button
@@ -605,7 +605,7 @@ function BaoBenTouZhuModule({ issue, reservedNumbers = [], wuRongCuoNumbers = []
           )}
         </div>
         <div style={{
-          fontSize: 11, fontFamily: 'Consolas,monospace', lineHeight: '16px',
+          fontSize: 10, fontFamily: 'Consolas,monospace', lineHeight: '14px',
           padding: 4, border: '1px solid #ef9a9a', borderRadius: 3,
           background: '#fff', color: '#c62828', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
         }}>
