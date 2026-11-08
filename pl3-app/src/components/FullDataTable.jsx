@@ -1196,6 +1196,24 @@ function FullDataTable({
     return allNumbers.sort();
   }, [appNextIssue, decompTexts, bozhongTexts]);
 
+  // 容错1交集（智取容错1 ∩ 博众容错1），用于从直选高倍中剔除
+  const tailRongCuo1JiaoJi = useMemo(() => {
+    // 计算智取容错1
+    const decompGroups = parseDecompGroups((decompTexts && decompTexts[appNextIssue]) || '');
+    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+    const decompRongCuo1 = decompResult && decompResult.buckets && decompResult.buckets[1] ? decompResult.buckets[1] : [];
+
+    // 计算博众容错1
+    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[appNextIssue]) || '');
+    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+    const bozhongRongCuo1 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[1] ? bozhongResult.buckets[1] : [];
+
+    // 容错1交集
+    const decompRongCuo1Set = new Set(decompRongCuo1);
+    const jiaoJi = bozhongRongCuo1.filter(n => decompRongCuo1Set.has(n));
+    return jiaoJi.sort();
+  }, [appNextIssue, decompTexts, bozhongTexts]);
+
   // 容错1~8号码去掉容错1交集，用于组三直选框
   const tailRongCuo1to8MinusJiaoJi = useMemo(() => {
     // 计算智取容错1~8
@@ -1221,17 +1239,11 @@ function FullDataTable({
     // 容错1~8并集
     const rongCuo1to8Union = [...new Set([...decompRongCuo1to8, ...bozhongRongCuo1to8])];
 
-    // 计算容错1交集（智取容错1 ∩ 博众容错1）
-    const decompRongCuo1 = decompResult && decompResult.buckets && decompResult.buckets[1] ? decompResult.buckets[1] : [];
-    const bozhongRongCuo1 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[1] ? bozhongResult.buckets[1] : [];
-    const decompRongCuo1Set = new Set(decompRongCuo1);
-    const rongCuo1JiaoJi = bozhongRongCuo1.filter(n => decompRongCuo1Set.has(n));
-    const rongCuo1JiaoJiSet = new Set(rongCuo1JiaoJi);
-
     // 从容错1~8并集中剔除容错1交集
+    const rongCuo1JiaoJiSet = new Set(tailRongCuo1JiaoJi);
     const result = rongCuo1to8Union.filter(n => !rongCuo1JiaoJiSet.has(n));
     return result.sort();
-  }, [appNextIssue, decompTexts, bozhongTexts]);
+  }, [appNextIssue, decompTexts, bozhongTexts, tailRongCuo1JiaoJi]);
 
   // 通知父组件直选高倍组六号码变化
   useMemo(() => {
@@ -2841,7 +2853,7 @@ function FullDataTable({
         {/* 右侧面板：直选高倍 + 保本投注（两个独立模块）+ 智取博众分解按钮 */}
         <div style={{ flex: 1, minWidth: 280, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <ZhiXuanGaoBeiModule issue={selfPickIssue} reservedNumbers={tailZhiXuanGaoBeiNumbers} />
+            <ZhiXuanGaoBeiModule issue={selfPickIssue} reservedNumbers={tailZhiXuanGaoBeiNumbers.filter(n => !tailRongCuo1JiaoJi.includes(n))} />
             <BaoBenTouZhuModule
               issue={selfPickIssue}
               reservedNumbers={tailZhiXuanGaoBeiNumbers}
