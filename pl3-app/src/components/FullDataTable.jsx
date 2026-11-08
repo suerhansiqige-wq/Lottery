@@ -468,7 +468,7 @@ const SHOW_RC_COL = true;
 const SHOW_JJ_COL = true;
 
 // 综合列开关：2026-11-04 用户要求删除
-const SHOW_ZONGHE_COL = true;
+const SHOW_ZONGHE_COL = false;
 
 // 直选高倍列开关：2026-11-06 用户要求新增
 const SHOW_ZHIXUAN_GAOBEI_COL = true;
