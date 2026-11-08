@@ -116,7 +116,11 @@ function App() {
     try { const s = localStorage.getItem(key); return new Set(s ? JSON.parse(s) : []); } catch { return new Set(); }
   };
 
-  const [decompTexts, setDecompTextsState] = useState(() => normalizeTexts({ ...DECOMP_BASELINE, ...loadOverrides('3d_decompTexts') }));
+  const [decompTexts, setDecompTextsState] = useState(() => {
+    const overrides = loadOverrides('3d_decompTexts');
+    console.log('[初始化] 从localStorage加载decompTexts, 期号:', Object.keys(overrides).join(','), '数据:', JSON.stringify(overrides).substring(0, 100));
+    return normalizeTexts({ ...DECOMP_BASELINE, ...overrides });
+  });
   const [bozhongTexts, setBozhongTextsState] = useState(() => normalizeTexts({ ...BOZHONG_BASELINE, ...loadOverrides('3d_bozhongTexts') }));
   const [lajiTexts, setLajiTextsState] = useState(() => normalizeTexts({ ...loadOverrides('3d_lajiTexts') }));
   const [duanZuZQTexts, setDuanZuZQTextsState] = useState(() => normalizeTexts({ ...loadOverrides('3d_duanZuZQTexts') }));
@@ -164,9 +168,11 @@ function App() {
   duanZuBZTextsRef.current = duanZuBZTexts;
 
   const setDecompText = useCallback((issue, val) => {
+    console.log('[setDecompText] 保存数据! issue:', issue, 'val长度:', val?.length);
     setDecompTextsState(prev => {
       const next = { ...prev, [issue]: val };
       safeSetItem('3d_decompTexts', JSON.stringify(next));
+      console.log('[setDecompText] 已写入localStorage, 键: 3d_decompTexts, 数据期号:', Object.keys(next).join(','));
       if (getGistToken()) {
         const gistData = {
           decompTexts: next,

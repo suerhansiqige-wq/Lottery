@@ -67,8 +67,10 @@ const DecompTextarea = React.memo(function DecompTextarea({ value, locked, hasDa
   }, []);
 
   const handleBlur = useCallback(() => {
+    console.log('[DecompTextarea.handleBlur] kind:', kind, 'issue:', issue, 'localValue长度:', localValue?.length, 'value长度:', value?.length, 'localValue!==value:', localValue !== value);
     prevValueRef.current = localValue;
     if (setText && localValue !== value) {
+      console.log('[DecompTextarea.handleBlur] 调用setText!');
       setText(issue, localValue);
     }
   }, [setText, issue, localValue, value]);
@@ -792,15 +794,9 @@ function FullDataTable({
   };
 
   const renderJiJiaoCell = (issue) => {
-    console.log('[交集号码] 计算期号:', issue);
-    console.log('[交集号码] decompTexts[issue]:', decompTexts && decompTexts[issue] ? JSON.stringify(decompTexts[issue].substring(0, 50)) : '(空)');
-    console.log('[交集号码] bozhongTexts[issue]:', bozhongTexts && bozhongTexts[issue] ? JSON.stringify(bozhongTexts[issue].substring(0, 50)) : '(空)');
-    
     // 计算智取分解容错（组六1~9，组三2~12）
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
-    console.log('[交集号码] 智取分解组数:', decompGroups.length);
     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-    console.log('[交集号码] 智取容错结果:', decompResult ? '有' : '无');
     const decompZu6 = []; // 组六池 1~9
     const decompZu3 = []; // 组三池 2~12
     if (decompResult && decompResult.buckets) {
@@ -811,13 +807,10 @@ function FullDataTable({
         if (decompResult.buckets[i]) decompZu3.push(...decompResult.buckets[i]);
       }
     }
-    console.log('[交集号码] 智取组六池:', decompZu6.length, '注，组三池:', decompZu3.length, '注');
 
     // 计算博众分解容错（组六1~9，组三2~12）
     const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
-    console.log('[交集号码] 博众分解组数:', bozhongGroups.length);
     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-    console.log('[交集号码] 博众容错结果:', bozhongResult ? '有' : '无');
     const bozhongZu6 = []; // 组六池 1~9
     const bozhongZu3 = []; // 组三池 2~12
     if (bozhongResult && bozhongResult.buckets) {
@@ -828,7 +821,6 @@ function FullDataTable({
         if (bozhongResult.buckets[i]) bozhongZu3.push(...bozhongResult.buckets[i]);
       }
     }
-    console.log('[交集号码] 博众组六池:', bozhongZu6.length, '注，组三池:', bozhongZu3.length, '注');
 
     // 交集号码列 = 智取容错 ∩ 博众容错（组六均1~9，组三均2~12）
     const decompZu6Set = new Set(decompZu6);
@@ -865,11 +857,6 @@ function FullDataTable({
     // 合并所有号码并去重
     const allNumbers = [...new Set([...jiaoji, ...decompWuRongCuo, ...bozhongWuRongCuo, ...baoZi])];
     const filtered = allNumbers.sort();
-
-    console.log('[交集号码] 交集号码:', jiaoji.length, '注');
-    console.log('[交集号码] 无容错号码: 智取', decompWuRongCuo.length, '注，博众', bozhongWuRongCuo.length, '注');
-    console.log('[交集号码] 豹子号:', baoZi.length, '注');
-    console.log('[交集号码] 最终结果:', filtered.length, '注');
 
     if (filtered.length === 0) {
       return <td key="jj" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
@@ -1384,7 +1371,12 @@ function FullDataTable({
                   )}
                   {/* 交集号码 - 预留行：下期交集注数（尚未开奖，无对错） */}
                   {SHOW_JJ_COL && (() => {
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[lastItem.issue]) || '');
+                    console.log('[预留行-交集号码] appNextIssue:', appNextIssue);
+                    const decompText = decompTexts && decompTexts[appNextIssue] ? decompTexts[appNextIssue] : '';
+                    const bozhongText = bozhongTexts && bozhongTexts[appNextIssue] ? bozhongTexts[appNextIssue] : '';
+                    console.log('[预留行-交集号码] 智取分解数据:', decompText.substring(0, 100));
+                    console.log('[预留行-交集号码] 博众分解数据:', bozhongText.substring(0, 100));
+                    const decompGroups = parseDecompGroups(decompText);
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompZu6 = [];
                     const decompZu3 = [];
@@ -1396,7 +1388,9 @@ function FullDataTable({
                         if (decompResult.buckets[i]) decompZu3.push(...decompResult.buckets[i]);
                       }
                     }
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[lastItem.issue]) || '');
+                    console.log('[预留行-交集号码] 智取组六池:', decompZu6.length, '注');
+                    console.log('[预留行-交集号码] 智取组三池:', decompZu3.length, '注');
+                    const bozhongGroups = parseDecompGroups(bozhongText);
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
                     const bozhongZu6 = [];
                     const bozhongZu3 = [];
@@ -1408,6 +1402,8 @@ function FullDataTable({
                         if (bozhongResult.buckets[i]) bozhongZu3.push(...bozhongResult.buckets[i]);
                       }
                     }
+                    console.log('[预留行-交集号码] 博众组六池:', bozhongZu6.length, '注');
+                    console.log('[预留行-交集号码] 博众组三池:', bozhongZu3.length, '注');
                     // 交集号码列 = 智取容错 ∩ 博众容错（组六用1~9池，组三用2~12池）
                     const decompZu6Set = new Set(decompZu6);
                     const bozhongZu6Set = new Set(bozhongZu6);
@@ -1416,7 +1412,7 @@ function FullDataTable({
                     const decompAll = [...new Set([...decompZu6, ...decompZu3])];
                     const bozhongAll = [...new Set([...bozhongZu6, ...bozhongZu3])];
                     const bozhongAllSet = new Set(bozhongAll);
-                    const filtered = decompAll.filter(n => {
+                    const jiaoji = decompAll.filter(n => {
                       if (!bozhongAllSet.has(n)) return false;
                       const isZu3 = n[0] === n[1] || n[1] === n[2] || n[0] === n[2];
                       if (isZu3) {
@@ -1424,7 +1420,18 @@ function FullDataTable({
                       } else {
                         return decompZu6Set.has(n) && bozhongZu6Set.has(n);
                       }
-                    }).sort();
+                    });
+                    console.log('[预留行-交集号码] 交集号码:', jiaoji.length, '注');
+                    const decompWuRongCuo = decompResult && decompResult.buckets && decompResult.buckets[0] ? decompResult.buckets[0] : [];
+                    const bozhongWuRongCuo = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[0] ? bozhongResult.buckets[0] : [];
+                    const baoZi = ['000', '111', '222', '333', '444', '555', '666', '777', '888', '999'];
+                    console.log('[预留行-交集号码] 智取无容错:', decompWuRongCuo.length, '注');
+                    console.log('[预留行-交集号码] 博众无容错:', bozhongWuRongCuo.length, '注');
+                    console.log('[预留行-交集号码] 豹子号:', baoZi.length, '注');
+                    const allNumbers = [...new Set([...jiaoji, ...decompWuRongCuo, ...bozhongWuRongCuo, ...baoZi])];
+                    const filtered = allNumbers.sort();
+                    console.log('[预留行-交集号码] 最终结果:', filtered.length, '注');
+                    console.log('[预留行-交集号码] 前10注:', filtered.slice(0, 10).join(' '));
                     return (
                       <td key="jjNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
@@ -1433,7 +1440,7 @@ function FullDataTable({
                   })()}
                   {/* 交集 - 预留行：下期交集注数（尚未开奖，无对错） */}
                   {SHOW_JIAOJI_COL && (() => {
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[lastItem.issue]) || '');
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[appNextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompRc0_9 = [];
                     if (decompResult && decompResult.buckets) {
@@ -1441,7 +1448,7 @@ function FullDataTable({
                         if (decompResult.buckets[i]) decompRc0_9.push(...decompResult.buckets[i]);
                       }
                     }
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[lastItem.issue]) || '');
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[appNextIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
                     const bozhongRc0_9 = [];
                     if (bozhongResult && bozhongResult.buckets) {
@@ -1459,10 +1466,10 @@ function FullDataTable({
                   })()}
                   {/* 容错9 - 预留行：下期容错8注数（尚未开奖，无对错） */}
                   {SHOW_RC9_COL && (() => {
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[lastItem.issue]) || '');
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[appNextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompRc8 = decompResult && decompResult.buckets && decompResult.buckets[8] ? decompResult.buckets[8] : [];
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[lastItem.issue]) || '');
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[appNextIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
                     const bozhongRc8 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[8] ? bozhongResult.buckets[8] : [];
                     const merged = [...new Set([...decompRc8, ...bozhongRc8])].sort();
@@ -1474,10 +1481,10 @@ function FullDataTable({
                   })()}
                   {/* 容错10 - 预留行：下期容错10注数（尚未开奖，无对错） */}
                   {SHOW_RC10_COL && (() => {
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[lastItem.issue]) || '');
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[appNextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompRc10 = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[lastItem.issue]) || '');
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[appNextIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
                     const bozhongRc10 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
                     const merged = [...new Set([...decompRc10, ...bozhongRc10])].sort();
@@ -1489,7 +1496,7 @@ function FullDataTable({
                   })()}
                   {/* 容错 - 预留行：下期对称差集注数（尚未开奖，无对错） */}
                   {SHOW_RC_COL && (() => {
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[lastItem.issue]) || '');
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[appNextIssue]) || '');
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompRc12 = [];
                     if (decompResult && decompResult.buckets) {
@@ -1497,7 +1504,7 @@ function FullDataTable({
                         if (decompResult.buckets[i]) decompRc12.push(...decompResult.buckets[i]);
                       }
                     }
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[lastItem.issue]) || '');
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[appNextIssue]) || '');
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
                     const bozhongRc12 = [];
                     if (bozhongResult && bozhongResult.buckets) {
