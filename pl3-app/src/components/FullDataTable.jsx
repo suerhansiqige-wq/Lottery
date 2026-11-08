@@ -2066,7 +2066,7 @@ function FullDataTable({
                     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
                     const decompRc12 = [];
                     if (decompResult && decompResult.buckets) {
-                      for (let i = 1; i <= 12; i++) {
+                      for (let i = 0; i <= 12; i++) {
                         if (decompResult.buckets[i]) decompRc12.push(...decompResult.buckets[i]);
                       }
                     }
@@ -2074,7 +2074,7 @@ function FullDataTable({
                     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
                     const bozhongRc12 = [];
                     if (bozhongResult && bozhongResult.buckets) {
-                      for (let i = 1; i <= 12; i++) {
+                      for (let i = 0; i <= 12; i++) {
                         if (bozhongResult.buckets[i]) bozhongRc12.push(...bozhongResult.buckets[i]);
                       }
                     }
