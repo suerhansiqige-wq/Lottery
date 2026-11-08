@@ -297,40 +297,40 @@ const SHOW_JIAOJI_COL = false;
 const SHOW_JJRONGCUO_COL = true;
 
 // 断容0列开关：智取断组容错0 ∩ 博众断组容错0（重复出现的号码）
-const SHOW_DUANRONG0_COL = true;
+const SHOW_DUANRONG0_COL = false;
 
 // 断容1列开关：智取断组容错1 ∩ 博众断组容错1（重复出现的号码）
-const SHOW_DUANRONG1_COL = true;
+const SHOW_DUANRONG1_COL = false;
 
 // 断容2列开关：智取断组容错2 ∩ 博众断组容错2（重复出现的号码）
-const SHOW_DUANRONG2_COL = true;
+const SHOW_DUANRONG2_COL = false;
 
 // 断容3列开关：智取断组容错3 ∩ 博众断组容错3（重复出现的号码）
-const SHOW_DUANRONG3_COL = true;
+const SHOW_DUANRONG3_COL = false;
 
 // 断容4列开关：智取断组容错4 ∩ 博众断组容错4（重复出现的号码）
-const SHOW_DUANRONG4_COL = true;
+const SHOW_DUANRONG4_COL = false;
 
 // 断容5列开关：智取断组容错5 ∩ 博众断组容错5（重复出现的号码）
-const SHOW_DUANRONG5_COL = true;
+const SHOW_DUANRONG5_COL = false;
 
 // 断容6列开关：智取断组容错6 ∩ 博众断组容错6（重复出现的号码）
-const SHOW_DUANRONG6_COL = true;
+const SHOW_DUANRONG6_COL = false;
 
 // 断容7列开关：智取断组容错7 ∩ 博众断组容错7（重复出现的号码）
-const SHOW_DUANRONG7_COL = true;
+const SHOW_DUANRONG7_COL = false;
 
 // 断容8列开关：智取断组容错8 ∩ 博众断组容错8（重复出现的号码）
-const SHOW_DUANRONG8_COL = true;
+const SHOW_DUANRONG8_COL = false;
 
 // 断容9列开关：智取断组容错9 ∩ 博众断组容错9（重复出现的号码）
-const SHOW_DUANRONG9_COL = true;
+const SHOW_DUANRONG9_COL = false;
 
 // 断容10列开关：智取断组容错10 ∩ 博众断组容错10（重复出现的号码）
-const SHOW_DUANRONG10_COL = true;
+const SHOW_DUANRONG10_COL = false;
 
 // 断容11列开关：智取断组容错11 ∩ 博众断组容错11（重复出现的号码）
-const SHOW_DUANRONG11_COL = true;
+const SHOW_DUANRONG11_COL = false;
 
 // 断组杀号列开关：断容0-11所有号码合并去重后的总注数
 const SHOW_DUANZU_SHAHAO_COL = true;
