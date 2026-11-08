@@ -1610,10 +1610,10 @@ function FullDataTable({
                     const decompZu6 = [];
                     const decompZu3 = [];
                     if (decompResult && decompResult.buckets) {
-                      for (let i = 1; i <= 8; i++) {
+                      for (let i = 1; i <= 9; i++) {
                         if (decompResult.buckets[i]) decompZu6.push(...decompResult.buckets[i]);
                       }
-                      for (let i = 1; i <= 12; i++) {
+                      for (let i = 2; i <= 12; i++) {
                         if (decompResult.buckets[i]) decompZu3.push(...decompResult.buckets[i]);
                       }
                     }
@@ -1622,14 +1622,14 @@ function FullDataTable({
                     const bozhongZu6 = [];
                     const bozhongZu3 = [];
                     if (bozhongResult && bozhongResult.buckets) {
-                      for (let i = 1; i <= 8; i++) {
+                      for (let i = 1; i <= 9; i++) {
                         if (bozhongResult.buckets[i]) bozhongZu6.push(...bozhongResult.buckets[i]);
                       }
-                      for (let i = 1; i <= 12; i++) {
+                      for (let i = 2; i <= 12; i++) {
                         if (bozhongResult.buckets[i]) bozhongZu3.push(...bozhongResult.buckets[i]);
                       }
                     }
-                    // 交集号码列 = 智取容错 ∩ 博众容错（组六用1~8池，组三用1~12池）
+                    // 交集号码列 = 智取容错 ∩ 博众容错（组六用1~9池，组三用2~12池）
                     const decompZu6Set = new Set(decompZu6);
                     const bozhongZu6Set = new Set(bozhongZu6);
                     const decompZu3Set = new Set(decompZu3);
