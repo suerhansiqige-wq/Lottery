@@ -512,6 +512,9 @@ const SHOW_DUANRONG10_COL = true;
 // 断容11列开关：智取断组容错11 ∩ 博众断组容错11（重复出现的号码）
 const SHOW_DUANRONG11_COL = true;
 
+// 断组杀号列开关：断容0-11所有号码合并去重后的总注数
+const SHOW_DUANZU_SHAHAO_COL = true;
+
 // 断组容错列开关：2026-11-04 用户要求新增（智取断组+博众断组容错2合并）
 
 // 前1期断组列开关：采用前一期智取断组和博众断组容错1验证当期
@@ -1416,6 +1419,36 @@ function FullDataTable({
     );
   };
 
+  // 断组杀号列：断容0-11所有号码合并去重后的总注数
+  const renderDuanZuShahaoCell = (issue) => {
+    if (!SHOW_DUANZU_SHAHAO_COL) return null;
+    const zqGroups = parseDuanZuGroups((duanZuZQTexts && duanZuZQTexts[issue]) || '');
+    const bzGroups = parseDuanZuGroups((duanZuBZTexts && duanZuBZTexts[issue]) || '');
+    const zqResult = zqGroups.length > 0 ? computeDuanZuRongCuo(zqGroups, null) : null;
+    const bzResult = bzGroups.length > 0 ? computeDuanZuRongCuo(bzGroups, null) : null;
+    const allNumbers = new Set();
+    for (let i = 0; i <= 11; i++) {
+      if (zqResult && zqResult.buckets && zqResult.buckets[i]) {
+        zqResult.buckets[i].forEach(n => allNumbers.add(n));
+      }
+      if (bzResult && bzResult.buckets && bzResult.buckets[i]) {
+        bzResult.buckets[i].forEach(n => allNumbers.add(n));
+      }
+    }
+    const allNumbersArray = [...allNumbers].sort();
+    if (allNumbersArray.length === 0) {
+      return <td key="duanzushahao" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+    const item = displayData.find(d => d.issue === issue);
+    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
+    const hit = drawNum && allNumbersArray.includes(drawNum);
+    return (
+      <td key="duanzushahao" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
+        {<ClickableCount count={allNumbersArray.length} hit={hit} numbers={allNumbersArray} />}
+      </td>
+    );
+  };
+
   // 前1期列：采用前一期智取分解容错10 ∪ 博众分解容错10验证当期开奖号
 
   // 前1期容错列：采用前一期智取分解容错0~12与博众分解容错0~12的对称差集验证当期开奖号
@@ -1885,6 +1918,7 @@ function FullDataTable({
                 {SHOW_DUANRONG9_COL && <th title="智取断组容错9 ∩ 博众断组容错9（重复出现的号码）；✓=在池内，✗=不在池内">断容9</th>}
                 {SHOW_DUANRONG10_COL && <th title="智取断组容错10 ∩ 博众断组容错10（重复出现的号码）；✓=在池内，✗=不在池内">断容10</th>}
                 {SHOW_DUANRONG11_COL && <th title="智取断组容错11 ∩ 博众断组容错11（重复出现的号码）；✓=在池内，✗=不在池内">断容11</th>}
+                {SHOW_DUANZU_SHAHAO_COL && <th title="断容0-11所有号码合并去重后的总注数；✓=在池内，✗=不在池内">断组杀号</th>}
                 {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
@@ -2014,6 +2048,8 @@ function FullDataTable({
                   {SHOW_DUANRONG10_COL && renderDuanRong10Cell(item.issue)}
                   {/* 断容11：智取断组容错11 ∩ 博众断组容错11 */}
                   {SHOW_DUANRONG11_COL && renderDuanRong11Cell(item.issue)}
+                  {/* 断组杀号：断容0-11所有号码合并去重后的总注数 */}
+                  {SHOW_DUANZU_SHAHAO_COL && renderDuanZuShahaoCell(item.issue)}
                   {/* 前1期容错：采用前一期智取分解容错0~12与博众分解容错0~12的对称差集验证当期 */}
                                     {/* 前2期容错：采用前2期智取分解容错0~12与博众分解容错0~12的对称差集验证当期 */}
                                     {/* 前2期：采用前2期智取分解容错10 ∪ 博众分解容错10验证当期 */}
@@ -2409,6 +2445,28 @@ function FullDataTable({
                     return (
                       <td key="duanrong11Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={intersection.length} hit={null} numbers={intersection} color="#1b5e20" />}
+                      </td>
+                    );
+                  })()}
+                  {/* 断组杀号 - 预留行：下期断容0-11所有号码合并去重后的总注数 */}
+                  {SHOW_DUANZU_SHAHAO_COL && (() => {
+                    const zqGroups = parseDuanZuGroups((duanZuZQTexts && duanZuZQTexts[appNextIssue]) || '');
+                    const zqResult = zqGroups.length > 0 ? computeDuanZuRongCuo(zqGroups, null) : null;
+                    const bzGroups = parseDuanZuGroups((duanZuBZTexts && duanZuBZTexts[appNextIssue]) || '');
+                    const bzResult = bzGroups.length > 0 ? computeDuanZuRongCuo(bzGroups, null) : null;
+                    const allNumbers = new Set();
+                    for (let i = 0; i <= 11; i++) {
+                      if (zqResult && zqResult.buckets && zqResult.buckets[i]) {
+                        zqResult.buckets[i].forEach(n => allNumbers.add(n));
+                      }
+                      if (bzResult && bzResult.buckets && bzResult.buckets[i]) {
+                        bzResult.buckets[i].forEach(n => allNumbers.add(n));
+                      }
+                    }
+                    const allNumbersArray = [...allNumbers].sort();
+                    return (
+                      <td key="duanzushahaoNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        {<ClickableCount count={allNumbersArray.length} hit={null} numbers={allNumbersArray} color="#1b5e20" />}
                       </td>
                     );
                   })()}
