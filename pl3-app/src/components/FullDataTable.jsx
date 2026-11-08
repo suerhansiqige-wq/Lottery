@@ -476,40 +476,29 @@ const SHOW_JIAOJI_COL = false;
 const SHOW_JJRONGCUO_COL = true;
 
 // 断组容错列开关：2026-11-04 用户要求新增（智取断组+博众断组容错2合并）
-const SHOW_DUANZU_RC_COL = true;
 
 // 前1期断组列开关：采用前一期智取断组和博众断组容错1验证当期
-const SHOW_QIAN1QI_DUANZU_COL = true;
 
 // 前2期断组列开关：采用前2期智取断组和博众断组容错1验证当期
-const SHOW_QIAN2QI_DUANZU_COL = true;
 
 // 前3期断组列开关：采用前3期智取断组和博众断组容错1验证当期
-const SHOW_QIAN3QI_DUANZU_COL = true;
 
 // 前4期断组列开关：采用前4期智取断组和博众断组容错1验证当期
-const SHOW_QIAN4QI_DUANZU_COL = true;
 
 // 前5期断组列开关：采用前5期智取断组和博众断组容错1验证当期
-const SHOW_QIAN5QI_DUANZU_COL = true;
 
 // 前6期断组列开关：采用前6期智取断组和博众断组容错1验证当期
-const SHOW_QIAN6QI_DUANZU_COL = true;
 
 // 断组334列开关：2026-11-04 用户要求新增
 const SHOW_DUANZU_COL = false; // 已迁移到 DECOMP_COLS 的 duanzuZQ/duanzuBZ
 
 // 前1期列开关：2026-11-06 用户要求新增（采用前一期分解数据容错10验证当期）
-const SHOW_QIAN1QI_COL = true;
 
 // 前1期容错列开关：2026-11-06 用户要求新增（采用前一期分解数据容错0~12对称差集验证当期）
-const SHOW_QIAN1QI_RC_COL = true;
 
 // 前2期容错列开关：2026-11-06 用户要求新增（采用前2期分解数据容错0~12对称差集验证当期）
-const SHOW_QIAN2QI_RC_COL = true;
 
 // 前2期列开关：2026-11-06 用户要求新增（采用前2期分解数据容错10并集验证当期）
-const SHOW_QIAN2QI_COL = true;
 
 function renderHjsCells(src) {
   if (!SHOW_HJS_COLS) return [];
@@ -1078,6 +1067,20 @@ function FullDataTable({
     );
   };
 
+  // 断组容错列：智取断组容错1 ∪ 博众断组容错1
+
+  // 前1期断组列：采用前一期智取断组和博众断组容错1验证当期开奖号
+
+  // 前2期断组列：采用前2期智取断组和博众断组容错1验证当期开奖号
+
+  // 前3期断组列：采用前3期智取断组和博众断组容错1验证当期开奖号
+
+  // 前4期断组列：采用前4期智取断组和博众断组容错1验证当期开奖号
+
+  // 前5期断组列：采用前5期智取断组和博众断组容错1验证当期开奖号
+
+  // 前6期断组列：采用前6期智取断组和博众断组容错1验证当期开奖号
+
   // 祝君中奖列：交集号码 - 容错列 - 容错10列
   const renderJiJiaoRongCuoCell = (issue) => {
     if (!SHOW_JJRONGCUO_COL) return null;
@@ -1101,216 +1104,12 @@ function FullDataTable({
   };
 
   // 前1期列：采用前一期智取分解容错10 ∪ 博众分解容错10验证当期开奖号
-  const renderQian1QiCell = (issue, issueIndex) => {
-    if (!SHOW_QIAN1QI_COL) return null;
-
-    // 获取前一期的期号
-    if (issueIndex <= 0) {
-      return <td key="qian1qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-    const prevIssue = poolData[issueIndex - 1]?.issue;
-    if (!prevIssue) {
-      return <td key="qian1qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    // 获取前一期智取分解和博众分解数据
-    const prevDecompText = (decompTexts && decompTexts[prevIssue]) || '';
-    const prevBozhongText = (bozhongTexts && bozhongTexts[prevIssue]) || '';
-
-    // 解析并计算容错10
-    const prevDecompGroups = parseDecompGroups(prevDecompText);
-    const prevDecompResult = prevDecompGroups.length > 0 ? computeRongCuo(prevDecompGroups, null) : null;
-    const prevDecompRc10 = prevDecompResult && prevDecompResult.buckets && prevDecompResult.buckets[10] ? prevDecompResult.buckets[10] : [];
-
-    const prevBozhongGroups = parseDecompGroups(prevBozhongText);
-    const prevBozhongResult = prevBozhongGroups.length > 0 ? computeRongCuo(prevBozhongGroups, null) : null;
-    const prevBozhongRc10 = prevBozhongResult && prevBozhongResult.buckets && prevBozhongResult.buckets[10] ? prevBozhongResult.buckets[10] : [];
-
-    // 合并去重
-    const merged = [...new Set([...prevDecompRc10, ...prevBozhongRc10])].sort();
-
-    if (merged.length === 0) {
-      return <td key="qian1qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    // 验证当期开奖号是否在前1期池中
-    const item = displayData.find(d => d.issue === issue);
-    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
-    const hit = drawNum && merged.includes(drawNum);
-
-    return (
-      <td key="qian1qi" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {<ClickableCount count={merged.length} hit={hit} numbers={merged} />}
-      </td>
-    );
-  };
 
   // 前1期容错列：采用前一期智取分解容错0~12与博众分解容错0~12的对称差集验证当期开奖号
-  const renderQian1QiRongCuoCell = (issue, issueIndex) => {
-    if (!SHOW_QIAN1QI_RC_COL) return null;
-
-    // 获取前一期的期号
-    if (issueIndex <= 0) {
-      return <td key="qian1qirc" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-    const prevIssue = poolData[issueIndex - 1]?.issue;
-    if (!prevIssue) {
-      return <td key="qian1qirc" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    // 获取前一期智取分解和博众分解数据
-    const prevDecompText = (decompTexts && decompTexts[prevIssue]) || '';
-    const prevBozhongText = (bozhongTexts && bozhongTexts[prevIssue]) || '';
-
-    // 计算前一期智取分解容错0~12
-    const prevDecompGroups = parseDecompGroups(prevDecompText);
-    const prevDecompResult = prevDecompGroups.length > 0 ? computeRongCuo(prevDecompGroups, null) : null;
-    const prevDecompRc12 = [];
-    if (prevDecompResult && prevDecompResult.buckets) {
-      for (let i = 0; i <= 12; i++) {
-        if (prevDecompResult.buckets[i]) prevDecompRc12.push(...prevDecompResult.buckets[i]);
-      }
-    }
-
-    // 计算前一期博众分解容错0~12
-    const prevBozhongGroups = parseDecompGroups(prevBozhongText);
-    const prevBozhongResult = prevBozhongGroups.length > 0 ? computeRongCuo(prevBozhongGroups, null) : null;
-    const prevBozhongRc12 = [];
-    if (prevBozhongResult && prevBozhongResult.buckets) {
-      for (let i = 0; i <= 12; i++) {
-        if (prevBozhongResult.buckets[i]) prevBozhongRc12.push(...prevBozhongResult.buckets[i]);
-      }
-    }
-
-    // 对称差集 = (智取 ∪ 博众) - (智取 ∩ 博众)
-    const prevDecompSet = new Set(prevDecompRc12);
-    const prevBozhongSet = new Set(prevBozhongRc12);
-    const prevIntersection = prevDecompRc12.filter(n => prevBozhongSet.has(n));
-    const prevIntersectionSet = new Set(prevIntersection);
-    const prevUnion = [...new Set([...prevDecompRc12, ...prevBozhongRc12])];
-    const merged = prevUnion.filter(n => !prevIntersectionSet.has(n)).sort();
-
-    if (merged.length === 0) {
-      return <td key="qian1qirc" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    // 验证当期开奖号是否在前1期容错中
-    const item = displayData.find(d => d.issue === issue);
-    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
-    const hit = drawNum && merged.includes(drawNum);
-
-    return (
-      <td key="qian1qirc" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {<ClickableCount count={merged.length} hit={hit} numbers={merged} />}
-      </td>
-    );
-  };
 
   // 前2期容错列：采用前2期智取分解容错0~12与博众分解容错0~12的对称差集验证当期开奖号
-  const renderQian2QiRongCuoCell = (issue, issueIndex) => {
-    if (!SHOW_QIAN2QI_RC_COL) return null;
-
-    // 获取前2期的期号
-    if (issueIndex <= 1) {
-      return <td key="qian2qirc" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-    const prev2Issue = poolData[issueIndex - 2]?.issue;
-    if (!prev2Issue) {
-      return <td key="qian2qirc" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    // 获取前2期智取分解和博众分解数据
-    const prev2DecompText = (decompTexts && decompTexts[prev2Issue]) || '';
-    const prev2BozhongText = (bozhongTexts && bozhongTexts[prev2Issue]) || '';
-
-    // 计算前2期智取分解容错0~12
-    const prev2DecompGroups = parseDecompGroups(prev2DecompText);
-    const prev2DecompResult = prev2DecompGroups.length > 0 ? computeRongCuo(prev2DecompGroups, null) : null;
-    const prev2DecompRc12 = [];
-    if (prev2DecompResult && prev2DecompResult.buckets) {
-      for (let i = 0; i <= 12; i++) {
-        if (prev2DecompResult.buckets[i]) prev2DecompRc12.push(...prev2DecompResult.buckets[i]);
-      }
-    }
-
-    // 计算前2期博众分解容错0~12
-    const prev2BozhongGroups = parseDecompGroups(prev2BozhongText);
-    const prev2BozhongResult = prev2BozhongGroups.length > 0 ? computeRongCuo(prev2BozhongGroups, null) : null;
-    const prev2BozhongRc12 = [];
-    if (prev2BozhongResult && prev2BozhongResult.buckets) {
-      for (let i = 0; i <= 12; i++) {
-        if (prev2BozhongResult.buckets[i]) prev2BozhongRc12.push(...prev2BozhongResult.buckets[i]);
-      }
-    }
-
-    // 对称差集 = (智取 ∪ 博众) - (智取 ∩ 博众)
-    const prev2DecompSet = new Set(prev2DecompRc12);
-    const prev2BozhongSet = new Set(prev2BozhongRc12);
-    const prev2Intersection = prev2DecompRc12.filter(n => prev2BozhongSet.has(n));
-    const prev2IntersectionSet = new Set(prev2Intersection);
-    const prev2Union = [...new Set([...prev2DecompRc12, ...prev2BozhongRc12])];
-    const merged = prev2Union.filter(n => !prev2IntersectionSet.has(n)).sort();
-
-    if (merged.length === 0) {
-      return <td key="qian2qirc" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    // 验证当期开奖号是否在前2期容错中
-    const item = displayData.find(d => d.issue === issue);
-    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
-    const hit = drawNum && merged.includes(drawNum);
-
-    return (
-      <td key="qian2qirc" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {<ClickableCount count={merged.length} hit={hit} numbers={merged} />}
-      </td>
-    );
-  };
 
   // 前2期列：采用前2期智取分解容错10 ∪ 博众分解容错10验证当期开奖号
-  const renderQian2QiCell = (issue, issueIndex) => {
-    if (!SHOW_QIAN2QI_COL) return null;
-
-    // 获取前2期的期号
-    if (issueIndex <= 1) {
-      return <td key="qian2qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-    const prev2Issue = poolData[issueIndex - 2]?.issue;
-    if (!prev2Issue) {
-      return <td key="qian2qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    // 获取前2期智取分解和博众分解数据
-    const prev2DecompText = (decompTexts && decompTexts[prev2Issue]) || '';
-    const prev2BozhongText = (bozhongTexts && bozhongTexts[prev2Issue]) || '';
-
-    // 解析并计算容错10
-    const prev2DecompGroups = parseDecompGroups(prev2DecompText);
-    const prev2DecompResult = prev2DecompGroups.length > 0 ? computeRongCuo(prev2DecompGroups, null) : null;
-    const prev2DecompRc10 = prev2DecompResult && prev2DecompResult.buckets && prev2DecompResult.buckets[10] ? prev2DecompResult.buckets[10] : [];
-
-    const prev2BozhongGroups = parseDecompGroups(prev2BozhongText);
-    const prev2BozhongResult = prev2BozhongGroups.length > 0 ? computeRongCuo(prev2BozhongGroups, null) : null;
-    const prev2BozhongRc10 = prev2BozhongResult && prev2BozhongResult.buckets && prev2BozhongResult.buckets[10] ? prev2BozhongResult.buckets[10] : [];
-
-    // 合并去重
-    const merged = [...new Set([...prev2DecompRc10, ...prev2BozhongRc10])].sort();
-
-    if (merged.length === 0) {
-      return <td key="qian2qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    // 验证当期开奖号是否在前2期池中
-    const item = displayData.find(d => d.issue === issue);
-    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
-    const hit = drawNum && merged.includes(drawNum);
-
-    return (
-      <td key="qian2qi" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {<ClickableCount count={merged.length} hit={hit} numbers={merged} />}
-      </td>
-    );
-  };
 
   // 解析用户输入的断组分组（支持多组，每行一组）
   // 支持三种格式：
@@ -1762,7 +1561,7 @@ function FullDataTable({
                 {SHOW_RC9_COL && <th title="智取分解容错8 ∪ 博众分解容错8（包含组三）；✓=在池内，✗=不在池内">容错9</th>}
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
-                {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
+                                                                                                                                                                                                {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
                 {/* 参考一/参考二/胆码三列表头已彻底删除 - 用户要求 */}
@@ -1870,17 +1669,17 @@ function FullDataTable({
                   {/* 容错：对称差集 */}
                   {SHOW_RC_COL && renderRongCuoCell(item.issue)}
                   {/* 前1期容错：采用前一期智取分解容错0~12与博众分解容错0~12的对称差集验证当期 */}
-                  {/* 前2期容错：采用前2期智取分解容错0~12与博众分解容错0~12的对称差集验证当期 */}
-                  {/* 前2期：采用前2期智取分解容错10 ∪ 博众分解容错10验证当期 */}
-                  {/* 前1期：采用前一期智取分解容错10 ∪ 博众分解容错10验证当期 */}
-                  {/* 断组容错：智取断组容错1 ∪ 博众断组容错1 */}
-                  {/* 前1期断组：采用前一期智取断组和博众断组容错1验证当期 */}
-                  {/* 前2期断组：采用前2期智取断组和博众断组容错1验证当期 */}
-                  {/* 前3期断组：采用前3期智取断组和博众断组容错1验证当期 */}
-                  {/* 前4期断组：采用前4期智取断组和博众断组容错1验证当期 */}
-                  {/* 前5期断组：采用前5期智取断组和博众断组容错1验证当期 */}
-                  {/* 前6期断组：采用前6期智取断组和博众断组容错1验证当期 */}
-                  {/* 交集容错：交集号码 - 容错列 - 容错10列 */}
+                                    {/* 前2期容错：采用前2期智取分解容错0~12与博众分解容错0~12的对称差集验证当期 */}
+                                    {/* 前2期：采用前2期智取分解容错10 ∪ 博众分解容错10验证当期 */}
+                                    {/* 前1期：采用前一期智取分解容错10 ∪ 博众分解容错10验证当期 */}
+                                    {/* 断组容错：智取断组容错1 ∪ 博众断组容错1 */}
+                                    {/* 前1期断组：采用前一期智取断组和博众断组容错1验证当期 */}
+                                    {/* 前2期断组：采用前2期智取断组和博众断组容错1验证当期 */}
+                                    {/* 前3期断组：采用前3期智取断组和博众断组容错1验证当期 */}
+                                    {/* 前4期断组：采用前4期智取断组和博众断组容错1验证当期 */}
+                                    {/* 前5期断组：采用前5期智取断组和博众断组容错1验证当期 */}
+                                    {/* 前6期断组：采用前6期智取断组和博众断组容错1验证当期 */}
+                                    {/* 交集容错：交集号码 - 容错列 - 容错10列 */}
                   {SHOW_JJRONGCUO_COL && renderJiJiaoRongCuoCell(item.issue)}
                   {/* 综合：交集号码 - 容错列 - 容错10列 */}
                   {SHOW_ZONGHE_COL && renderZongHeCell(item.issue)}
@@ -2067,324 +1866,6 @@ function FullDataTable({
                     return (
                       <td key="rcNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
-                  {/* 前1期容错 - 预留行：用最后一期分解数据容错0~12对称差集预测下期 */}
-                  {SHOW_QIAN1QI_RC_COL && (() => {
-                    const lastIssue = lastItem?.issue;
-                    const lastDecompText = (decompTexts && decompTexts[lastIssue]) || '';
-                    const lastBozhongText = (bozhongTexts && bozhongTexts[lastIssue]) || '';
-                    const lastDecompGroups = parseDecompGroups(lastDecompText);
-                    const lastDecompResult = lastDecompGroups.length > 0 ? computeRongCuo(lastDecompGroups, null) : null;
-                    const lastDecompRc12 = [];
-                    if (lastDecompResult && lastDecompResult.buckets) {
-                      for (let i = 0; i <= 12; i++) {
-                        if (lastDecompResult.buckets[i]) lastDecompRc12.push(...lastDecompResult.buckets[i]);
-                      }
-                    }
-                    const lastBozhongGroups = parseDecompGroups(lastBozhongText);
-                    const lastBozhongResult = lastBozhongGroups.length > 0 ? computeRongCuo(lastBozhongGroups, null) : null;
-                    const lastBozhongRc12 = [];
-                    if (lastBozhongResult && lastBozhongResult.buckets) {
-                      for (let i = 0; i <= 12; i++) {
-                        if (lastBozhongResult.buckets[i]) lastBozhongRc12.push(...lastBozhongResult.buckets[i]);
-                      }
-                    }
-                    const lastDecompSet = new Set(lastDecompRc12);
-                    const lastBozhongSet = new Set(lastBozhongRc12);
-                    const lastIntersection = lastDecompRc12.filter(n => lastBozhongSet.has(n));
-                    const lastIntersectionSet = new Set(lastIntersection);
-                    const lastUnion = [...new Set([...lastDecompRc12, ...lastBozhongRc12])];
-                    const merged = lastUnion.filter(n => !lastIntersectionSet.has(n)).sort();
-                    return (
-                      <td key="qian1qircNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
-                  {/* 前2期容错 - 预留行：用倒数第2期分解数据容错0~12对称差集预测下期 */}
-                  {SHOW_QIAN2QI_RC_COL && (() => {
-                    const prev2Issue = data.length >= 2 ? data[data.length - 2]?.issue : null;
-                    if (!prev2Issue) {
-                      return <td key="qian2qircNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>-</td>;
-                    }
-                    const prev2DecompText = (decompTexts && decompTexts[prev2Issue]) || '';
-                    const prev2BozhongText = (bozhongTexts && bozhongTexts[prev2Issue]) || '';
-                    const prev2DecompGroups = parseDecompGroups(prev2DecompText);
-                    const prev2DecompResult = prev2DecompGroups.length > 0 ? computeRongCuo(prev2DecompGroups, null) : null;
-                    const prev2DecompRc12 = [];
-                    if (prev2DecompResult && prev2DecompResult.buckets) {
-                      for (let i = 0; i <= 12; i++) {
-                        if (prev2DecompResult.buckets[i]) prev2DecompRc12.push(...prev2DecompResult.buckets[i]);
-                      }
-                    }
-                    const prev2BozhongGroups = parseDecompGroups(prev2BozhongText);
-                    const prev2BozhongResult = prev2BozhongGroups.length > 0 ? computeRongCuo(prev2BozhongGroups, null) : null;
-                    const prev2BozhongRc12 = [];
-                    if (prev2BozhongResult && prev2BozhongResult.buckets) {
-                      for (let i = 0; i <= 12; i++) {
-                        if (prev2BozhongResult.buckets[i]) prev2BozhongRc12.push(...prev2BozhongResult.buckets[i]);
-                      }
-                    }
-                    const prev2DecompSet = new Set(prev2DecompRc12);
-                    const prev2BozhongSet = new Set(prev2BozhongRc12);
-                    const prev2Intersection = prev2DecompRc12.filter(n => prev2BozhongSet.has(n));
-                    const prev2IntersectionSet = new Set(prev2Intersection);
-                    const prev2Union = [...new Set([...prev2DecompRc12, ...prev2BozhongRc12])];
-                    const merged = prev2Union.filter(n => !prev2IntersectionSet.has(n)).sort();
-                    return (
-                      <td key="qian2qircNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
-                  {/* 前2期 - 预留行：用倒数第2期分解数据容错10并集预测下期 */}
-                  {SHOW_QIAN2QI_COL && (() => {
-                    const prev2Issue = data.length >= 2 ? data[data.length - 2]?.issue : null;
-                    if (!prev2Issue) {
-                      return <td key="qian2qiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>-</td>;
-                    }
-                    const prev2DecompText = (decompTexts && decompTexts[prev2Issue]) || '';
-                    const prev2BozhongText = (bozhongTexts && bozhongTexts[prev2Issue]) || '';
-                    const prev2DecompGroups = parseDecompGroups(prev2DecompText);
-                    const prev2DecompResult = prev2DecompGroups.length > 0 ? computeRongCuo(prev2DecompGroups, null) : null;
-                    const prev2DecompRc10 = prev2DecompResult && prev2DecompResult.buckets && prev2DecompResult.buckets[10] ? prev2DecompResult.buckets[10] : [];
-                    const prev2BozhongGroups = parseDecompGroups(prev2BozhongText);
-                    const prev2BozhongResult = prev2BozhongGroups.length > 0 ? computeRongCuo(prev2BozhongGroups, null) : null;
-                    const prev2BozhongRc10 = prev2BozhongResult && prev2BozhongResult.buckets && prev2BozhongResult.buckets[10] ? prev2BozhongResult.buckets[10] : [];
-                    const merged = [...new Set([...prev2DecompRc10, ...prev2BozhongRc10])].sort();
-                    return (
-                      <td key="qian2qiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
-                  {/* 前1期 - 预留行：用最后一期分解数据容错10并集预测下期 */}
-                  {SHOW_QIAN1QI_COL && (() => {
-                    const lastIssue = lastItem?.issue;
-                    const lastDecompText = (decompTexts && decompTexts[lastIssue]) || '';
-                    const lastBozhongText = (bozhongTexts && bozhongTexts[lastIssue]) || '';
-                    const lastDecompGroups = parseDecompGroups(lastDecompText);
-                    const lastDecompResult = lastDecompGroups.length > 0 ? computeRongCuo(lastDecompGroups, null) : null;
-                    const lastDecompRc10 = lastDecompResult && lastDecompResult.buckets && lastDecompResult.buckets[10] ? lastDecompResult.buckets[10] : [];
-                    const lastBozhongGroups = parseDecompGroups(lastBozhongText);
-                    const lastBozhongResult = lastBozhongGroups.length > 0 ? computeRongCuo(lastBozhongGroups, null) : null;
-                    const lastBozhongRc10 = lastBozhongResult && lastBozhongResult.buckets && lastBozhongResult.buckets[10] ? lastBozhongResult.buckets[10] : [];
-                    const merged = [...new Set([...lastDecompRc10, ...lastBozhongRc10])].sort();
-                    return (
-                      <td key="qian1qiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
-                  {/* 断组容错 - 预留行：用下一期断组数据计算容错注数 */}
-                  {SHOW_DUANZU_RC_COL && (() => {
-                    const zqText = (duanZuZQTexts && duanZuZQTexts[nextIssue]) || '';
-                    const bzText = (duanZuBZTexts && duanZuBZTexts[nextIssue]) || '';
-                    const zqGroups = parseDuanZuGroups(zqText);
-                    const bzGroups = parseDuanZuGroups(bzText);
-                    let zqRongCuo1 = [];
-                    let bzRongCuo1 = [];
-                    if (zqGroups.length > 0 && zqGroups[0].groups.length > 0) {
-                      const zqResult = computeDuanZuRongCuo(zqGroups);
-                      if (zqResult.levels && zqResult.levels.length >= 1) {
-                        zqRongCuo1 = zqResult.levels[0].numbers || [];
-                      }
-                    }
-                    if (bzGroups.length > 0 && bzGroups[0].groups.length > 0) {
-                      const bzResult = computeDuanZuRongCuo(bzGroups);
-                      if (bzResult.levels && bzResult.levels.length >= 1) {
-                        bzRongCuo1 = bzResult.levels[0].numbers || [];
-                      }
-                    }
-                    const merged = Array.from(new Set([...zqRongCuo1, ...bzRongCuo1])).sort();
-                    return (
-                      <td key="duanzurcNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
-                  {/* 前1期断组 - 预留行：用最后一期断组数据容错1预测下期 */}
-                  {SHOW_QIAN1QI_DUANZU_COL && (() => {
-                    const lastIssue = lastItem?.issue;
-                    const lastZqText = (duanZuZQTexts && duanZuZQTexts[lastIssue]) || '';
-                    const lastBzText = (duanZuBZTexts && duanZuBZTexts[lastIssue]) || '';
-                    const lastZqGroups = parseDuanZuGroups(lastZqText);
-                    const lastBzGroups = parseDuanZuGroups(lastBzText);
-                    let lastZqRongCuo1 = [];
-                    let lastBzRongCuo1 = [];
-                    if (lastZqGroups.length > 0 && lastZqGroups[0].groups.length > 0) {
-                      const lastZqResult = computeDuanZuRongCuo(lastZqGroups);
-                      if (lastZqResult.levels && lastZqResult.levels.length >= 1) {
-                        lastZqRongCuo1 = lastZqResult.levels[0].numbers || [];
-                      }
-                    }
-                    if (lastBzGroups.length > 0 && lastBzGroups[0].groups.length > 0) {
-                      const lastBzResult = computeDuanZuRongCuo(lastBzGroups);
-                      if (lastBzResult.levels && lastBzResult.levels.length >= 1) {
-                        lastBzRongCuo1 = lastBzResult.levels[0].numbers || [];
-                      }
-                    }
-                    const merged = Array.from(new Set([...lastZqRongCuo1, ...lastBzRongCuo1])).sort();
-                    return (
-                      <td key="qian1qidzNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
-                  {/* 前2期断组 - 预留行：用倒数第2期断组数据容错1预测下期 */}
-                  {SHOW_QIAN2QI_DUANZU_COL && (() => {
-                    const prev2Issue = data.length >= 2 ? data[data.length - 2]?.issue : null;
-                    if (!prev2Issue) {
-                      return <td key="qian2qidzNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>-</td>;
-                    }
-                    const prev2ZqText = (duanZuZQTexts && duanZuZQTexts[prev2Issue]) || '';
-                    const prev2BzText = (duanZuBZTexts && duanZuBZTexts[prev2Issue]) || '';
-                    const prev2ZqGroups = parseDuanZuGroups(prev2ZqText);
-                    const prev2BzGroups = parseDuanZuGroups(prev2BzText);
-                    let prev2ZqRongCuo1 = [];
-                    let prev2BzRongCuo1 = [];
-                    if (prev2ZqGroups.length > 0 && prev2ZqGroups[0].groups.length > 0) {
-                      const prev2ZqResult = computeDuanZuRongCuo(prev2ZqGroups);
-                      if (prev2ZqResult.levels && prev2ZqResult.levels.length >= 1) {
-                        prev2ZqRongCuo1 = prev2ZqResult.levels[0].numbers || [];
-                      }
-                    }
-                    if (prev2BzGroups.length > 0 && prev2BzGroups[0].groups.length > 0) {
-                      const prev2BzResult = computeDuanZuRongCuo(prev2BzGroups);
-                      if (prev2BzResult.levels && prev2BzResult.levels.length >= 1) {
-                        prev2BzRongCuo1 = prev2BzResult.levels[0].numbers || [];
-                      }
-                    }
-                    const merged = Array.from(new Set([...prev2ZqRongCuo1, ...prev2BzRongCuo1])).sort();
-                    return (
-                      <td key="qian2qidzNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
-                  {/* 前3期断组 - 预留行：用倒数第3期断组数据容错1预测下期 */}
-                  {SHOW_QIAN3QI_DUANZU_COL && (() => {
-                    const prev3Issue = data.length >= 3 ? data[data.length - 3]?.issue : null;
-                    if (!prev3Issue) {
-                      return <td key="qian3qidzNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>-</td>;
-                    }
-                    const prev3ZqText = (duanZuZQTexts && duanZuZQTexts[prev3Issue]) || '';
-                    const prev3BzText = (duanZuBZTexts && duanZuBZTexts[prev3Issue]) || '';
-                    const prev3ZqGroups = parseDuanZuGroups(prev3ZqText);
-                    const prev3BzGroups = parseDuanZuGroups(prev3BzText);
-                    let prev3ZqRongCuo1 = [];
-                    let prev3BzRongCuo1 = [];
-                    if (prev3ZqGroups.length > 0 && prev3ZqGroups[0].groups.length > 0) {
-                      const prev3ZqResult = computeDuanZuRongCuo(prev3ZqGroups);
-                      if (prev3ZqResult.levels && prev3ZqResult.levels.length >= 1) {
-                        prev3ZqRongCuo1 = prev3ZqResult.levels[0].numbers || [];
-                      }
-                    }
-                    if (prev3BzGroups.length > 0 && prev3BzGroups[0].groups.length > 0) {
-                      const prev3BzResult = computeDuanZuRongCuo(prev3BzGroups);
-                      if (prev3BzResult.levels && prev3BzResult.levels.length >= 1) {
-                        prev3BzRongCuo1 = prev3BzResult.levels[0].numbers || [];
-                      }
-                    }
-                    const merged = Array.from(new Set([...prev3ZqRongCuo1, ...prev3BzRongCuo1])).sort();
-                    return (
-                      <td key="qian3qidzNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
-                  {/* 前4期断组 - 预留行：用倒数第4期断组数据容错1预测下期 */}
-                  {SHOW_QIAN4QI_DUANZU_COL && (() => {
-                    const prev4Issue = data.length >= 4 ? data[data.length - 4]?.issue : null;
-                    if (!prev4Issue) {
-                      return <td key="qian4qidzNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>-</td>;
-                    }
-                    const prev4ZqText = (duanZuZQTexts && duanZuZQTexts[prev4Issue]) || '';
-                    const prev4BzText = (duanZuBZTexts && duanZuBZTexts[prev4Issue]) || '';
-                    const prev4ZqGroups = parseDuanZuGroups(prev4ZqText);
-                    const prev4BzGroups = parseDuanZuGroups(prev4BzText);
-                    let prev4ZqRongCuo1 = [];
-                    let prev4BzRongCuo1 = [];
-                    if (prev4ZqGroups.length > 0 && prev4ZqGroups[0].groups.length > 0) {
-                      const prev4ZqResult = computeDuanZuRongCuo(prev4ZqGroups);
-                      if (prev4ZqResult.levels && prev4ZqResult.levels.length >= 1) {
-                        prev4ZqRongCuo1 = prev4ZqResult.levels[0].numbers || [];
-                      }
-                    }
-                    if (prev4BzGroups.length > 0 && prev4BzGroups[0].groups.length > 0) {
-                      const prev4BzResult = computeDuanZuRongCuo(prev4BzGroups);
-                      if (prev4BzResult.levels && prev4BzResult.levels.length >= 1) {
-                        prev4BzRongCuo1 = prev4BzResult.levels[0].numbers || [];
-                      }
-                    }
-                    const merged = Array.from(new Set([...prev4ZqRongCuo1, ...prev4BzRongCuo1])).sort();
-                    return (
-                      <td key="qian4qidzNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
-                  {/* 前5期断组 - 预留行：用倒数第5期断组数据容错1预测下期 */}
-                  {SHOW_QIAN5QI_DUANZU_COL && (() => {
-                    const prev5Issue = data.length >= 5 ? data[data.length - 5]?.issue : null;
-                    if (!prev5Issue) {
-                      return <td key="qian5qidzNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>-</td>;
-                    }
-                    const prev5ZqText = (duanZuZQTexts && duanZuZQTexts[prev5Issue]) || '';
-                    const prev5BzText = (duanZuBZTexts && duanZuBZTexts[prev5Issue]) || '';
-                    const prev5ZqGroups = parseDuanZuGroups(prev5ZqText);
-                    const prev5BzGroups = parseDuanZuGroups(prev5BzText);
-                    let prev5ZqRongCuo1 = [];
-                    let prev5BzRongCuo1 = [];
-                    if (prev5ZqGroups.length > 0 && prev5ZqGroups[0].groups.length > 0) {
-                      const prev5ZqResult = computeDuanZuRongCuo(prev5ZqGroups);
-                      if (prev5ZqResult.levels && prev5ZqResult.levels.length >= 1) {
-                        prev5ZqRongCuo1 = prev5ZqResult.levels[0].numbers || [];
-                      }
-                    }
-                    if (prev5BzGroups.length > 0 && prev5BzGroups[0].groups.length > 0) {
-                      const prev5BzResult = computeDuanZuRongCuo(prev5BzGroups);
-                      if (prev5BzResult.levels && prev5BzResult.levels.length >= 1) {
-                        prev5BzRongCuo1 = prev5BzResult.levels[0].numbers || [];
-                      }
-                    }
-                    const merged = Array.from(new Set([...prev5ZqRongCuo1, ...prev5BzRongCuo1])).sort();
-                    return (
-                      <td key="qian5qidzNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
-                  {/* 前6期断组 - 预留行：用倒数第6期断组数据容错1预测下期 */}
-                  {SHOW_QIAN6QI_DUANZU_COL && (() => {
-                    const prev6Issue = data.length >= 6 ? data[data.length - 6]?.issue : null;
-                    if (!prev6Issue) {
-                      return <td key="qian6qidzNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>-</td>;
-                    }
-                    const prev6ZqText = (duanZuZQTexts && duanZuZQTexts[prev6Issue]) || '';
-                    const prev6BzText = (duanZuBZTexts && duanZuBZTexts[prev6Issue]) || '';
-                    const prev6ZqGroups = parseDuanZuGroups(prev6ZqText);
-                    const prev6BzGroups = parseDuanZuGroups(prev6BzText);
-                    let prev6ZqRongCuo1 = [];
-                    let prev6BzRongCuo1 = [];
-                    if (prev6ZqGroups.length > 0 && prev6ZqGroups[0].groups.length > 0) {
-                      const prev6ZqResult = computeDuanZuRongCuo(prev6ZqGroups);
-                      if (prev6ZqResult.levels && prev6ZqResult.levels.length >= 1) {
-                        prev6ZqRongCuo1 = prev6ZqResult.levels[0].numbers || [];
-                      }
-                    }
-                    if (prev6BzGroups.length > 0 && prev6BzGroups[0].groups.length > 0) {
-                      const prev6BzResult = computeDuanZuRongCuo(prev6BzGroups);
-                      if (prev6BzResult.levels && prev6BzResult.levels.length >= 1) {
-                        prev6BzRongCuo1 = prev6BzResult.levels[0].numbers || [];
-                      }
-                    }
-                    const merged = Array.from(new Set([...prev6ZqRongCuo1, ...prev6BzRongCuo1])).sort();
-                    return (
-                      <td key="qian6qidzNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
                       </td>
                     );
                   })()}
