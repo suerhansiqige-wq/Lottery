@@ -583,27 +583,32 @@ function BaoBenTouZhuModule({ issue, reservedNumbers = [], wuRongCuoNumbers = []
           }}>
             {baoBenNumbers.length} 注
           </span>
-        </div>
-        <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.95 }}>
-          {issue ? `${issue} 期` : '—'}
-        </span>
-      </div>
-      <div style={{ padding: 8, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           {baoBenNumbers.length > 0 && (
             <button
               onClick={handleCopy}
               style={{
-                fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
-                fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+                fontSize: 13, fontWeight: 700, padding: '2px 10px', cursor: 'pointer',
+                border: 'none', borderRadius: 4,
+                background: copied
+                  ? 'linear-gradient(180deg, #66bb6a 0%, #43a047 100%)'
+                  : 'linear-gradient(180deg, #ffffff 0%, #e0e0e0 100%)',
+                color: copied ? '#fff' : '#c62828',
+                boxShadow: copied
+                  ? '0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3)'
+                  : '0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.8)',
+                textShadow: copied ? '0 1px 2px rgba(0,0,0,0.3)' : '0 1px 1px rgba(255,255,255,0.8)',
+                lineHeight: '18px', minWidth: 44, textAlign: 'center',
               }}
             >
               {copied ? '✓' : '复制'}
             </button>
           )}
         </div>
+        <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.95 }}>
+          {issue ? `${issue} 期` : '—'}
+        </span>
+      </div>
+      <div style={{ padding: 8, flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto' }}>
         <div style={{
           fontSize: 10, fontFamily: 'Consolas,monospace', lineHeight: '14px',
           padding: 4, border: '1px solid #ef9a9a', borderRadius: 3,
