@@ -2489,11 +2489,7 @@ function FullDataTable({
             <BaoBenTouZhuModule
               issue={selfPickIssue}
               reservedNumbers={tailZhiXuanGaoBeiNumbers}
-              wuRongCuoNumbers={tailWuRongCuoAndBaoZi.filter(n => {
-                const isBaoZi = n[0] === n[1] && n[1] === n[2];
-                const isZuSan = n[0] === n[1] || n[1] === n[2] || n[0] === n[2];
-                return isZuSan && !isBaoZi;
-              })}
+              wuRongCuoNumbers={tailWuRongCuoAndBaoZi}
               baoZiNumbers={['000', '111', '222', '333', '444', '555', '666', '777', '888', '999']}
               rongCuo1JiaoJi={tailRongCuo1JiaoJi}
             />
