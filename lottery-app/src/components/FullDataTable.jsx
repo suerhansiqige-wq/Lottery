@@ -280,7 +280,7 @@ const SHOW_SLBC_COLS = false;
 
 const SHOW_ADDSUB_PRO_COL = true; // 隔一用二增强列
 
-// 容错10 / 容错9 / 容错 / 交集号码 四列开关：2026-11-04 用户要求隐藏
+// 容错20 / 容错9 / 容错 / 交集号码 四列开关：2026-11-04 用户要求隐藏
 const SHOW_RC10_COL = true;
 const SHOW_RC9_COL = true;
 const SHOW_RC_COL = true;
@@ -771,7 +771,7 @@ function FullDataTable({
     );
   };
 
-  // 容错10列：智取分解容错10 ∪ 博众分解容错10（包含组三）
+  // 容错20列：智取分解容错10 ∪ 博众分解容错10（包含组三）
   const renderRongCuo10Cell = (issue) => {
     // 计算智取分解容错10
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
@@ -921,14 +921,14 @@ function FullDataTable({
     if (zqGroups.length > 0 && zqGroups[0].groups.length > 0) {
       const zqResult = computeDuanZuRongCuo(zqGroups);
       if (zqResult.levels && zqResult.levels.length >= 1) {
-        zqRongCuo1 = zqResult.levels[0].numbers || []; // 容错1
+        zqRongCuo1 = zqResult.levels[1].numbers || []; // 容错2
       }
     }
 
     if (bzGroups.length > 0 && bzGroups[0].groups.length > 0) {
       const bzResult = computeDuanZuRongCuo(bzGroups);
       if (bzResult.levels && bzResult.levels.length >= 1) {
-        bzRongCuo1 = bzResult.levels[0].numbers || []; // 容错1
+        bzRongCuo1 = bzResult.levels[1].numbers || []; // 容错2
       }
     }
 
@@ -979,14 +979,14 @@ function FullDataTable({
     if (prevZqGroups.length > 0 && prevZqGroups[0].groups.length > 0) {
       const prevZqResult = computeDuanZuRongCuo(prevZqGroups);
       if (prevZqResult.levels && prevZqResult.levels.length >= 1) {
-        prevZqRongCuo1 = prevZqResult.levels[0].numbers || []; // 容错1
+        prevZqRongCuo1 = prevZqResult.levels[1].numbers || []; // 容错2
       }
     }
 
     if (prevBzGroups.length > 0 && prevBzGroups[0].groups.length > 0) {
       const prevBzResult = computeDuanZuRongCuo(prevBzGroups);
       if (prevBzResult.levels && prevBzResult.levels.length >= 1) {
-        prevBzRongCuo1 = prevBzResult.levels[0].numbers || []; // 容错1
+        prevBzRongCuo1 = prevBzResult.levels[1].numbers || []; // 容错2
       }
     }
 
@@ -1037,14 +1037,14 @@ function FullDataTable({
     if (prev2ZqGroups.length > 0 && prev2ZqGroups[0].groups.length > 0) {
       const prev2ZqResult = computeDuanZuRongCuo(prev2ZqGroups);
       if (prev2ZqResult.levels && prev2ZqResult.levels.length >= 1) {
-        prev2ZqRongCuo1 = prev2ZqResult.levels[0].numbers || []; // 容错1
+        prev2ZqRongCuo1 = prev2ZqResult.levels[1].numbers || []; // 容错2
       }
     }
 
     if (prev2BzGroups.length > 0 && prev2BzGroups[0].groups.length > 0) {
       const prev2BzResult = computeDuanZuRongCuo(prev2BzGroups);
       if (prev2BzResult.levels && prev2BzResult.levels.length >= 1) {
-        prev2BzRongCuo1 = prev2BzResult.levels[0].numbers || []; // 容错1
+        prev2BzRongCuo1 = prev2BzResult.levels[1].numbers || []; // 容错2
       }
     }
 
@@ -1095,14 +1095,14 @@ function FullDataTable({
     if (prev3ZqGroups.length > 0 && prev3ZqGroups[0].groups.length > 0) {
       const prev3ZqResult = computeDuanZuRongCuo(prev3ZqGroups);
       if (prev3ZqResult.levels && prev3ZqResult.levels.length >= 1) {
-        prev3ZqRongCuo1 = prev3ZqResult.levels[0].numbers || []; // 容错1
+        prev3ZqRongCuo1 = prev3ZqResult.levels[1].numbers || []; // 容错2
       }
     }
 
     if (prev3BzGroups.length > 0 && prev3BzGroups[0].groups.length > 0) {
       const prev3BzResult = computeDuanZuRongCuo(prev3BzGroups);
       if (prev3BzResult.levels && prev3BzResult.levels.length >= 1) {
-        prev3BzRongCuo1 = prev3BzResult.levels[0].numbers || []; // 容错1
+        prev3BzRongCuo1 = prev3BzResult.levels[1].numbers || []; // 容错2
       }
     }
 
@@ -1153,14 +1153,14 @@ function FullDataTable({
     if (prev4ZqGroups.length > 0 && prev4ZqGroups[0].groups.length > 0) {
       const prev4ZqResult = computeDuanZuRongCuo(prev4ZqGroups);
       if (prev4ZqResult.levels && prev4ZqResult.levels.length >= 1) {
-        prev4ZqRongCuo1 = prev4ZqResult.levels[0].numbers || []; // 容错1
+        prev4ZqRongCuo1 = prev4ZqResult.levels[1].numbers || []; // 容错2
       }
     }
 
     if (prev4BzGroups.length > 0 && prev4BzGroups[0].groups.length > 0) {
       const prev4BzResult = computeDuanZuRongCuo(prev4BzGroups);
       if (prev4BzResult.levels && prev4BzResult.levels.length >= 1) {
-        prev4BzRongCuo1 = prev4BzResult.levels[0].numbers || []; // 容错1
+        prev4BzRongCuo1 = prev4BzResult.levels[1].numbers || []; // 容错2
       }
     }
 
@@ -1211,14 +1211,14 @@ function FullDataTable({
     if (prev5ZqGroups.length > 0 && prev5ZqGroups[0].groups.length > 0) {
       const prev5ZqResult = computeDuanZuRongCuo(prev5ZqGroups);
       if (prev5ZqResult.levels && prev5ZqResult.levels.length >= 1) {
-        prev5ZqRongCuo1 = prev5ZqResult.levels[0].numbers || []; // 容错1
+        prev5ZqRongCuo1 = prev5ZqResult.levels[1].numbers || []; // 容错2
       }
     }
 
     if (prev5BzGroups.length > 0 && prev5BzGroups[0].groups.length > 0) {
       const prev5BzResult = computeDuanZuRongCuo(prev5BzGroups);
       if (prev5BzResult.levels && prev5BzResult.levels.length >= 1) {
-        prev5BzRongCuo1 = prev5BzResult.levels[0].numbers || []; // 容错1
+        prev5BzRongCuo1 = prev5BzResult.levels[1].numbers || []; // 容错2
       }
     }
 
@@ -1269,14 +1269,14 @@ function FullDataTable({
     if (prev6ZqGroups.length > 0 && prev6ZqGroups[0].groups.length > 0) {
       const prev6ZqResult = computeDuanZuRongCuo(prev6ZqGroups);
       if (prev6ZqResult.levels && prev6ZqResult.levels.length >= 1) {
-        prev6ZqRongCuo1 = prev6ZqResult.levels[0].numbers || []; // 容错1
+        prev6ZqRongCuo1 = prev6ZqResult.levels[1].numbers || []; // 容错2
       }
     }
 
     if (prev6BzGroups.length > 0 && prev6BzGroups[0].groups.length > 0) {
       const prev6BzResult = computeDuanZuRongCuo(prev6BzGroups);
       if (prev6BzResult.levels && prev6BzResult.levels.length >= 1) {
-        prev6BzRongCuo1 = prev6BzResult.levels[0].numbers || []; // 容错1
+        prev6BzRongCuo1 = prev6BzResult.levels[1].numbers || []; // 容错2
       }
     }
 
@@ -2241,13 +2241,13 @@ function FullDataTable({
                     if (zqGroups.length > 0 && zqGroups[0].groups.length > 0) {
                       const zqResult = computeDuanZuRongCuo(zqGroups);
                       if (zqResult.levels && zqResult.levels.length >= 1) {
-                        zqRongCuo1 = zqResult.levels[0].numbers || [];
+                        zqRongCuo1 = zqResult.levels[1].numbers || [];
                       }
                     }
                     if (bzGroups.length > 0 && bzGroups[0].groups.length > 0) {
                       const bzResult = computeDuanZuRongCuo(bzGroups);
                       if (bzResult.levels && bzResult.levels.length >= 1) {
-                        bzRongCuo1 = bzResult.levels[0].numbers || [];
+                        bzRongCuo1 = bzResult.levels[1].numbers || [];
                       }
                     }
                     const merged = Array.from(new Set([...zqRongCuo1, ...bzRongCuo1])).sort();
@@ -2269,13 +2269,13 @@ function FullDataTable({
                     if (lastZqGroups.length > 0 && lastZqGroups[0].groups.length > 0) {
                       const lastZqResult = computeDuanZuRongCuo(lastZqGroups);
                       if (lastZqResult.levels && lastZqResult.levels.length >= 1) {
-                        lastZqRongCuo1 = lastZqResult.levels[0].numbers || [];
+                        lastZqRongCuo1 = lastZqResult.levels[1].numbers || [];
                       }
                     }
                     if (lastBzGroups.length > 0 && lastBzGroups[0].groups.length > 0) {
                       const lastBzResult = computeDuanZuRongCuo(lastBzGroups);
                       if (lastBzResult.levels && lastBzResult.levels.length >= 1) {
-                        lastBzRongCuo1 = lastBzResult.levels[0].numbers || [];
+                        lastBzRongCuo1 = lastBzResult.levels[1].numbers || [];
                       }
                     }
                     const merged = Array.from(new Set([...lastZqRongCuo1, ...lastBzRongCuo1])).sort();
@@ -2300,13 +2300,13 @@ function FullDataTable({
                     if (prev2ZqGroups.length > 0 && prev2ZqGroups[0].groups.length > 0) {
                       const prev2ZqResult = computeDuanZuRongCuo(prev2ZqGroups);
                       if (prev2ZqResult.levels && prev2ZqResult.levels.length >= 1) {
-                        prev2ZqRongCuo1 = prev2ZqResult.levels[0].numbers || [];
+                        prev2ZqRongCuo1 = prev2ZqResult.levels[1].numbers || [];
                       }
                     }
                     if (prev2BzGroups.length > 0 && prev2BzGroups[0].groups.length > 0) {
                       const prev2BzResult = computeDuanZuRongCuo(prev2BzGroups);
                       if (prev2BzResult.levels && prev2BzResult.levels.length >= 1) {
-                        prev2BzRongCuo1 = prev2BzResult.levels[0].numbers || [];
+                        prev2BzRongCuo1 = prev2BzResult.levels[1].numbers || [];
                       }
                     }
                     const merged = Array.from(new Set([...prev2ZqRongCuo1, ...prev2BzRongCuo1])).sort();
@@ -2331,13 +2331,13 @@ function FullDataTable({
                     if (prev3ZqGroups.length > 0 && prev3ZqGroups[0].groups.length > 0) {
                       const prev3ZqResult = computeDuanZuRongCuo(prev3ZqGroups);
                       if (prev3ZqResult.levels && prev3ZqResult.levels.length >= 1) {
-                        prev3ZqRongCuo1 = prev3ZqResult.levels[0].numbers || [];
+                        prev3ZqRongCuo1 = prev3ZqResult.levels[1].numbers || [];
                       }
                     }
                     if (prev3BzGroups.length > 0 && prev3BzGroups[0].groups.length > 0) {
                       const prev3BzResult = computeDuanZuRongCuo(prev3BzGroups);
                       if (prev3BzResult.levels && prev3BzResult.levels.length >= 1) {
-                        prev3BzRongCuo1 = prev3BzResult.levels[0].numbers || [];
+                        prev3BzRongCuo1 = prev3BzResult.levels[1].numbers || [];
                       }
                     }
                     const merged = Array.from(new Set([...prev3ZqRongCuo1, ...prev3BzRongCuo1])).sort();
@@ -2362,13 +2362,13 @@ function FullDataTable({
                     if (prev4ZqGroups.length > 0 && prev4ZqGroups[0].groups.length > 0) {
                       const prev4ZqResult = computeDuanZuRongCuo(prev4ZqGroups);
                       if (prev4ZqResult.levels && prev4ZqResult.levels.length >= 1) {
-                        prev4ZqRongCuo1 = prev4ZqResult.levels[0].numbers || [];
+                        prev4ZqRongCuo1 = prev4ZqResult.levels[1].numbers || [];
                       }
                     }
                     if (prev4BzGroups.length > 0 && prev4BzGroups[0].groups.length > 0) {
                       const prev4BzResult = computeDuanZuRongCuo(prev4BzGroups);
                       if (prev4BzResult.levels && prev4BzResult.levels.length >= 1) {
-                        prev4BzRongCuo1 = prev4BzResult.levels[0].numbers || [];
+                        prev4BzRongCuo1 = prev4BzResult.levels[1].numbers || [];
                       }
                     }
                     const merged = Array.from(new Set([...prev4ZqRongCuo1, ...prev4BzRongCuo1])).sort();
@@ -2393,13 +2393,13 @@ function FullDataTable({
                     if (prev5ZqGroups.length > 0 && prev5ZqGroups[0].groups.length > 0) {
                       const prev5ZqResult = computeDuanZuRongCuo(prev5ZqGroups);
                       if (prev5ZqResult.levels && prev5ZqResult.levels.length >= 1) {
-                        prev5ZqRongCuo1 = prev5ZqResult.levels[0].numbers || [];
+                        prev5ZqRongCuo1 = prev5ZqResult.levels[1].numbers || [];
                       }
                     }
                     if (prev5BzGroups.length > 0 && prev5BzGroups[0].groups.length > 0) {
                       const prev5BzResult = computeDuanZuRongCuo(prev5BzGroups);
                       if (prev5BzResult.levels && prev5BzResult.levels.length >= 1) {
-                        prev5BzRongCuo1 = prev5BzResult.levels[0].numbers || [];
+                        prev5BzRongCuo1 = prev5BzResult.levels[1].numbers || [];
                       }
                     }
                     const merged = Array.from(new Set([...prev5ZqRongCuo1, ...prev5BzRongCuo1])).sort();
@@ -2424,13 +2424,13 @@ function FullDataTable({
                     if (prev6ZqGroups.length > 0 && prev6ZqGroups[0].groups.length > 0) {
                       const prev6ZqResult = computeDuanZuRongCuo(prev6ZqGroups);
                       if (prev6ZqResult.levels && prev6ZqResult.levels.length >= 1) {
-                        prev6ZqRongCuo1 = prev6ZqResult.levels[0].numbers || [];
+                        prev6ZqRongCuo1 = prev6ZqResult.levels[1].numbers || [];
                       }
                     }
                     if (prev6BzGroups.length > 0 && prev6BzGroups[0].groups.length > 0) {
                       const prev6BzResult = computeDuanZuRongCuo(prev6BzGroups);
                       if (prev6BzResult.levels && prev6BzResult.levels.length >= 1) {
-                        prev6BzRongCuo1 = prev6BzResult.levels[0].numbers || [];
+                        prev6BzRongCuo1 = prev6BzResult.levels[1].numbers || [];
                       }
                     }
                     const merged = Array.from(new Set([...prev6ZqRongCuo1, ...prev6BzRongCuo1])).sort();
