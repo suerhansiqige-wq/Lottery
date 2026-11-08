@@ -34,24 +34,47 @@ export const RONGCUO_MAX = 8;
  * @returns {Array<{a:Set<number>, b:Set<number>, raw:string}>} 仅返回合法的 5+5 互补组
  */
 export function parseDecompGroups(text) {
-  if (!text || typeof text !== 'string') return [];
+  if (!text || typeof text !== 'string') {
+    console.log('[parseDecompGroups] 输入为空或非字符串:', text);
+    return [];
+  }
+  console.log('[parseDecompGroups] 输入文本长度:', text.length, '内容:', JSON.stringify(text.substring(0, 100)));
   const groups = [];
+  let lineNum = 0;
   for (const line of text.split('\n')) {
+    lineNum++;
     const trimmed = line.trim();
-    if (!trimmed) continue;
+    if (!trimmed) {
+      console.log('[parseDecompGroups] 第', lineNum, '行: 空行，跳过');
+      continue;
+    }
     // 兼容中英文逗号
     const parts = trimmed.split(/[,，]/);
-    if (parts.length !== 2) continue;
+    if (parts.length !== 2) {
+      console.log('[parseDecompGroups] 第', lineNum, '行: 逗号分隔后不是2部分，实际', parts.length, '部分:', JSON.stringify(trimmed));
+      continue;
+    }
     const aDigits = parts[0].trim().split('').filter(c => /\d/.test(c)).map(Number);
     const bDigits = parts[1].trim().split('').filter(c => /\d/.test(c)).map(Number);
-    if (aDigits.length !== 5 || bDigits.length !== 5) continue;
+    if (aDigits.length !== 5 || bDigits.length !== 5) {
+      console.log('[parseDecompGroups] 第', lineNum, '行: 数字个数不对，a=', aDigits.length, 'b=', bDigits.length, '内容:', JSON.stringify(trimmed));
+      continue;
+    }
     const a = new Set(aDigits);
     const b = new Set(bDigits);
     // 每半必须 5 个不同数字，且两半无重叠
-    if (a.size !== 5 || b.size !== 5) continue;
-    if (aDigits.some(d => b.has(d))) continue;
+    if (a.size !== 5 || b.size !== 5) {
+      console.log('[parseDecompGroups] 第', lineNum, '行: 有重复数字，a去重后', a.size, '个，b去重后', b.size, '个');
+      continue;
+    }
+    if (aDigits.some(d => b.has(d))) {
+      console.log('[parseDecompGroups] 第', lineNum, '行: 两半有重叠数字');
+      continue;
+    }
     groups.push({ a, b, raw: trimmed });
+    console.log('[parseDecompGroups] 第', lineNum, '行: ✓ 解析成功');
   }
+  console.log('[parseDecompGroups] 最终解析结果:', groups.length, '组');
   return groups;
 }
 
