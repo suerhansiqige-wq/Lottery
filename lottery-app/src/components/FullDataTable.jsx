@@ -1654,9 +1654,24 @@ function FullDataTable({
                   })()}
                   {/* 交集 - 预留行：下期交集注数（尚未开奖，无对错） */}
                   {SHOW_JIAOJI_COL && (() => {
-                    const zongHe = computeZongHeNumbers(nextIssue);
-                    const addSubSet = new Set(tailAddSubNumbersPro);
-                    const filtered = zongHe.filter(n => addSubSet.has(n));
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[nextIssue]) || '');
+                    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+                    const decompRc0_9 = [];
+                    if (decompResult && decompResult.buckets) {
+                      for (let i = 0; i <= 9; i++) {
+                        if (decompResult.buckets[i]) decompRc0_9.push(...decompResult.buckets[i]);
+                      }
+                    }
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[nextIssue]) || '');
+                    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+                    const bozhongRc0_9 = [];
+                    if (bozhongResult && bozhongResult.buckets) {
+                      for (let i = 0; i <= 9; i++) {
+                        if (bozhongResult.buckets[i]) bozhongRc0_9.push(...bozhongResult.buckets[i]);
+                      }
+                    }
+                    const bozhongSet = new Set(bozhongRc0_9);
+                    const filtered = decompRc0_9.filter(n => bozhongSet.has(n));
                     return (
                       <td key="jiaojiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
