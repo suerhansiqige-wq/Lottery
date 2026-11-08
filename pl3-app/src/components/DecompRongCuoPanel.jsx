@@ -155,7 +155,7 @@ function DecompModule({ title, issue, result, theme }) {
         <span style={{ fontSize: 15, fontWeight: 800 }}>{title}</span>
         <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.95 }}>
           {issue ? `${issue} 期` : '—'}
-          {result && result.valid ? ` · ${result.groupCount} 组分解 · 候选${result.total}注(取自直选高倍号码池，已剔无容错)` : ''}
+          {result && result.valid ? ` · ${result.groupCount} 组分解 · 候选${result.total}注(取自直选高倍组六号码池，已剔无容错)` : ''}
         </span>
       </div>
 
@@ -166,7 +166,7 @@ function DecompModule({ title, issue, result, theme }) {
               flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 13, color: '#999', minHeight: 120, textAlign: 'center', padding: 12,
             }}>
-              《直选大底》未提供直选高倍号码<br />请先在上方「直选大底」录入三位号码（组三、不在加减号码池内、以及精选里的号码都不参与分解）
+              《直选高倍》未提供组六号码<br />请先在上方「直选高倍」列中录入号码（组三不参与分解容错）
             </div>
           ) : (
           <>
@@ -276,7 +276,7 @@ function MergeFreqModule({ decompIssue, bozhongIssue, decompResult, bozhongResul
           <div style={{ fontSize: 13, color: '#999', textAlign: 'center', padding: 16 }}>
             {!sameIssue
               ? `智取目标期 ${decompIssue || '—'} 与博众目标期 ${bozhongIssue || '—'} 不一致，暂停合并`
-              : '需智取与博众分解条件及直选大底候选均已就绪后合并'}
+              : '需智取与博众分解条件及直选高倍组六候选均已就绪后合并'}
           </div>
         )}
       </div>
@@ -343,7 +343,7 @@ function InterModule({ decompIssue, bozhongIssue, decompResult, bozhongResult })
             {!sameIssue
               ? `智取目标期 ${decompIssue || '—'} 与博众目标期 ${bozhongIssue || '—'} 不一致，跨期取交集无意义，已暂停计算。请把两套分解条件录到同一期。`
               : (decompResult && decompResult.valid && bozhongResult && bozhongResult.valid && (decompResult.total === 0 || bozhongResult.total === 0))
-                ? '《直选大底》的直选高倍候选为空，交集暂停计算'
+                ? '《直选高倍》的组六候选为空，交集暂停计算'
                 : '需智取与博众分解条件均已录入后计算交集'}
           </div>
         )}

@@ -439,28 +439,30 @@ function App() {
   const decompIssue = nextIssue;
   const bozhongIssue = nextIssue;
 
+  // 直选高倍组六号码（从 FullDataTable 计算结果中获取，排除组三）
+  const [zhiXuanGaoBeiZuLiu, setZhiXuanGaoBeiZuLiu] = useState([]);
+  const handleZhiXuanGaoBeiZuLiuChange = useCallback((numbers) => {
+    setZhiXuanGaoBeiZuLiu(numbers);
+  }, []);
+
   // ============================================================
-  // 【算法锁定】分解容错计算（候选集 = 《直选高倍》手动输入号码池）
+  // 【算法锁定】分解容错计算（候选集 = 直选高倍组六号码池）
   // ============================================================
-  // 【候选集】直接使用直选高倍框中用户手动输入的号码作为分解候选集。
-  // 用户输入的号码直接参与智取/博众分解容错计算，不做额外过滤。
+  // 【候选集】使用直选高倍列自动计算的组六号码作为分解候选集（排除组三）。
   // 候选为空时容错模块显示空候选提示，不回退到全部 1000 注
   // ============================================================
-  const selfPickZuLiu = useMemo(() => {
-    return parsePickNumbers(zhiXuanGaoBeiTexts[nextIssue] || '');
-  }, [zhiXuanGaoBeiTexts, nextIssue]);
 
   // 依赖数组必须包含 decompTexts / bozhongTexts —— 历史踩坑：漏依赖会导致
-  // textarea 编辑后容错结果不重算（编辑框看起来“失效”）
-  // 同时必须包含 selfPickZuLiu —— 自选号码变化时容错结果需重算
+  // textarea 编辑后容错结果不重算（编辑框看起来”失效”）
+  // 同时必须包含 zhiXuanGaoBeiZuLiu —— 直选高倍组六号码变化时容错结果需重算
   // ============================================================
   const decompResult = useMemo(
-    () => computeRongCuo(parseDecompGroups(decompTexts[decompIssue] || ''), selfPickZuLiu),
-    [decompTexts, decompIssue, selfPickZuLiu]
+    () => computeRongCuo(parseDecompGroups(decompTexts[decompIssue] || ''), zhiXuanGaoBeiZuLiu),
+    [decompTexts, decompIssue, zhiXuanGaoBeiZuLiu]
   );
   const bozhongResult = useMemo(
-    () => computeRongCuo(parseDecompGroups(bozhongTexts[bozhongIssue] || ''), selfPickZuLiu),
-    [bozhongTexts, bozhongIssue, selfPickZuLiu]
+    () => computeRongCuo(parseDecompGroups(bozhongTexts[bozhongIssue] || ''), zhiXuanGaoBeiZuLiu),
+    [bozhongTexts, bozhongIssue, zhiXuanGaoBeiZuLiu]
   );
 
   // 分解出的「无容错」号码 = 智取无容错 ∪ 博众无容错（本期容错交集的无容错必然含于其中），
@@ -988,6 +990,7 @@ return (
             zhiXuanGaoBeiValue={zhiXuanGaoBeiTexts[nextIssue] || ''}
             onZhiXuanGaoBeiChange={(v) => setZhiXuanGaoBeiText(nextIssue, v)}
             wuRongCuoNumbers={wuRongCuoNumbers}
+            onZhiXuanGaoBeiZuLiuChange={handleZhiXuanGaoBeiZuLiuChange}
           />
         </main>
       </div>

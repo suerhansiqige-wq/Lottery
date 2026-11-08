@@ -314,18 +314,20 @@ function App() {
   const decompIssue = nextIssue;
   const bozhongIssue = nextIssue;
 
-  // 候选集 = 《直选高倍》手动输入号码池，直接作为分解候选集
-  const selfPickZuLiu = useMemo(() => {
-    return parsePickNumbers(zhiXuanGaoBeiTexts[nextIssue] || '');
-  }, [zhiXuanGaoBeiTexts, nextIssue]);
+  // 直选高倍组六号码（从 FullDataTable 计算结果中获取，排除组三）
+  const [zhiXuanGaoBeiZuLiu, setZhiXuanGaoBeiZuLiu] = useState([]);
+  const handleZhiXuanGaoBeiZuLiuChange = useCallback((numbers) => {
+    setZhiXuanGaoBeiZuLiu(numbers);
+  }, []);
 
+  // 候选集 = 直选高倍组六号码池（排除组三）
   const decompResult = useMemo(
-    () => computeRongCuo(parseDecompGroups(decompTexts[decompIssue] || ''), selfPickZuLiu),
-    [decompTexts, decompIssue, selfPickZuLiu]
+    () => computeRongCuo(parseDecompGroups(decompTexts[decompIssue] || ''), zhiXuanGaoBeiZuLiu),
+    [decompTexts, decompIssue, zhiXuanGaoBeiZuLiu]
   );
   const bozhongResult = useMemo(
-    () => computeRongCuo(parseDecompGroups(bozhongTexts[bozhongIssue] || ''), selfPickZuLiu),
-    [bozhongTexts, bozhongIssue, selfPickZuLiu]
+    () => computeRongCuo(parseDecompGroups(bozhongTexts[bozhongIssue] || ''), zhiXuanGaoBeiZuLiu),
+    [bozhongTexts, bozhongIssue, zhiXuanGaoBeiZuLiu]
   );
 
   // 分解出的「无容错」号码 = 智取无容错 ∪ 博众无容错（本期容错交集的无容错必然含于其中），
@@ -833,6 +835,7 @@ function App() {
             zhiXuanGaoBeiValue={zhiXuanGaoBeiTexts[nextIssue] || ''}
             onZhiXuanGaoBeiChange={(v) => setZhiXuanGaoBeiText(nextIssue, v)}
             wuRongCuoNumbers={wuRongCuoNumbers}
+            onZhiXuanGaoBeiZuLiuChange={handleZhiXuanGaoBeiZuLiuChange}
           />
         </main>
       </div>

@@ -663,15 +663,25 @@ export const expandZuxuanToZhixuan = (tokens) => {
 const BAOZI_NUMS = ['000','111','222','333','444','555','666','777','888','999'];
 
 /** 直选高倍模块：自动填入预留行数据，分成组六直选和组三直选 */
-function ZhiXuanGaoBeiModule({ issue, value, onChange, reservedNumbers = [] }) {
+function ZhiXuanGaoBeiModule({ issue, value, onChange, reservedNumbers = [], wuRongCuoNumbers = [], baoZiNumbers = [] }) {
   const [copiedZu3, setCopiedZu3] = useState(false);
 
   // 分成组六和组三
   const zu6Numbers = reservedNumbers.filter(n => n[0] !== n[1] && n[1] !== n[2] && n[0] !== n[2]);
   const zu3Numbers = reservedNumbers.filter(n => n[0] === n[1] || n[1] === n[2] || n[0] === n[2]);
 
+  // 组三直选 = 原始组三 + 无容错号码 + 豹子号码（去重）
+  const zu3ExtraNumbers = useMemo(() => {
+    const extraSet = new Set([...wuRongCuoNumbers, ...baoZiNumbers]);
+    // 只保留组三类型的号码（包括豹子）
+    const extraZu3 = [...extraSet].filter(n => n[0] === n[1] || n[1] === n[2] || n[0] === n[2]);
+    // 合并原始组三和额外号码，去重
+    const allZu3 = new Set([...zu3Numbers, ...extraZu3]);
+    return [...allZu3].sort();
+  }, [zu3Numbers, wuRongCuoNumbers, baoZiNumbers]);
+
   const handleCopyZu3 = async () => {
-    const text = zu3Numbers.join(' ');
+    const text = zu3ExtraNumbers.join(' ');
     if (!text) return;
     try {
       await navigator.clipboard.writeText(text);
@@ -731,8 +741,8 @@ function ZhiXuanGaoBeiModule({ issue, value, onChange, reservedNumbers = [] }) {
         {/* 组三直选 */}
         <div>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#c62828', marginBottom: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>组三直选 ({zu3Numbers.length} 注)</span>
-            {zu3Numbers.length > 0 && (
+            <span>组三直选 ({zu3ExtraNumbers.length} 注)</span>
+            {zu3ExtraNumbers.length > 0 && (
               <button
                 onClick={handleCopyZu3}
                 style={{
@@ -751,7 +761,7 @@ function ZhiXuanGaoBeiModule({ issue, value, onChange, reservedNumbers = [] }) {
             padding: 4, border: '1px solid #ef9a9a', borderRadius: 3,
             background: '#ffebee', color: '#c62828', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
           }}>
-            {formatNumbers(zu3Numbers) || '—'}
+            {formatNumbers(zu3ExtraNumbers) || '—'}
           </div>
         </div>
       </div>
@@ -785,6 +795,8 @@ function FullDataTable({
   onZhiXuanGaoBeiChange,
   // 分解容错「无容错」号码（智取∪博众），并入保本投注
   wuRongCuoNumbers = [],
+  // 直选高倍组六号码回调（用于分解容错模块）
+  onZhiXuanGaoBeiZuLiuChange,
 }) {
 
   const displayData = data.slice(-showCount)
@@ -1135,6 +1147,38 @@ function FullDataTable({
 
   // 下期直选高倍列候选池
   const tailZhiXuanGaoBeiNumbers = useMemo(() => computeZhiXuanGaoBeiNumbers(appNextIssue, poolData.length), [appNextIssue, poolData, decompTexts, bozhongTexts, duanZuZQTexts, duanZuBZTexts]);
+
+  // 直选高倍组六号码（排除组三，用于分解容错模块）
+  const tailZhiXuanGaoBeiZuLiu = useMemo(() => {
+    return tailZhiXuanGaoBeiNumbers.filter(n => n[0] !== n[1] && n[1] !== n[2] && n[0] !== n[2]);
+  }, [tailZhiXuanGaoBeiNumbers]);
+
+  // 无容错号码（智取∪博众）+ 豹子号码，用于组三直选框
+  const tailWuRongCuoAndBaoZi = useMemo(() => {
+    // 计算智取无容错
+    const decompGroups = parseDecompGroups((decompTexts && decompTexts[appNextIssue]) || '');
+    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+    const decompWuRongCuo = decompResult && decompResult.buckets && decompResult.buckets[0] ? decompResult.buckets[0] : [];
+
+    // 计算博众无容错
+    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[appNextIssue]) || '');
+    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+    const bozhongWuRongCuo = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[0] ? bozhongResult.buckets[0] : [];
+
+    // 豹子号码
+    const baoZi = ['000', '111', '222', '333', '444', '555', '666', '777', '888', '999'];
+
+    // 合并去重
+    const allNumbers = [...new Set([...decompWuRongCuo, ...bozhongWuRongCuo, ...baoZi])];
+    return allNumbers.sort();
+  }, [appNextIssue, decompTexts, bozhongTexts]);
+
+  // 通知父组件直选高倍组六号码变化
+  useMemo(() => {
+    if (onZhiXuanGaoBeiZuLiuChange) {
+      onZhiXuanGaoBeiZuLiuChange(tailZhiXuanGaoBeiZuLiu);
+    }
+  }, [tailZhiXuanGaoBeiZuLiu, onZhiXuanGaoBeiZuLiuChange]);
 
   const renderAddSubProCell = (issue, index) => {
     if (!SHOW_ADDSUB_PRO_COL) return null;
@@ -2760,6 +2804,13 @@ function FullDataTable({
               value={zhiXuanGaoBeiValue}
               onChange={onZhiXuanGaoBeiChange}
               reservedNumbers={tailZhiXuanGaoBeiNumbers}
+              wuRongCuoNumbers={tailWuRongCuoAndBaoZi.filter(n => {
+                // 只保留组三类型的号码（排除豹子，因为豹子单独传递）
+                const isBaoZi = n[0] === n[1] && n[1] === n[2];
+                const isZuSan = n[0] === n[1] || n[1] === n[2] || n[0] === n[2];
+                return isZuSan && !isBaoZi;
+              })}
+              baoZiNumbers={['000', '111', '222', '333', '444', '555', '666', '777', '888', '999']}
             />
           </div>
           <button
