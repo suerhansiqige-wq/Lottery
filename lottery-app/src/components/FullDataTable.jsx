@@ -282,10 +282,11 @@ const SHOW_SLBC_COLS = false;
 
 const SHOW_ADDSUB_PRO_COL = true; // 隔一用二增强列
 
-// 容错00 / 容错 / 容错1 / 交集号码 四列开关
+// 容错00 / 容错 / 容错1 / 前1期 / 交集号码 五列开关
 const SHOW_RC10_COL = true;
 const SHOW_RC_COL = true;
 const SHOW_RC1_COL = true;
+const SHOW_QIAN1QI_COL = true;
 const SHOW_JJ_COL = true;
 
 // 综合列开关：2026-11-04 用户要求删除
@@ -786,6 +787,44 @@ function FullDataTable({
     );
   };
 
+  // 前1期列：(前1期智取容错1 ∪ 前1期博众容错1) - (前1期智取容错1 ∩ 前1期博众容错1) = 对称差集
+  const renderQian1QiCell = (issue) => {
+    // 找到前1期的期号
+    const currentIndex = displayData.findIndex(d => d.issue === issue);
+    const prevIndex = currentIndex - 1;
+    const prevIssue = prevIndex >= 0 ? displayData[prevIndex].issue : null;
+
+    if (!prevIssue) {
+      return <td key="qian1qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+
+    const decompGroups = parseDecompGroups((decompTexts && decompTexts[prevIssue]) || '');
+    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+    const decompRc1 = decompResult && decompResult.buckets && decompResult.buckets[1] ? decompResult.buckets[1] : [];
+
+    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[prevIssue]) || '');
+    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+    const bozhongRc1 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[1] ? bozhongResult.buckets[1] : [];
+
+    const intersection = decompRc1.filter(n => bozhongRc1.includes(n));
+    const union = [...new Set([...decompRc1, ...bozhongRc1])];
+    const symmetricDiff = union.filter(n => !intersection.includes(n)).sort();
+
+    if (symmetricDiff.length === 0) {
+      return <td key="qian1qi" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+
+    const item = displayData.find(d => d.issue === issue);
+    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
+    const hit = drawNum && symmetricDiff.includes(drawNum);
+
+    return (
+      <td key="qian1qi" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
+        {<ClickableCount count={symmetricDiff.length} hit={hit} numbers={symmetricDiff} />}
+      </td>
+    );
+  };
+
   const renderJiJiaoCell = (issue) => {
     // 计算智取分解容错（组六1~9，组三2~12）
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
@@ -1193,6 +1232,7 @@ function FullDataTable({
                 {SHOW_ADDSUB_PRO_COL && <th title={`隔一用二增强：横向得票≥1 + 和值出现≥12次，命中率~93%，~930注；✓=在池内，✗=不在池内`}>增强93.1%</th>}
                 {SHOW_JJ_COL && <th title="智取容错0~9 ∩ 博众容错0~9（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
                 {SHOW_RC1_COL && <th title="(智取容错1∪博众容错1)−(智取容错1∩博众容错1)=对称差集；✓=在池内，✗=不在池内">容错1</th>}
+                {SHOW_QIAN1QI_COL && <th title="(前1期智取容错1∪前1期博众容错1)−(前1期智取容错1∩前1期博众容错1)=对称差集；✓=在池内，✗=不在池内">前1期</th>}
                 {SHOW_JIAOJI_COL && <th title="加减号码候选池 ∩ 综合列候选池；✓=在池内，✗=不在池内">交集</th>}
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
@@ -1294,6 +1334,8 @@ function FullDataTable({
                   {SHOW_JJ_COL && renderJiJiaoCell(item.issue)}
                   {/* 容错1：(智取容错1∪博众容错1)−(智取容错1∩博众容错1) */}
                   {SHOW_RC1_COL && renderRongCuo1Cell(item.issue)}
+                  {/* 前1期：(前1期智取容错1∪前1期博众容错1)−(前1期智取容错1∩前1期博众容错1) */}
+                  {SHOW_QIAN1QI_COL && renderQian1QiCell(item.issue)}
                   {/* 交集：加减号码候选池 ∩ 综合列候选池 */}
                   {SHOW_JIAOJI_COL && renderJiaoJiCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 容错10：智取分解容错10 ∪ 博众分解容错10 */}
@@ -1444,6 +1486,24 @@ function FullDataTable({
                     const symmetricDiff = union.filter(n => !intersection.includes(n)).sort();
                     return (
                       <td key="rc1Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        {<ClickableCount count={symmetricDiff.length} hit={null} numbers={symmetricDiff} color="#1b5e20" />}
+                      </td>
+                    );
+                  })()}
+                  {/* 前1期 - 预留行：用最后一期分解数据计算对称差集注数（尚未开奖，无对错） */}
+                  {SHOW_QIAN1QI_COL && (() => {
+                    const prevIssue = lastItem.issue;
+                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[prevIssue]) || '');
+                    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+                    const decompRc1 = decompResult && decompResult.buckets && decompResult.buckets[1] ? decompResult.buckets[1] : [];
+                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[prevIssue]) || '');
+                    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+                    const bozhongRc1 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[1] ? bozhongResult.buckets[1] : [];
+                    const intersection = decompRc1.filter(n => bozhongRc1.includes(n));
+                    const union = [...new Set([...decompRc1, ...bozhongRc1])];
+                    const symmetricDiff = union.filter(n => !intersection.includes(n)).sort();
+                    return (
+                      <td key="qian1qiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={symmetricDiff.length} hit={null} numbers={symmetricDiff} color="#1b5e20" />}
                       </td>
                     );
