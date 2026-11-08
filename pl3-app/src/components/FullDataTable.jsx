@@ -479,6 +479,9 @@ const SHOW_JJRONGCUO_COL = true;
 // 断容3列开关：智取断组容错3 ∩ 博众断组容错3（重复出现的号码）
 const SHOW_DUANRONG3_COL = true;
 
+// 断容7列开关：智取断组容错7 ∩ 博众断组容错7（重复出现的号码）
+const SHOW_DUANRONG7_COL = true;
+
 // 断组容错列开关：2026-11-04 用户要求新增（智取断组+博众断组容错2合并）
 
 // 前1期断组列开关：采用前一期智取断组和博众断组容错1验证当期
@@ -1107,6 +1110,42 @@ function FullDataTable({
     );
   };
 
+  // 断容7列：智取断组容错7 ∩ 博众断组容错7（重复出现的号码）
+  const renderDuanRong7Cell = (issue) => {
+    if (!SHOW_DUANRONG7_COL) return null;
+
+    // 解析智取断组和博众断组数据
+    const zqGroups = parseDuanZuGroups((duanZuZQTexts && duanZuZQTexts[issue]) || '');
+    const bzGroups = parseDuanZuGroups((duanZuBZTexts && duanZuBZTexts[issue]) || '');
+
+    // 计算容错7
+    const zqResult = zqGroups.length > 0 ? computeDuanZuRongCuo(zqGroups, null) : null;
+    const bzResult = bzGroups.length > 0 ? computeDuanZuRongCuo(bzGroups, null) : null;
+
+    // 获取容错7的号码（buckets[7]）
+    const zqRong7 = zqResult && zqResult.buckets && zqResult.buckets[7] ? zqResult.buckets[7] : [];
+    const bzRong7 = bzResult && bzResult.buckets && bzResult.buckets[7] ? bzResult.buckets[7] : [];
+
+    // 取交集（重复出现的号码）
+    const zqSet = new Set(zqRong7);
+    const intersection = bzRong7.filter(n => zqSet.has(n)).sort();
+
+    if (intersection.length === 0) {
+      return <td key="duanrong7" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+
+    // 验证当期开奖号是否在断容7中
+    const item = displayData.find(d => d.issue === issue);
+    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
+    const hit = drawNum && intersection.includes(drawNum);
+
+    return (
+      <td key="duanrong7" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
+        {<ClickableCount count={intersection.length} hit={hit} numbers={intersection} />}
+      </td>
+    );
+  };
+
   // 前1期列：采用前一期智取分解容错10 ∪ 博众分解容错10验证当期开奖号
 
   // 前1期容错列：采用前一期智取分解容错0~12与博众分解容错0~12的对称差集验证当期开奖号
@@ -1565,7 +1604,8 @@ function FullDataTable({
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
                 {SHOW_DUANRONG3_COL && <th title="智取断组容错3 ∩ 博众断组容错3（重复出现的号码）；✓=在池内，✗=不在池内">断容3</th>}
-                                                                                                                                                                                                {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
+                {SHOW_DUANRONG7_COL && <th title="智取断组容错7 ∩ 博众断组容错7（重复出现的号码）；✓=在池内，✗=不在池内">断容7</th>}
+                {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
                 {/* 参考一/参考二/胆码三列表头已彻底删除 - 用户要求 */}
@@ -1672,6 +1712,8 @@ function FullDataTable({
                   {SHOW_RC_COL && renderRongCuoCell(item.issue)}
                   {/* 断容3：智取断组容错3 ∩ 博众断组容错3 */}
                   {SHOW_DUANRONG3_COL && renderDuanRong3Cell(item.issue)}
+                  {/* 断容7：智取断组容错7 ∩ 博众断组容错7 */}
+                  {SHOW_DUANRONG7_COL && renderDuanRong7Cell(item.issue)}
                   {/* 前1期容错：采用前一期智取分解容错0~12与博众分解容错0~12的对称差集验证当期 */}
                                     {/* 前2期容错：采用前2期智取分解容错0~12与博众分解容错0~12的对称差集验证当期 */}
                                     {/* 前2期：采用前2期智取分解容错10 ∪ 博众分解容错10验证当期 */}
@@ -1890,6 +1932,22 @@ function FullDataTable({
                     const intersection = bzRong3.filter(n => zqSet.has(n)).sort();
                     return (
                       <td key="duanrong3Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        {<ClickableCount count={intersection.length} hit={null} numbers={intersection} color="#1b5e20" />}
+                      </td>
+                    );
+                  })()}
+                  {/* 断容7 - 预留行：下期智取断组容错7 ∩ 博众断组容错7（重复出现的号码） */}
+                  {SHOW_DUANRONG7_COL && (() => {
+                    const zqGroups = parseDuanZuGroups((duanZuZQTexts && duanZuZQTexts[appNextIssue]) || '');
+                    const zqResult = zqGroups.length > 0 ? computeDuanZuRongCuo(zqGroups, null) : null;
+                    const zqRong7 = zqResult && zqResult.buckets && zqResult.buckets[7] ? zqResult.buckets[7] : [];
+                    const bzGroups = parseDuanZuGroups((duanZuBZTexts && duanZuBZTexts[appNextIssue]) || '');
+                    const bzResult = bzGroups.length > 0 ? computeDuanZuRongCuo(bzGroups, null) : null;
+                    const bzRong7 = bzResult && bzResult.buckets && bzResult.buckets[7] ? bzResult.buckets[7] : [];
+                    const zqSet = new Set(zqRong7);
+                    const intersection = bzRong7.filter(n => zqSet.has(n)).sort();
+                    return (
+                      <td key="duanrong7Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={intersection.length} hit={null} numbers={intersection} color="#1b5e20" />}
                       </td>
                     );
