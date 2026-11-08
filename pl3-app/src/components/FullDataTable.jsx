@@ -708,18 +708,18 @@ function ZhiXuanGaoBeiModule({ issue, reservedNumbers = [] }) {
 }
 
 /** 保本投注模块：只显示组三直选（原始组三 + 无容错 + 豹子 + 容错1~8去掉容错1交集） */
-function BaoBenTouZhuModule({ issue, reservedNumbers = [], wuRongCuoNumbers = [], baoZiNumbers = [], rongCuo1to8MinusJiaoJi = [] }) {
+function BaoBenTouZhuModule({ issue, reservedNumbers = [], wuRongCuoNumbers = [], baoZiNumbers = [], rongCuo1JiaoJi = [] }) {
   const [copied, setCopied] = useState(false);
 
   const zu3Numbers = reservedNumbers.filter(n => n[0] === n[1] || n[1] === n[2] || n[0] === n[2]);
 
-  // 保本投注 = 原始组三 + 无容错号码 + 豹子号码 + 容错1~8去掉容错1交集（去重）
+  // 保本投注 = 原始组三 + 无容错号码 + 豹子号码 + 容错1交集（去重）
   const baoBenNumbers = useMemo(() => {
-    const extraSet = new Set([...wuRongCuoNumbers, ...baoZiNumbers, ...rongCuo1to8MinusJiaoJi]);
+    const extraSet = new Set([...wuRongCuoNumbers, ...baoZiNumbers, ...rongCuo1JiaoJi]);
     const extraZu3 = [...extraSet].filter(n => n[0] === n[1] || n[1] === n[2] || n[0] === n[2]);
     const allZu3 = new Set([...zu3Numbers, ...extraZu3]);
     return [...allZu3].sort();
-  }, [zu3Numbers, wuRongCuoNumbers, baoZiNumbers, rongCuo1to8MinusJiaoJi]);
+  }, [zu3Numbers, wuRongCuoNumbers, baoZiNumbers, rongCuo1JiaoJi]);
 
   const handleCopy = async () => {
     const text = baoBenNumbers.join(' ');
@@ -2863,7 +2863,7 @@ function FullDataTable({
                 return isZuSan && !isBaoZi;
               })}
               baoZiNumbers={['000', '111', '222', '333', '444', '555', '666', '777', '888', '999']}
-              rongCuo1to8MinusJiaoJi={tailRongCuo1to8MinusJiaoJi.filter(n => n[0] === n[1] || n[1] === n[2] || n[0] === n[2])}
+              rongCuo1JiaoJi={tailRongCuo1JiaoJi}
             />
           </div>
           <button
