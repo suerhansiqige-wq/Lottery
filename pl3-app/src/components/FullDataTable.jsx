@@ -662,26 +662,67 @@ export const expandZuxuanToZhixuan = (tokens) => {
 
 const BAOZI_NUMS = ['000','111','222','333','444','555','666','777','888','999'];
 
-/** 直选高倍模块：自动填入预留行数据，分成组六直选和组三直选 */
-function ZhiXuanGaoBeiModule({ issue, value, onChange, reservedNumbers = [], wuRongCuoNumbers = [], baoZiNumbers = [], rongCuo1to8MinusJiaoJi = [] }) {
-  const [copiedZu3, setCopiedZu3] = useState(false);
-
-  // 分成组六和组三
+/** 直选高倍模块：只显示组六直选 */
+function ZhiXuanGaoBeiModule({ issue, reservedNumbers = [] }) {
+  // 只显示组六直选
   const zu6Numbers = reservedNumbers.filter(n => n[0] !== n[1] && n[1] !== n[2] && n[0] !== n[2]);
+
+  const formatNumbers = (numbers) => {
+    const rows = [];
+    for (let i = 0; i < numbers.length; i += 10) {
+      rows.push(numbers.slice(i, i + 10).join(' '));
+    }
+    return rows.join('\n');
+  };
+
+  return (
+    <div style={{ width: '100%', border: '2px solid #00838f', borderRadius: 6, background: '#e0f7fa', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div style={{
+        padding: '6px 10px', background: '#00838f', color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 15, fontWeight: 800 }}>直选高倍</span>
+          <span style={{
+            fontSize: 12, fontWeight: 800, color: '#00695c',
+            background: '#fff', borderRadius: 10, padding: '1px 8px', whiteSpace: 'nowrap',
+          }}>
+            {zu6Numbers.length} 注
+          </span>
+        </div>
+        <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.95 }}>
+          {issue ? `${issue} 期` : '—'}
+        </span>
+      </div>
+      <div style={{ padding: 8, flex: 1, display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto' }}>
+        <div style={{
+          fontSize: 11, fontFamily: 'Consolas,monospace', lineHeight: '16px',
+          padding: 4, border: '1px solid #4dd0e1', borderRadius: 3,
+          background: '#fff', color: '#00695c', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+        }}>
+          {formatNumbers(zu6Numbers) || '—'}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** 保本投注模块：只显示组三直选（原始组三 + 无容错 + 豹子 + 容错1~8去掉容错1交集） */
+function BaoBenTouZhuModule({ issue, reservedNumbers = [], wuRongCuoNumbers = [], baoZiNumbers = [], rongCuo1to8MinusJiaoJi = [] }) {
+  const [copied, setCopied] = useState(false);
+
   const zu3Numbers = reservedNumbers.filter(n => n[0] === n[1] || n[1] === n[2] || n[0] === n[2]);
 
-  // 组三直选 = 原始组三 + 无容错号码 + 豹子号码 + 容错1~8去掉容错1交集（去重）
-  const zu3ExtraNumbers = useMemo(() => {
+  // 保本投注 = 原始组三 + 无容错号码 + 豹子号码 + 容错1~8去掉容错1交集（去重）
+  const baoBenNumbers = useMemo(() => {
     const extraSet = new Set([...wuRongCuoNumbers, ...baoZiNumbers, ...rongCuo1to8MinusJiaoJi]);
-    // 只保留组三类型的号码（包括豹子）
     const extraZu3 = [...extraSet].filter(n => n[0] === n[1] || n[1] === n[2] || n[0] === n[2]);
-    // 合并原始组三和额外号码，去重
     const allZu3 = new Set([...zu3Numbers, ...extraZu3]);
     return [...allZu3].sort();
   }, [zu3Numbers, wuRongCuoNumbers, baoZiNumbers, rongCuo1to8MinusJiaoJi]);
 
-  const handleCopyZu3 = async () => {
-    const text = zu3ExtraNumbers.join(' ');
+  const handleCopy = async () => {
+    const text = baoBenNumbers.join(' ');
     if (!text) return;
     try {
       await navigator.clipboard.writeText(text);
@@ -693,11 +734,10 @@ function ZhiXuanGaoBeiModule({ issue, value, onChange, reservedNumbers = [], wuR
       try { document.execCommand('copy'); } catch {}
       document.body.removeChild(ta);
     }
-    setCopiedZu3(true);
+    setCopied(true);
   };
 
   const formatNumbers = (numbers) => {
-    // 每行显示10个号码，用空格分隔
     const rows = [];
     for (let i = 0; i < numbers.length; i += 10) {
       rows.push(numbers.slice(i, i + 10).join(' '));
@@ -706,18 +746,18 @@ function ZhiXuanGaoBeiModule({ issue, value, onChange, reservedNumbers = [], wuR
   };
 
   return (
-    <div style={{ width: '100%', flex: 1, border: '2px solid #00838f', borderRadius: 6, background: '#e0f7fa', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ width: '100%', border: '2px solid #c62828', borderRadius: 6, background: '#ffebee', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <div style={{
-        padding: '6px 10px', background: '#00838f', color: '#fff',
+        padding: '6px 10px', background: '#c62828', color: '#fff',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 15, fontWeight: 800 }}>直选高倍</span>
+          <span style={{ fontSize: 15, fontWeight: 800 }}>保本投注</span>
           <span style={{
-            fontSize: 12, fontWeight: 800, color: '#00695c',
+            fontSize: 12, fontWeight: 800, color: '#c62828',
             background: '#fff', borderRadius: 10, padding: '1px 8px', whiteSpace: 'nowrap',
           }}>
-            {reservedNumbers.length} 注
+            {baoBenNumbers.length} 注
           </span>
         </div>
         <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.95 }}>
@@ -725,44 +765,27 @@ function ZhiXuanGaoBeiModule({ issue, value, onChange, reservedNumbers = [], wuR
         </span>
       </div>
       <div style={{ padding: 8, flex: 1, display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto' }}>
-        {/* 组六直选 */}
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#00695c', marginBottom: 2 }}>
-            组六直选 ({zu6Numbers.length} 注)
-          </div>
-          <div style={{
-            fontSize: 11, fontFamily: 'Consolas,monospace', lineHeight: '16px',
-            padding: 4, border: '1px solid #4dd0e1', borderRadius: 3,
-            background: '#fff', color: '#00695c', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
-          }}>
-            {formatNumbers(zu6Numbers) || '—'}
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          {baoBenNumbers.length > 0 && (
+            <button
+              onClick={handleCopy}
+              style={{
+                fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+                border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+                background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
+                fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+              }}
+            >
+              {copied ? '✓' : '复制'}
+            </button>
+          )}
         </div>
-        {/* 保本投注 */}
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#c62828', marginBottom: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>保本投注 ({zu3ExtraNumbers.length} 注)</span>
-            {zu3ExtraNumbers.length > 0 && (
-              <button
-                onClick={handleCopyZu3}
-                style={{
-                  fontSize: 11, padding: '1px 6px', cursor: 'pointer',
-                  border: `1px solid ${copiedZu3 ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-                  background: copiedZu3 ? '#c8e6c9' : '#fff', color: copiedZu3 ? '#1b5e20' : '#555',
-                  fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-                }}
-              >
-                {copiedZu3 ? '✓' : '复制'}
-              </button>
-            )}
-          </div>
-          <div style={{
-            fontSize: 11, fontFamily: 'Consolas,monospace', lineHeight: '16px',
-            padding: 4, border: '1px solid #ef9a9a', borderRadius: 3,
-            background: '#ffebee', color: '#c62828', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
-          }}>
-            {formatNumbers(zu3ExtraNumbers) || '—'}
-          </div>
+        <div style={{
+          fontSize: 11, fontFamily: 'Consolas,monospace', lineHeight: '16px',
+          padding: 4, border: '1px solid #ef9a9a', borderRadius: 3,
+          background: '#fff', color: '#c62828', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+        }}>
+          {formatNumbers(baoBenNumbers) || '—'}
         </div>
       </div>
     </div>
@@ -2815,43 +2838,20 @@ function FullDataTable({
             </tbody>
           </table>
         </div>
-        {/* 右侧面板：直选大底 + 精选（并排）+ 直选高倍 + 智取博众分解按钮 */}
+        {/* 右侧面板：直选高倍 + 保本投注（两个独立模块）+ 智取博众分解按钮 */}
         <div style={{ flex: 1, minWidth: 280, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ flex: '0 0 auto', display: 'flex', gap: 8 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <SelfPickInputModule issue={selfPickIssue} title="直选大底" value={selfPickValue} onChange={onSelfPickChange} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <SelfPickInputModule
-                issue={selfPickIssue}
-                title="精选"
-                value={selfPickJxValue}
-                onChange={onSelfPickJxChange}
-                placeholder="输入组选号码，自动展开为直选号码，空格/逗号/换行分隔"
-                accent="#ef6c00"
-                bg="#fff3e0"
-                badgeColor="#b35309"
-                border="#ffb74d"
-              />
-            </div>
-          </div>
-          <div style={{ flex: '1 1 0', minHeight: 0, display: 'flex' }}>
-            <ZhiXuanGaoBeiModule
+          <div style={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <ZhiXuanGaoBeiModule issue={selfPickIssue} reservedNumbers={tailZhiXuanGaoBeiNumbers} />
+            <BaoBenTouZhuModule
               issue={selfPickIssue}
-              value={zhiXuanGaoBeiValue}
-              onChange={onZhiXuanGaoBeiChange}
               reservedNumbers={tailZhiXuanGaoBeiNumbers}
               wuRongCuoNumbers={tailWuRongCuoAndBaoZi.filter(n => {
-                // 只保留组三类型的号码（排除豹子，因为豹子单独传递）
                 const isBaoZi = n[0] === n[1] && n[1] === n[2];
                 const isZuSan = n[0] === n[1] || n[1] === n[2] || n[0] === n[2];
                 return isZuSan && !isBaoZi;
               })}
               baoZiNumbers={['000', '111', '222', '333', '444', '555', '666', '777', '888', '999']}
-              rongCuo1to8MinusJiaoJi={tailRongCuo1to8MinusJiaoJi.filter(n => {
-                // 只保留组三类型的号码
-                return n[0] === n[1] || n[1] === n[2] || n[0] === n[2];
-              })}
+              rongCuo1to8MinusJiaoJi={tailRongCuo1to8MinusJiaoJi.filter(n => n[0] === n[1] || n[1] === n[2] || n[0] === n[2])}
             />
           </div>
           <button
