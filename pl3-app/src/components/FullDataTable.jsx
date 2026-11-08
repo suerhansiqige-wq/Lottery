@@ -482,6 +482,18 @@ const SHOW_DUANRONG3_COL = true;
 // 断容7列开关：智取断组容错7 ∩ 博众断组容错7（重复出现的号码）
 const SHOW_DUANRONG7_COL = true;
 
+// 断容8列开关：智取断组容错8 ∩ 博众断组容错8（重复出现的号码）
+const SHOW_DUANRONG8_COL = true;
+
+// 断容9列开关：智取断组容错9 ∩ 博众断组容错9（重复出现的号码）
+const SHOW_DUANRONG9_COL = true;
+
+// 断容10列开关：智取断组容错10 ∩ 博众断组容错10（重复出现的号码）
+const SHOW_DUANRONG10_COL = true;
+
+// 断容11列开关：智取断组容错11 ∩ 博众断组容错11（重复出现的号码）
+const SHOW_DUANRONG11_COL = true;
+
 // 断组容错列开关：2026-11-04 用户要求新增（智取断组+博众断组容错2合并）
 
 // 前1期断组列开关：采用前一期智取断组和博众断组容错1验证当期
@@ -1146,6 +1158,102 @@ function FullDataTable({
     );
   };
 
+  // 断容8列：智取断组容错8 ∩ 博众断组容错8（重复出现的号码）
+  const renderDuanRong8Cell = (issue) => {
+    if (!SHOW_DUANRONG8_COL) return null;
+    const zqGroups = parseDuanZuGroups((duanZuZQTexts && duanZuZQTexts[issue]) || '');
+    const bzGroups = parseDuanZuGroups((duanZuBZTexts && duanZuBZTexts[issue]) || '');
+    const zqResult = zqGroups.length > 0 ? computeDuanZuRongCuo(zqGroups, null) : null;
+    const bzResult = bzGroups.length > 0 ? computeDuanZuRongCuo(bzGroups, null) : null;
+    const zqRong8 = zqResult && zqResult.buckets && zqResult.buckets[8] ? zqResult.buckets[8] : [];
+    const bzRong8 = bzResult && bzResult.buckets && bzResult.buckets[8] ? bzResult.buckets[8] : [];
+    const zqSet = new Set(zqRong8);
+    const intersection = bzRong8.filter(n => zqSet.has(n)).sort();
+    if (intersection.length === 0) {
+      return <td key="duanrong8" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+    const item = displayData.find(d => d.issue === issue);
+    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
+    const hit = drawNum && intersection.includes(drawNum);
+    return (
+      <td key="duanrong8" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
+        {<ClickableCount count={intersection.length} hit={hit} numbers={intersection} />}
+      </td>
+    );
+  };
+
+  // 断容9列：智取断组容错9 ∩ 博众断组容错9（重复出现的号码）
+  const renderDuanRong9Cell = (issue) => {
+    if (!SHOW_DUANRONG9_COL) return null;
+    const zqGroups = parseDuanZuGroups((duanZuZQTexts && duanZuZQTexts[issue]) || '');
+    const bzGroups = parseDuanZuGroups((duanZuBZTexts && duanZuBZTexts[issue]) || '');
+    const zqResult = zqGroups.length > 0 ? computeDuanZuRongCuo(zqGroups, null) : null;
+    const bzResult = bzGroups.length > 0 ? computeDuanZuRongCuo(bzGroups, null) : null;
+    const zqRong9 = zqResult && zqResult.buckets && zqResult.buckets[9] ? zqResult.buckets[9] : [];
+    const bzRong9 = bzResult && bzResult.buckets && bzResult.buckets[9] ? bzResult.buckets[9] : [];
+    const zqSet = new Set(zqRong9);
+    const intersection = bzRong9.filter(n => zqSet.has(n)).sort();
+    if (intersection.length === 0) {
+      return <td key="duanrong9" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+    const item = displayData.find(d => d.issue === issue);
+    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
+    const hit = drawNum && intersection.includes(drawNum);
+    return (
+      <td key="duanrong9" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
+        {<ClickableCount count={intersection.length} hit={hit} numbers={intersection} />}
+      </td>
+    );
+  };
+
+  // 断容10列：智取断组容错10 ∩ 博众断组容错10（重复出现的号码）
+  const renderDuanRong10Cell = (issue) => {
+    if (!SHOW_DUANRONG10_COL) return null;
+    const zqGroups = parseDuanZuGroups((duanZuZQTexts && duanZuZQTexts[issue]) || '');
+    const bzGroups = parseDuanZuGroups((duanZuBZTexts && duanZuBZTexts[issue]) || '');
+    const zqResult = zqGroups.length > 0 ? computeDuanZuRongCuo(zqGroups, null) : null;
+    const bzResult = bzGroups.length > 0 ? computeDuanZuRongCuo(bzGroups, null) : null;
+    const zqRong10 = zqResult && zqResult.buckets && zqResult.buckets[10] ? zqResult.buckets[10] : [];
+    const bzRong10 = bzResult && bzResult.buckets && bzResult.buckets[10] ? bzResult.buckets[10] : [];
+    const zqSet = new Set(zqRong10);
+    const intersection = bzRong10.filter(n => zqSet.has(n)).sort();
+    if (intersection.length === 0) {
+      return <td key="duanrong10" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+    const item = displayData.find(d => d.issue === issue);
+    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
+    const hit = drawNum && intersection.includes(drawNum);
+    return (
+      <td key="duanrong10" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
+        {<ClickableCount count={intersection.length} hit={hit} numbers={intersection} />}
+      </td>
+    );
+  };
+
+  // 断容11列：智取断组容错11 ∩ 博众断组容错11（重复出现的号码）
+  const renderDuanRong11Cell = (issue) => {
+    if (!SHOW_DUANRONG11_COL) return null;
+    const zqGroups = parseDuanZuGroups((duanZuZQTexts && duanZuZQTexts[issue]) || '');
+    const bzGroups = parseDuanZuGroups((duanZuBZTexts && duanZuBZTexts[issue]) || '');
+    const zqResult = zqGroups.length > 0 ? computeDuanZuRongCuo(zqGroups, null) : null;
+    const bzResult = bzGroups.length > 0 ? computeDuanZuRongCuo(bzGroups, null) : null;
+    const zqRong11 = zqResult && zqResult.buckets && zqResult.buckets[11] ? zqResult.buckets[11] : [];
+    const bzRong11 = bzResult && bzResult.buckets && bzResult.buckets[11] ? bzResult.buckets[11] : [];
+    const zqSet = new Set(zqRong11);
+    const intersection = bzRong11.filter(n => zqSet.has(n)).sort();
+    if (intersection.length === 0) {
+      return <td key="duanrong11" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+    const item = displayData.find(d => d.issue === issue);
+    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
+    const hit = drawNum && intersection.includes(drawNum);
+    return (
+      <td key="duanrong11" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
+        {<ClickableCount count={intersection.length} hit={hit} numbers={intersection} />}
+      </td>
+    );
+  };
+
   // 前1期列：采用前一期智取分解容错10 ∪ 博众分解容错10验证当期开奖号
 
   // 前1期容错列：采用前一期智取分解容错0~12与博众分解容错0~12的对称差集验证当期开奖号
@@ -1605,6 +1713,10 @@ function FullDataTable({
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
                 {SHOW_DUANRONG3_COL && <th title="智取断组容错3 ∩ 博众断组容错3（重复出现的号码）；✓=在池内，✗=不在池内">断容3</th>}
                 {SHOW_DUANRONG7_COL && <th title="智取断组容错7 ∩ 博众断组容错7（重复出现的号码）；✓=在池内，✗=不在池内">断容7</th>}
+                {SHOW_DUANRONG8_COL && <th title="智取断组容错8 ∩ 博众断组容错8（重复出现的号码）；✓=在池内，✗=不在池内">断容8</th>}
+                {SHOW_DUANRONG9_COL && <th title="智取断组容错9 ∩ 博众断组容错9（重复出现的号码）；✓=在池内，✗=不在池内">断容9</th>}
+                {SHOW_DUANRONG10_COL && <th title="智取断组容错10 ∩ 博众断组容错10（重复出现的号码）；✓=在池内，✗=不在池内">断容10</th>}
+                {SHOW_DUANRONG11_COL && <th title="智取断组容错11 ∩ 博众断组容错11（重复出现的号码）；✓=在池内，✗=不在池内">断容11</th>}
                 {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
@@ -1714,6 +1826,14 @@ function FullDataTable({
                   {SHOW_DUANRONG3_COL && renderDuanRong3Cell(item.issue)}
                   {/* 断容7：智取断组容错7 ∩ 博众断组容错7 */}
                   {SHOW_DUANRONG7_COL && renderDuanRong7Cell(item.issue)}
+                  {/* 断容8：智取断组容错8 ∩ 博众断组容错8 */}
+                  {SHOW_DUANRONG8_COL && renderDuanRong8Cell(item.issue)}
+                  {/* 断容9：智取断组容错9 ∩ 博众断组容错9 */}
+                  {SHOW_DUANRONG9_COL && renderDuanRong9Cell(item.issue)}
+                  {/* 断容10：智取断组容错10 ∩ 博众断组容错10 */}
+                  {SHOW_DUANRONG10_COL && renderDuanRong10Cell(item.issue)}
+                  {/* 断容11：智取断组容错11 ∩ 博众断组容错11 */}
+                  {SHOW_DUANRONG11_COL && renderDuanRong11Cell(item.issue)}
                   {/* 前1期容错：采用前一期智取分解容错0~12与博众分解容错0~12的对称差集验证当期 */}
                                     {/* 前2期容错：采用前2期智取分解容错0~12与博众分解容错0~12的对称差集验证当期 */}
                                     {/* 前2期：采用前2期智取分解容错10 ∪ 博众分解容错10验证当期 */}
@@ -1948,6 +2068,70 @@ function FullDataTable({
                     const intersection = bzRong7.filter(n => zqSet.has(n)).sort();
                     return (
                       <td key="duanrong7Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        {<ClickableCount count={intersection.length} hit={null} numbers={intersection} color="#1b5e20" />}
+                      </td>
+                    );
+                  })()}
+                  {/* 断容8 - 预留行：下期智取断组容错8 ∩ 博众断组容错8（重复出现的号码） */}
+                  {SHOW_DUANRONG8_COL && (() => {
+                    const zqGroups = parseDuanZuGroups((duanZuZQTexts && duanZuZQTexts[appNextIssue]) || '');
+                    const zqResult = zqGroups.length > 0 ? computeDuanZuRongCuo(zqGroups, null) : null;
+                    const zqRong8 = zqResult && zqResult.buckets && zqResult.buckets[8] ? zqResult.buckets[8] : [];
+                    const bzGroups = parseDuanZuGroups((duanZuBZTexts && duanZuBZTexts[appNextIssue]) || '');
+                    const bzResult = bzGroups.length > 0 ? computeDuanZuRongCuo(bzGroups, null) : null;
+                    const bzRong8 = bzResult && bzResult.buckets && bzResult.buckets[8] ? bzResult.buckets[8] : [];
+                    const zqSet = new Set(zqRong8);
+                    const intersection = bzRong8.filter(n => zqSet.has(n)).sort();
+                    return (
+                      <td key="duanrong8Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        {<ClickableCount count={intersection.length} hit={null} numbers={intersection} color="#1b5e20" />}
+                      </td>
+                    );
+                  })()}
+                  {/* 断容9 - 预留行：下期智取断组容错9 ∩ 博众断组容错9（重复出现的号码） */}
+                  {SHOW_DUANRONG9_COL && (() => {
+                    const zqGroups = parseDuanZuGroups((duanZuZQTexts && duanZuZQTexts[appNextIssue]) || '');
+                    const zqResult = zqGroups.length > 0 ? computeDuanZuRongCuo(zqGroups, null) : null;
+                    const zqRong9 = zqResult && zqResult.buckets && zqResult.buckets[9] ? zqResult.buckets[9] : [];
+                    const bzGroups = parseDuanZuGroups((duanZuBZTexts && duanZuBZTexts[appNextIssue]) || '');
+                    const bzResult = bzGroups.length > 0 ? computeDuanZuRongCuo(bzGroups, null) : null;
+                    const bzRong9 = bzResult && bzResult.buckets && bzResult.buckets[9] ? bzResult.buckets[9] : [];
+                    const zqSet = new Set(zqRong9);
+                    const intersection = bzRong9.filter(n => zqSet.has(n)).sort();
+                    return (
+                      <td key="duanrong9Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        {<ClickableCount count={intersection.length} hit={null} numbers={intersection} color="#1b5e20" />}
+                      </td>
+                    );
+                  })()}
+                  {/* 断容10 - 预留行：下期智取断组容错10 ∩ 博众断组容错10（重复出现的号码） */}
+                  {SHOW_DUANRONG10_COL && (() => {
+                    const zqGroups = parseDuanZuGroups((duanZuZQTexts && duanZuZQTexts[appNextIssue]) || '');
+                    const zqResult = zqGroups.length > 0 ? computeDuanZuRongCuo(zqGroups, null) : null;
+                    const zqRong10 = zqResult && zqResult.buckets && zqResult.buckets[10] ? zqResult.buckets[10] : [];
+                    const bzGroups = parseDuanZuGroups((duanZuBZTexts && duanZuBZTexts[appNextIssue]) || '');
+                    const bzResult = bzGroups.length > 0 ? computeDuanZuRongCuo(bzGroups, null) : null;
+                    const bzRong10 = bzResult && bzResult.buckets && bzResult.buckets[10] ? bzResult.buckets[10] : [];
+                    const zqSet = new Set(zqRong10);
+                    const intersection = bzRong10.filter(n => zqSet.has(n)).sort();
+                    return (
+                      <td key="duanrong10Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        {<ClickableCount count={intersection.length} hit={null} numbers={intersection} color="#1b5e20" />}
+                      </td>
+                    );
+                  })()}
+                  {/* 断容11 - 预留行：下期智取断组容错11 ∩ 博众断组容错11（重复出现的号码） */}
+                  {SHOW_DUANRONG11_COL && (() => {
+                    const zqGroups = parseDuanZuGroups((duanZuZQTexts && duanZuZQTexts[appNextIssue]) || '');
+                    const zqResult = zqGroups.length > 0 ? computeDuanZuRongCuo(zqGroups, null) : null;
+                    const zqRong11 = zqResult && zqResult.buckets && zqResult.buckets[11] ? zqResult.buckets[11] : [];
+                    const bzGroups = parseDuanZuGroups((duanZuBZTexts && duanZuBZTexts[appNextIssue]) || '');
+                    const bzResult = bzGroups.length > 0 ? computeDuanZuRongCuo(bzGroups, null) : null;
+                    const bzRong11 = bzResult && bzResult.buckets && bzResult.buckets[11] ? bzResult.buckets[11] : [];
+                    const zqSet = new Set(zqRong11);
+                    const intersection = bzRong11.filter(n => zqSet.has(n)).sort();
+                    return (
+                      <td key="duanrong11Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={intersection.length} hit={null} numbers={intersection} color="#1b5e20" />}
                       </td>
                     );
