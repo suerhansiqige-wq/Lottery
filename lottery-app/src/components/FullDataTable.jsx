@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { parseDecompGroups, verifyDraw, computeRongCuo } from '../utils/decompRongCuo.js'
-import { verifyDuanZuDraw, computeDuanZuRongCuo } from '../utils/duanZuRongCuo.js'
+import { verifyDuanZuDraw, computeDuanZuRongCuo, parseDuanZuGroups } from '../utils/duanZuRongCuo.js'
 import { buildAddSubIndexPro, getAddSubNumbersPro } from '../utils/addSubPool.js'
 import { generateByBrokenGroups } from '../utils/brokenGroup.js'
 
