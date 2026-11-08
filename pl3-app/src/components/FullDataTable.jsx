@@ -1419,7 +1419,7 @@ function FullDataTable({
     );
   };
 
-  // 断组杀号列：断容0-11所有号码合并去重后的总注数
+  // 断组杀号列：断容0-11每列交集号码合并去重后的总注数
   const renderDuanZuShahaoCell = (issue) => {
     if (!SHOW_DUANZU_SHAHAO_COL) return null;
     const zqGroups = parseDuanZuGroups((duanZuZQTexts && duanZuZQTexts[issue]) || '');
@@ -1428,12 +1428,11 @@ function FullDataTable({
     const bzResult = bzGroups.length > 0 ? computeDuanZuRongCuo(bzGroups, null) : null;
     const allNumbers = new Set();
     for (let i = 0; i <= 11; i++) {
-      if (zqResult && zqResult.buckets && zqResult.buckets[i]) {
-        zqResult.buckets[i].forEach(n => allNumbers.add(n));
-      }
-      if (bzResult && bzResult.buckets && bzResult.buckets[i]) {
-        bzResult.buckets[i].forEach(n => allNumbers.add(n));
-      }
+      const zqRong = zqResult && zqResult.buckets && zqResult.buckets[i] ? zqResult.buckets[i] : [];
+      const bzRong = bzResult && bzResult.buckets && bzResult.buckets[i] ? bzResult.buckets[i] : [];
+      const zqSet = new Set(zqRong);
+      const intersection = bzRong.filter(n => zqSet.has(n));
+      intersection.forEach(n => allNumbers.add(n));
     }
     const allNumbersArray = [...allNumbers].sort();
     if (allNumbersArray.length === 0) {
@@ -2448,7 +2447,7 @@ function FullDataTable({
                       </td>
                     );
                   })()}
-                  {/* 断组杀号 - 预留行：下期断容0-11所有号码合并去重后的总注数 */}
+                  {/* 断组杀号 - 预留行：下期断容0-11每列交集号码合并去重后的总注数 */}
                   {SHOW_DUANZU_SHAHAO_COL && (() => {
                     const zqGroups = parseDuanZuGroups((duanZuZQTexts && duanZuZQTexts[appNextIssue]) || '');
                     const zqResult = zqGroups.length > 0 ? computeDuanZuRongCuo(zqGroups, null) : null;
@@ -2456,12 +2455,11 @@ function FullDataTable({
                     const bzResult = bzGroups.length > 0 ? computeDuanZuRongCuo(bzGroups, null) : null;
                     const allNumbers = new Set();
                     for (let i = 0; i <= 11; i++) {
-                      if (zqResult && zqResult.buckets && zqResult.buckets[i]) {
-                        zqResult.buckets[i].forEach(n => allNumbers.add(n));
-                      }
-                      if (bzResult && bzResult.buckets && bzResult.buckets[i]) {
-                        bzResult.buckets[i].forEach(n => allNumbers.add(n));
-                      }
+                      const zqRong = zqResult && zqResult.buckets && zqResult.buckets[i] ? zqResult.buckets[i] : [];
+                      const bzRong = bzResult && bzResult.buckets && bzResult.buckets[i] ? bzResult.buckets[i] : [];
+                      const zqSet = new Set(zqRong);
+                      const intersection = bzRong.filter(n => zqSet.has(n));
+                      intersection.forEach(n => allNumbers.add(n));
                     }
                     const allNumbersArray = [...allNumbers].sort();
                     return (
