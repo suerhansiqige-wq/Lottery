@@ -713,13 +713,12 @@ function BaoBenTouZhuModule({ issue, reservedNumbers = [], wuRongCuoNumbers = []
 
   const zu3Numbers = reservedNumbers.filter(n => n[0] === n[1] || n[1] === n[2] || n[0] === n[2]);
 
-  // 保本投注 = 原始组三 + 无容错号码(组三) + 豹子号码 + 容错1交集(全部)
+  // 保本投注 = 原始组三 + 无容错号码(组六直选) + 豹子号码 + 容错1交集(全部)
   const baoBenNumbers = useMemo(() => {
-    // 无容错号码和豹子号码只保留组三类型
-    const wuAndBaoZiSet = new Set([...wuRongCuoNumbers, ...baoZiNumbers]);
-    const wuAndBaoZiZu3 = [...wuAndBaoZiSet].filter(n => n[0] === n[1] || n[1] === n[2] || n[0] === n[2]);
+    // 无容错号码是组六类型，直接加入不过滤
+    // 豹子号码是组三类型，直接加入
     // 容错1交集全部加入，不过滤
-    const allNumbers = new Set([...zu3Numbers, ...wuAndBaoZiZu3, ...rongCuo1JiaoJi]);
+    const allNumbers = new Set([...zu3Numbers, ...wuRongCuoNumbers, ...baoZiNumbers, ...rongCuo1JiaoJi]);
     return [...allNumbers].sort();
   }, [zu3Numbers, wuRongCuoNumbers, baoZiNumbers, rongCuo1JiaoJi]);
 
@@ -1178,25 +1177,22 @@ function FullDataTable({
     return tailZhiXuanGaoBeiNumbers.filter(n => n[0] !== n[1] && n[1] !== n[2] && n[0] !== n[2]);
   }, [tailZhiXuanGaoBeiNumbers]);
 
-  // 无容错号码（智取∪博众）+ 豹子号码，用于组三直选框
-  const tailWuRongCuoAndBaoZi = useMemo(() => {
-    // 计算智取无容错
+  // 无容错号码（从直选高倍组六号码分解而来）
+  const tailWuRongCuoNumbers = useMemo(() => {
+    // 计算智取无容错（候选集为直选高倍组六号码）
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[appNextIssue]) || '');
-    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, tailZhiXuanGaoBeiZuLiu) : null;
     const decompWuRongCuo = decompResult && decompResult.buckets && decompResult.buckets[0] ? decompResult.buckets[0] : [];
 
-    // 计算博众无容错
+    // 计算博众无容错（候选集为直选高倍组六号码）
     const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[appNextIssue]) || '');
-    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, tailZhiXuanGaoBeiZuLiu) : null;
     const bozhongWuRongCuo = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[0] ? bozhongResult.buckets[0] : [];
 
-    // 豹子号码
-    const baoZi = ['000', '111', '222', '333', '444', '555', '666', '777', '888', '999'];
-
     // 合并去重
-    const allNumbers = [...new Set([...decompWuRongCuo, ...bozhongWuRongCuo, ...baoZi])];
+    const allNumbers = [...new Set([...decompWuRongCuo, ...bozhongWuRongCuo])];
     return allNumbers.sort();
-  }, [appNextIssue, decompTexts, bozhongTexts]);
+  }, [appNextIssue, decompTexts, bozhongTexts, tailZhiXuanGaoBeiZuLiu]);
 
   // 容错1交集（智取容错1 ∩ 博众容错1），用于从直选高倍中剔除
   const tailRongCuo1JiaoJi = useMemo(() => {
@@ -2859,7 +2855,7 @@ function FullDataTable({
             <BaoBenTouZhuModule
               issue={selfPickIssue}
               reservedNumbers={tailZhiXuanGaoBeiNumbers}
-              wuRongCuoNumbers={tailWuRongCuoAndBaoZi}
+              wuRongCuoNumbers={tailWuRongCuoNumbers}
               baoZiNumbers={['000', '111', '222', '333', '444', '555', '666', '777', '888', '999']}
               rongCuo1JiaoJi={tailRongCuo1JiaoJi}
             />
