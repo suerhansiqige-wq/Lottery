@@ -486,22 +486,22 @@ export const expandZuxuanToZhixuan = (tokens) => {
 const BAOZI_NUMS = ['000','111','222','333','444','555','666','777','888','999'];
 
 /** 直选高倍模块：自动填入预留行数据，分成组六直选和组三直选 */
-function ZhiXuanGaoBeiModule({ issue, value, onChange, reservedNumbers = [], wuRongCuoNumbers = [], baoZiNumbers = [] }) {
+function ZhiXuanGaoBeiModule({ issue, value, onChange, reservedNumbers = [], wuRongCuoNumbers = [], baoZiNumbers = [], rongCuo1to8MinusJiaoJi = [] }) {
   const [copiedZu3, setCopiedZu3] = useState(false);
 
   // 分成组六和组三
   const zu6Numbers = reservedNumbers.filter(n => n[0] !== n[1] && n[1] !== n[2] && n[0] !== n[2]);
   const zu3Numbers = reservedNumbers.filter(n => n[0] === n[1] || n[1] === n[2] || n[0] !== n[2]);
 
-  // 组三直选 = 原始组三 + 无容错号码 + 豹子号码（去重）
+  // 组三直选 = 原始组三 + 无容错号码 + 豹子号码 + 容错1~8去掉容错1交集（去重）
   const zu3ExtraNumbers = useMemo(() => {
-    const extraSet = new Set([...wuRongCuoNumbers, ...baoZiNumbers]);
+    const extraSet = new Set([...wuRongCuoNumbers, ...baoZiNumbers, ...rongCuo1to8MinusJiaoJi]);
     // 只保留组三类型的号码（包括豹子）
     const extraZu3 = [...extraSet].filter(n => n[0] === n[1] || n[1] === n[2] || n[0] === n[2]);
     // 合并原始组三和额外号码，去重
     const allZu3 = new Set([...zu3Numbers, ...extraZu3]);
     return [...allZu3].sort();
-  }, [zu3Numbers, wuRongCuoNumbers, baoZiNumbers]);
+  }, [zu3Numbers, wuRongCuoNumbers, baoZiNumbers, rongCuo1to8MinusJiaoJi]);
 
   const handleCopyZu3 = async () => {
     const text = zu3ExtraNumbers.join(' ');
@@ -990,6 +990,43 @@ function FullDataTable({
     // 合并去重
     const allNumbers = [...new Set([...decompWuRongCuo, ...bozhongWuRongCuo, ...baoZi])];
     return allNumbers.sort();
+  }, [appNextIssue, decompTexts, bozhongTexts]);
+
+  // 容错1~8号码去掉容错1交集，用于组三直选框
+  const tailRongCuo1to8MinusJiaoJi = useMemo(() => {
+    // 计算智取容错1~8
+    const decompGroups = parseDecompGroups((decompTexts && decompTexts[appNextIssue]) || '');
+    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+    const decompRongCuo1to8 = [];
+    if (decompResult && decompResult.buckets) {
+      for (let i = 1; i <= 8; i++) {
+        if (decompResult.buckets[i]) decompRongCuo1to8.push(...decompResult.buckets[i]);
+      }
+    }
+
+    // 计算博众容错1~8
+    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[appNextIssue]) || '');
+    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+    const bozhongRongCuo1to8 = [];
+    if (bozhongResult && bozhongResult.buckets) {
+      for (let i = 1; i <= 8; i++) {
+        if (bozhongResult.buckets[i]) bozhongRongCuo1to8.push(...bozhongResult.buckets[i]);
+      }
+    }
+
+    // 容错1~8并集
+    const rongCuo1to8Union = [...new Set([...decompRongCuo1to8, ...bozhongRongCuo1to8])];
+
+    // 计算容错1交集（智取容错1 ∩ 博众容错1）
+    const decompRongCuo1 = decompResult && decompResult.buckets && decompResult.buckets[1] ? decompResult.buckets[1] : [];
+    const bozhongRongCuo1 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[1] ? bozhongResult.buckets[1] : [];
+    const decompRongCuo1Set = new Set(decompRongCuo1);
+    const rongCuo1JiaoJi = bozhongRongCuo1.filter(n => decompRongCuo1Set.has(n));
+    const rongCuo1JiaoJiSet = new Set(rongCuo1JiaoJi);
+
+    // 从容错1~8并集中剔除容错1交集
+    const result = rongCuo1to8Union.filter(n => !rongCuo1JiaoJiSet.has(n));
+    return result.sort();
   }, [appNextIssue, decompTexts, bozhongTexts]);
 
   // 通知父组件直选高倍组六号码变化
@@ -2440,6 +2477,10 @@ function FullDataTable({
                 return isZuSan && !isBaoZi;
               })}
               baoZiNumbers={['000', '111', '222', '333', '444', '555', '666', '777', '888', '999']}
+              rongCuo1to8MinusJiaoJi={tailRongCuo1to8MinusJiaoJi.filter(n => {
+                // 只保留组三类型的号码
+                return n[0] === n[1] || n[1] === n[2] || n[0] === n[2];
+              })}
             />
           </div>
           <button
