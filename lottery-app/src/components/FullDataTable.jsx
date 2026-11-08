@@ -1562,7 +1562,6 @@ function FullDataTable({
                 {SHOW_DUANZU_RC_COL && <th title="智取断组容错1 ∪ 博众断组容错1（合并号码池）；✓=在池内，✗=不在池内">断组容错</th>}
                 {SHOW_QIAN1QI_DUANZU_COL && <th title="采用前一期智取断组和博众断组容错1验证当期开奖号；✓=在池内，✗=不在池内">前1期断组</th>}
                 {SHOW_QIAN2QI_DUANZU_COL && <th title="采用前2期智取断组和博众断组容错1验证当期开奖号；✓=在池内，✗=不在池内">前2期断组</th>}
-                {SHOW_JJRONGCUO_COL && <2期断组</th>}
                 {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
