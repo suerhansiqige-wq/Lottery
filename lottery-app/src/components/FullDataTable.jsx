@@ -290,6 +290,9 @@ const SHOW_JJ_COL = true;
 // 综合列开关：2026-11-04 用户要求删除
 const SHOW_ZONGHE_COL = true;
 
+// 直选高倍列开关：增强93.1%∩交集号码∩交集容错∩综合，剔除容错10+容错+断组杀号
+const SHOW_ZHIXUAN_GAOBEI_COL = true;
+
 // 交集列开关：2026-11-04 用户要求删除
 const SHOW_JIAOJI_COL = false;
 
@@ -666,6 +669,122 @@ function FullDataTable({
       .sort();
   };
 
+  // 计算直选高倍列：增强93.1%∩交集号码∩交集容错∩综合，剔除容错10+容错+断组杀号
+  const computeZhiXuanGaoBeiNumbers = (issue, index) => {
+    if (!issue) return [];
+
+    // 1. 增强93.1%列
+    const addSubNumbers = index !== undefined ? getAddSubNumbersPro(poolData, index) : [];
+    const addSubSet = new Set(addSubNumbers);
+
+    // 2. 交集号码列
+    const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
+    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+    const decompZu6 = [];
+    const decompZu3 = [];
+    if (decompResult && decompResult.buckets) {
+      for (let i = 1; i <= 9; i++) {
+        if (decompResult.buckets[i]) decompZu6.push(...decompResult.buckets[i]);
+      }
+      for (let i = 2; i <= 12; i++) {
+        if (decompResult.buckets[i]) decompZu3.push(...decompResult.buckets[i]);
+      }
+    }
+    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
+    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+    const bozhongZu6 = [];
+    const bozhongZu3 = [];
+    if (bozhongResult && bozhongResult.buckets) {
+      for (let i = 1; i <= 9; i++) {
+        if (bozhongResult.buckets[i]) bozhongZu6.push(...bozhongResult.buckets[i]);
+      }
+      for (let i = 2; i <= 12; i++) {
+        if (bozhongResult.buckets[i]) bozhongZu3.push(...bozhongResult.buckets[i]);
+      }
+    }
+    const decompZu6Set = new Set(decompZu6);
+    const bozhongZu6Set = new Set(bozhongZu6);
+    const decompZu3Set = new Set(decompZu3);
+    const bozhongZu3Set = new Set(bozhongZu3);
+    const decompAll = [...new Set([...decompZu6, ...decompZu3])];
+    const bozhongAll = [...new Set([...bozhongZu6, ...bozhongZu3])];
+    const bozhongAllSet = new Set(bozhongAll);
+    const jiaojiNumbers = decompAll.filter(n => {
+      if (!bozhongAllSet.has(n)) return false;
+      const isZu3 = n[0] === n[1] || n[1] === n[2] || n[0] === n[2];
+      if (isZu3) {
+        return decompZu3Set.has(n) && bozhongZu3Set.has(n);
+      } else {
+        return decompZu6Set.has(n) && bozhongZu6Set.has(n);
+      }
+    });
+    const decompWuRongCuo = decompResult && decompResult.buckets && decompResult.buckets[0] ? decompResult.buckets[0] : [];
+    const bozhongWuRongCuo = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[0] ? bozhongResult.buckets[0] : [];
+    const baoZi = ['000', '111', '222', '333', '444', '555', '666', '777', '888', '999'];
+    const jiaojiHaoMa = [...new Set([...jiaojiNumbers, ...decompWuRongCuo, ...bozhongWuRongCuo, ...baoZi])];
+    const jiaojiHaoMaSet = new Set(jiaojiHaoMa);
+
+    // 3. 交集容错列
+    const jjrongcuoNumbers = computeZhuJunZhongJiangNumbers(issue);
+    const jjrongcuoSet = new Set(jjrongcuoNumbers);
+
+    // 4. 综合列
+    const zongheNumbers = computeZongHeNumbers(issue);
+    const zongheSet = new Set(zongheNumbers);
+
+    // 取4列交集
+    const fourWayIntersection = jiaojiHaoMa.filter(n =>
+      addSubSet.has(n) && jjrongcuoSet.has(n) && zongheSet.has(n)
+    );
+
+    // 剔除容错10列
+    const decompRc10 = decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : [];
+    const bozhongRc10 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
+    const rc10Set = new Set([...decompRc10, ...bozhongRc10]);
+
+    // 剔除容错列（对称差集）
+    const decompRc12 = [];
+    const bozhongRc12 = [];
+    if (decompResult && decompResult.buckets) {
+      for (let i = 0; i <= 12; i++) {
+        if (decompResult.buckets[i]) decompRc12.push(...decompResult.buckets[i]);
+      }
+    }
+    if (bozhongResult && bozhongResult.buckets) {
+      for (let i = 0; i <= 12; i++) {
+        if (bozhongResult.buckets[i]) bozhongRc12.push(...bozhongResult.buckets[i]);
+      }
+    }
+    const decompRc12Set = new Set(decompRc12);
+    const bozhongRc12Set = new Set(bozhongRc12);
+    const rcIntersection = decompRc12.filter(n => bozhongRc12Set.has(n));
+    const rcIntersectionSet = new Set(rcIntersection);
+    const rcUnion = [...new Set([...decompRc12, ...bozhongRc12])];
+    const rongCuoNumbers = rcUnion.filter(n => !rcIntersectionSet.has(n));
+    const rongCuoSet = new Set(rongCuoNumbers);
+
+    // 剔除断组杀号列
+    const zqDuanZuGroups = parseDuanZuGroups((duanZuZQTexts && duanZuZQTexts[issue]) || '');
+    const bzDuanZuGroups = parseDuanZuGroups((duanZuBZTexts && duanZuBZTexts[issue]) || '');
+    const zqDuanZuResult = zqDuanZuGroups.length > 0 ? computeDuanZuRongCuo(zqDuanZuGroups, null) : null;
+    const bzDuanZuResult = bzDuanZuGroups.length > 0 ? computeDuanZuRongCuo(bzDuanZuGroups, null) : null;
+    const duanZuShahaoNumbers = new Set();
+    for (let i = 0; i <= 11; i++) {
+      const zqRong = zqDuanZuResult && zqDuanZuResult.buckets && zqDuanZuResult.buckets[i] ? zqDuanZuResult.buckets[i] : [];
+      const bzRong = bzDuanZuResult && bzDuanZuResult.buckets && bzDuanZuResult.buckets[i] ? bzDuanZuResult.buckets[i] : [];
+      const zqSet = new Set(zqRong);
+      const intersection = bzRong.filter(n => zqSet.has(n));
+      intersection.forEach(n => duanZuShahaoNumbers.add(n));
+    }
+
+    // 最终结果：4列交集 - 容错10 - 容错 - 断组杀号
+    return fourWayIntersection
+      .filter(n => !rc10Set.has(n))
+      .filter(n => !rongCuoSet.has(n))
+      .filter(n => !duanZuShahaoNumbers.has(n))
+      .sort();
+  };
+
   // 下期综合列候选池
   const tailZongHeNumbers = useMemo(() => computeZongHeNumbers(appNextIssue), [appNextIssue, decompTexts, bozhongTexts]);
 
@@ -891,6 +1010,27 @@ function FullDataTable({
 
     return (
       <td key="zh" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
+        {<ClickableCount count={filtered.length} hit={hit} numbers={filtered} />}
+      </td>
+    );
+  };
+
+  // 直选高倍列：增强93.1%∩交集号码∩交集容错∩综合，剔除容错10+容错+断组杀号
+  const renderZhiXuanGaoBeiCell = (issue, index) => {
+    if (!SHOW_ZHIXUAN_GAOBEI_COL) return null;
+    const filtered = computeZhiXuanGaoBeiNumbers(issue, index);
+
+    if (filtered.length === 0) {
+      return <td key="zhixuangg" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+
+    // 验证当期开奖号是否在直选高倍列中
+    const item = displayData.find(d => d.issue === issue);
+    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
+    const hit = drawNum && filtered.includes(drawNum);
+
+    return (
+      <td key="zhixuangg" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
         {<ClickableCount count={filtered.length} hit={hit} numbers={filtered} />}
       </td>
     );
@@ -1561,6 +1701,7 @@ function FullDataTable({
                 {SHOW_DUANZU_SHAHAO_COL && <th title="断容0-11所有号码合并去重后的总注数；✓=在池内，✗=不在池内">断组杀号</th>}
                 {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
+                {SHOW_ZHIXUAN_GAOBEI_COL && <th title="增强93.1%∩交集号码∩交集容错∩综合，剔除容错10+容错+断组杀号；✓=在池内，✗=不在池内">直选高倍</th>}
                 {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
                 {/* 智取分解 / 博众分解 两列 */}
                 {DECOMP_COLS.map(c => (
@@ -1702,6 +1843,8 @@ function FullDataTable({
                   {SHOW_JJRONGCUO_COL && renderJiJiaoRongCuoCell(item.issue)}
                   {/* 综合：交集号码 - 容错列 - 容错10列 */}
                   {SHOW_ZONGHE_COL && renderZongHeCell(item.issue)}
+                  {/* 直选高倍：增强93.1%∩交集号码∩交集容错∩综合，剔除容错10+容错+断组杀号 */}
+                  {SHOW_ZHIXUAN_GAOBEI_COL && renderZhiXuanGaoBeiCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 断组334：默认分组012/345/6789，断1组预测 */}
                   {SHOW_DUANZU_COL && renderDuanZuCell(item.issue)}
                   {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数 */}
@@ -2116,6 +2259,15 @@ function FullDataTable({
                     const filtered = computeZongHeNumbers(nextIssue);
                     return (
                       <td key="zhNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
+                      </td>
+                    );
+                  })()}
+                  {/* 直选高倍 - 预留行：下期直选高倍注数（尚未开奖，无对错） */}
+                  {SHOW_ZHIXUAN_GAOBEI_COL && (() => {
+                    const filtered = computeZhiXuanGaoBeiNumbers(appNextIssue, poolData.length);
+                    return (
+                      <td key="zhixuanggNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
                       </td>
                     );
