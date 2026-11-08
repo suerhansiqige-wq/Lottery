@@ -713,12 +713,14 @@ function BaoBenTouZhuModule({ issue, reservedNumbers = [], wuRongCuoNumbers = []
 
   const zu3Numbers = reservedNumbers.filter(n => n[0] === n[1] || n[1] === n[2] || n[0] === n[2]);
 
-  // 保本投注 = 原始组三 + 无容错号码 + 豹子号码 + 容错1交集（去重）
+  // 保本投注 = 原始组三 + 无容错号码(组三) + 豹子号码 + 容错1交集(全部)
   const baoBenNumbers = useMemo(() => {
-    const extraSet = new Set([...wuRongCuoNumbers, ...baoZiNumbers, ...rongCuo1JiaoJi]);
-    const extraZu3 = [...extraSet].filter(n => n[0] === n[1] || n[1] === n[2] || n[0] === n[2]);
-    const allZu3 = new Set([...zu3Numbers, ...extraZu3]);
-    return [...allZu3].sort();
+    // 无容错号码和豹子号码只保留组三类型
+    const wuAndBaoZiSet = new Set([...wuRongCuoNumbers, ...baoZiNumbers]);
+    const wuAndBaoZiZu3 = [...wuAndBaoZiSet].filter(n => n[0] === n[1] || n[1] === n[2] || n[0] === n[2]);
+    // 容错1交集全部加入，不过滤
+    const allNumbers = new Set([...zu3Numbers, ...wuAndBaoZiZu3, ...rongCuo1JiaoJi]);
+    return [...allNumbers].sort();
   }, [zu3Numbers, wuRongCuoNumbers, baoZiNumbers, rongCuo1JiaoJi]);
 
   const handleCopy = async () => {
