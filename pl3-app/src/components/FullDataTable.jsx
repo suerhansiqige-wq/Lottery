@@ -1196,21 +1196,21 @@ function FullDataTable({
 
   // 容错1交集（智取容错1 ∩ 博众容错1），用于从直选高倍中剔除
   const tailRongCuo1JiaoJi = useMemo(() => {
-    // 计算智取容错1
+    // 计算智取容错1（候选集为直选高倍组六号码）
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[appNextIssue]) || '');
-    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, tailZhiXuanGaoBeiZuLiu) : null;
     const decompRongCuo1 = decompResult && decompResult.buckets && decompResult.buckets[1] ? decompResult.buckets[1] : [];
 
-    // 计算博众容错1
+    // 计算博众容错1（候选集为直选高倍组六号码）
     const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[appNextIssue]) || '');
-    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, tailZhiXuanGaoBeiZuLiu) : null;
     const bozhongRongCuo1 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[1] ? bozhongResult.buckets[1] : [];
 
     // 容错1交集
     const decompRongCuo1Set = new Set(decompRongCuo1);
     const jiaoJi = bozhongRongCuo1.filter(n => decompRongCuo1Set.has(n));
     return jiaoJi.sort();
-  }, [appNextIssue, decompTexts, bozhongTexts]);
+  }, [appNextIssue, decompTexts, bozhongTexts, tailZhiXuanGaoBeiZuLiu]);
 
   // 容错1~8号码去掉容错1交集，用于组三直选框
   const tailRongCuo1to8MinusJiaoJi = useMemo(() => {
