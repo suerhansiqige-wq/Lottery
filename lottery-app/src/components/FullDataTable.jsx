@@ -693,6 +693,64 @@ function FullDataTable({
       .sort();
   };
 
+  // 解析用户输入的断组分组（支持多组，每行一组）
+  // 支持三种格式：
+  // 格式1（逗号分隔）：'307,189,6245'（3位+3位+4位数字串）
+  // 格式2（横线分隔）：'345-190-2786'（3位+3位+4位数字串）
+  // 格式3（斜杠分隔）：'012/345/6789,013/245/6789,014/235/6789'（逗号分隔3个分组）
+  // 返回：[{groups: [{a:Set, b:Set, c:Set}], raw:string}, ...]
+  const parseDuanZuGroups = (text) => {
+    if (!text || !text.trim()) return [];
+    const lines = text.trim().split('\n').map(l => l.trim()).filter(Boolean);
+    const result = [];
+    for (const line of lines) {
+      // 尝试格式1：逗号分隔的3个数字串（整行只有3个纯数字部分）
+      const commaParts = line.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+      if (commaParts.length === 3 && commaParts.every(p => /^\d+$/.test(p))) {
+        const groups = [{
+          a: new Set(commaParts[0].split('').map(Number)),
+          b: new Set(commaParts[1].split('').map(Number)),
+          c: new Set(commaParts[2].split('').map(Number))
+        }];
+        result.push({ groups, raw: line });
+        continue;
+      }
+      // 尝试格式2：横线分隔的3个数字串
+      const dashParts = line.split(/[-]/).map(s => s.trim()).filter(Boolean);
+      if (dashParts.length === 3 && dashParts.every(p => /^\d+$/.test(p))) {
+        const groups = [{
+          a: new Set(dashParts[0].split('').map(Number)),
+          b: new Set(dashParts[1].split('').map(Number)),
+          c: new Set(dashParts[2].split('').map(Number))
+        }];
+        result.push({ groups, raw: line });
+        continue;
+      }
+      // 尝试格式3：斜杠+逗号混合格式（逗号分隔3个分组，每个分组用斜杠分隔3个集合）
+      if (commaParts.length === 3) {
+        const groups = [];
+        let valid = true;
+        for (const part of commaParts) {
+          const subParts = part.split('/').map(s => s.trim()).filter(Boolean);
+          if (subParts.length !== 3) { valid = false; break; }
+          const digits = subParts.map(sp => {
+            const ds = sp.split('').map(c => parseInt(c, 10)).filter(n => !isNaN(n) && n >= 0 && n <= 9);
+            return new Set(ds);
+          });
+          if (digits[0].size === 0 || digits[1].size === 0 || digits[2].size === 0) {
+            valid = false;
+            break;
+          }
+          groups.push({ a: digits[0], b: digits[1], c: digits[2] });
+        }
+        if (valid && groups.length === 3) {
+          result.push({ groups, raw: line });
+        }
+      }
+    }
+    return result;
+  };
+
   // 计算任意期号的祝君中奖列候选池：交集号码 - 容错列 - 容错10列
   const computeZhuJunZhongJiangNumbers = (issue) => {
     if (!issue) return [];
@@ -1447,64 +1505,6 @@ function FullDataTable({
   // 前2期容错列：采用前2期智取分解容错0~12与博众分解容错0~12的对称差集验证当期开奖号
 
   // 前2期列：采用前2期智取分解容错10 ∪ 博众分解容错10验证当期开奖号
-
-  // 解析用户输入的断组分组（支持多组，每行一组）
-  // 支持三种格式：
-  // 格式1（逗号分隔）：'307,189,6245'（3位+3位+4位数字串）
-  // 格式2（横线分隔）：'345-190-2786'（3位+3位+4位数字串）
-  // 格式3（斜杠分隔）：'012/345/6789,013/245/6789,014/235/6789'（逗号分隔3个分组）
-  // 返回：[{groups: [{a:Set, b:Set, c:Set}], raw:string}, ...]
-  const parseDuanZuGroups = (text) => {
-    if (!text || !text.trim()) return [];
-    const lines = text.trim().split('\n').map(l => l.trim()).filter(Boolean);
-    const result = [];
-    for (const line of lines) {
-      // 尝试格式1：逗号分隔的3个数字串（整行只有3个纯数字部分）
-      const commaParts = line.split(/[,，]/).map(s => s.trim()).filter(Boolean);
-      if (commaParts.length === 3 && commaParts.every(p => /^\d+$/.test(p))) {
-        const groups = [{
-          a: new Set(commaParts[0].split('').map(Number)),
-          b: new Set(commaParts[1].split('').map(Number)),
-          c: new Set(commaParts[2].split('').map(Number))
-        }];
-        result.push({ groups, raw: line });
-        continue;
-      }
-      // 尝试格式2：横线分隔的3个数字串
-      const dashParts = line.split(/[-]/).map(s => s.trim()).filter(Boolean);
-      if (dashParts.length === 3 && dashParts.every(p => /^\d+$/.test(p))) {
-        const groups = [{
-          a: new Set(dashParts[0].split('').map(Number)),
-          b: new Set(dashParts[1].split('').map(Number)),
-          c: new Set(dashParts[2].split('').map(Number))
-        }];
-        result.push({ groups, raw: line });
-        continue;
-      }
-      // 尝试格式3：斜杠+逗号混合格式（逗号分隔3个分组，每个分组用斜杠分隔3个集合）
-      if (commaParts.length === 3) {
-        const groups = [];
-        let valid = true;
-        for (const part of commaParts) {
-          const subParts = part.split('/').map(s => s.trim()).filter(Boolean);
-          if (subParts.length !== 3) { valid = false; break; }
-          const digits = subParts.map(sp => {
-            const ds = sp.split('').map(c => parseInt(c, 10)).filter(n => !isNaN(n) && n >= 0 && n <= 9);
-            return new Set(ds);
-          });
-          if (digits[0].size === 0 || digits[1].size === 0 || digits[2].size === 0) {
-            valid = false;
-            break;
-          }
-          groups.push({ a: digits[0], b: digits[1], c: digits[2] });
-        }
-        if (valid && groups.length === 3) {
-          result.push({ groups, raw: line });
-        }
-      }
-    }
-    return result;
-  };
 
   // 断组334列：用户录入分组（支持多组），系统计算每组断1组注数并合并
   const renderDuanZuCell = (issue) => {
