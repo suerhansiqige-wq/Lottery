@@ -662,26 +662,38 @@ export const expandZuxuanToZhixuan = (tokens) => {
 
 const BAOZI_NUMS = ['000','111','222','333','444','555','666','777','888','999'];
 
-/** 直选高倍模块：手动录入模式，作为分解号码池 */
-function ZhiXuanGaoBeiModule({ issue, value, onChange }) {
-  const [copied, setCopied] = useState(false);
+/** 直选高倍模块：自动填入预留行数据，分成组六直选和组三直选 */
+function ZhiXuanGaoBeiModule({ issue, value, onChange, reservedNumbers = [] }) {
+  const [copiedZu3, setCopiedZu3] = useState(false);
 
-  const handleCopy = async () => {
-    if (!value) return;
+  // 分成组六和组三
+  const zu6Numbers = reservedNumbers.filter(n => n[0] !== n[1] && n[1] !== n[2] && n[0] !== n[2]);
+  const zu3Numbers = reservedNumbers.filter(n => n[0] === n[1] || n[1] === n[2] || n[0] === n[2]);
+
+  const handleCopyZu3 = async () => {
+    const text = zu3Numbers.join(' ');
+    if (!text) return;
     try {
-      await navigator.clipboard.writeText(value);
+      await navigator.clipboard.writeText(text);
     } catch (err) {
       const ta = document.createElement('textarea');
-      ta.value = value;
+      ta.value = text;
       document.body.appendChild(ta);
       ta.select();
       try { document.execCommand('copy'); } catch {}
       document.body.removeChild(ta);
     }
-    setCopied(true);
+    setCopiedZu3(true);
   };
 
-  const count = useMemo(() => parsePickNumbers(value).length, [value]);
+  const formatNumbers = (numbers) => {
+    // 每行显示10个号码，用空格分隔
+    const rows = [];
+    for (let i = 0; i < numbers.length; i += 10) {
+      rows.push(numbers.slice(i, i + 10).join(' '));
+    }
+    return rows.join('\n');
+  };
 
   return (
     <div style={{ width: '100%', flex: 1, border: '2px solid #00838f', borderRadius: 6, background: '#e0f7fa', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -695,40 +707,52 @@ function ZhiXuanGaoBeiModule({ issue, value, onChange }) {
             fontSize: 12, fontWeight: 800, color: '#00695c',
             background: '#fff', borderRadius: 10, padding: '1px 8px', whiteSpace: 'nowrap',
           }}>
-            {count} 注
+            {reservedNumbers.length} 注
           </span>
         </div>
         <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.95 }}>
           {issue ? `${issue} 期` : '—'}
         </span>
       </div>
-      <div style={{ padding: 8, flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <textarea
-          value={value || ''}
-          onChange={(e) => onChange && onChange(e.target.value)}
-          placeholder="手动输入直选号码，作为分解号码池。空格/逗号/换行分隔"
-          spellCheck={false}
-          style={{
-            display: 'block', width: '100%', boxSizing: 'border-box', height: 80, resize: 'none',
-            fontSize: 12, fontFamily: 'Consolas,monospace', lineHeight: '16px',
+      <div style={{ padding: 8, flex: 1, display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto' }}>
+        {/* 组六直选 */}
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#00695c', marginBottom: 2 }}>
+            组六直选 ({zu6Numbers.length} 注)
+          </div>
+          <div style={{
+            fontSize: 11, fontFamily: 'Consolas,monospace', lineHeight: '16px',
             padding: 4, border: '1px solid #4dd0e1', borderRadius: 3,
-            background: '#fff', color: '#00695c',
-            overflowY: 'auto', cursor: 'text', flex: 1,
-          }}
-        />
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
-          <button
-            onClick={handleCopy}
-            disabled={!value}
-            style={{
-              fontSize: 11, padding: '1px 6px', cursor: value ? 'pointer' : 'default',
-              border: `1px solid ${copied ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
-              background: copied ? '#c8e6c9' : '#fff', color: copied ? '#1b5e20' : '#555',
-              fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
-            }}
-          >
-            {copied ? '✓' : '复制'}
-          </button>
+            background: '#fff', color: '#00695c', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+          }}>
+            {formatNumbers(zu6Numbers) || '—'}
+          </div>
+        </div>
+        {/* 组三直选 */}
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#c62828', marginBottom: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>组三直选 ({zu3Numbers.length} 注)</span>
+            {zu3Numbers.length > 0 && (
+              <button
+                onClick={handleCopyZu3}
+                style={{
+                  fontSize: 11, padding: '1px 6px', cursor: 'pointer',
+                  border: `1px solid ${copiedZu3 ? '#2e7d32' : '#bbb'}`, borderRadius: 3,
+                  background: copiedZu3 ? '#c8e6c9' : '#fff', color: copiedZu3 ? '#1b5e20' : '#555',
+                  fontWeight: 600, lineHeight: '16px', minWidth: 36, textAlign: 'center',
+                }}
+              >
+                {copiedZu3 ? '✓' : '复制'}
+              </button>
+            )}
+          </div>
+          <div style={{
+            fontSize: 11, fontFamily: 'Consolas,monospace', lineHeight: '16px',
+            padding: 4, border: '1px solid #ef9a9a', borderRadius: 3,
+            background: '#ffebee', color: '#c62828', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+          }}>
+            {formatNumbers(zu3Numbers) || '—'}
+          </div>
         </div>
       </div>
     </div>
@@ -968,6 +992,9 @@ function FullDataTable({
 
   // 下期综合列候选池
   const tailZongHeNumbers = useMemo(() => computeZongHeNumbers(appNextIssue), [appNextIssue, decompTexts, bozhongTexts]);
+
+  // 下期直选高倍列候选池
+  const tailZhiXuanGaoBeiNumbers = useMemo(() => computeZhiXuanGaoBeiNumbers(appNextIssue, poolData.length), [appNextIssue, poolData, decompTexts, bozhongTexts, duanZuZQTexts, duanZuBZTexts]);
 
   // 计算任意期号的祝君中奖列候选池：交集号码 - 容错列 - 容错10列
   const computeZhuJunZhongJiangNumbers = (issue) => {
@@ -2732,6 +2759,7 @@ function FullDataTable({
               issue={selfPickIssue}
               value={zhiXuanGaoBeiValue}
               onChange={onZhiXuanGaoBeiChange}
+              reservedNumbers={tailZhiXuanGaoBeiNumbers}
             />
           </div>
           <button
