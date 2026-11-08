@@ -561,10 +561,10 @@ function ZhiXuanGaoBeiModule({ issue, value, onChange, reservedNumbers = [], wuR
             {formatNumbers(zu6Numbers) || '—'}
           </div>
         </div>
-        {/* 组三直选 */}
+        {/* 保本投注 */}
         <div>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#c62828', marginBottom: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>组三直选 ({zu3ExtraNumbers.length} 注)</span>
+            <span>保本投注 ({zu3ExtraNumbers.length} 注)</span>
             {zu3ExtraNumbers.length > 0 && (
               <button
                 onClick={handleCopyZu3}

@@ -17,7 +17,7 @@ const ACCENT = {
 };
 
 /**
- * 把「无容错」号码（智取无容错 ∪ 博众无容错）从分解面板的容错1~8 展示中剔除。
+ * 把「无容错」号码和「容错1交集」号码从分解面板的容错1~8 展示中剔除。
  * 这些号码只保留在右侧「保本投注」框里，不再作为可投注的容错候选出现。
  *
  * 注意：errorCount 只取决于号码本身与 20 组分解式，与候选集无关，所以这一步是
@@ -25,19 +25,21 @@ const ACCENT = {
  * 「无容错」格恒为 0（自我否定），且 直选高倍框 会立刻把它重新收回来形成死循环。
  * 「无容错」格本身保留，它正是这批号码的出处。
  */
-function excludeWu(result, wuSet) {
-  if (!result || !result.valid || wuSet.size === 0) return result;
+function excludeWuAndJiaoJi(result, wuSet, jiaoJiSet) {
+  if (!result || !result.valid) return result;
+  const excludeSet = new Set([...wuSet, ...jiaoJiSet]);
+  if (excludeSet.size === 0) return result;
   const map = (cell) => {
-    const numbers = cell.numbers.filter(n => !wuSet.has(n));
+    const numbers = cell.numbers.filter(n => !excludeSet.has(n));
     const zuLiu = numbers.filter(n => new Set(n.split('')).size === 3).length;
     return { ...cell, numbers, count: numbers.length, zuLiu, zuSan: numbers.length - zuLiu };
   };
   return {
     ...result,
     levels: result.levels.map(map),
-    eliminated: result.eliminated.filter(n => !wuSet.has(n)),
-    // 无容错号码必然全部来自候选集，故直接减去其个数
-    total: Math.max(0, result.total - wuSet.size),
+    eliminated: result.eliminated.filter(n => !excludeSet.has(n)),
+    // 无容错+容错1交集号码必然全部来自候选集，故直接减去其个数
+    total: Math.max(0, result.total - excludeSet.size),
   };
 }
 
@@ -361,8 +363,19 @@ export default function DecompRongCuoPanel({
 }) {
   // 无容错号码只进「保本投注」框：从两套结果的容错1~8 / 交集 / 合并频次中剔除
   const wuSet = useMemo(() => new Set(wuRongCuoNumbers), [wuRongCuoNumbers]);
-  const zq = useMemo(() => excludeWu(decompResult, wuSet), [decompResult, wuSet]);
-  const bz = useMemo(() => excludeWu(bozhongResult, wuSet), [bozhongResult, wuSet]);
+
+  // 容错1交集号码（智取容错1 ∩ 博众容错1）：从两套结果的容错1~8中剔除
+  const jiaoJiSet = useMemo(() => {
+    if (!decompResult || !decompResult.valid || !bozhongResult || !bozhongResult.valid) return new Set();
+    const decompRongCuo1 = decompResult.levels[0]?.numbers || [];
+    const bozhongRongCuo1 = bozhongResult.levels[0]?.numbers || [];
+    const decompSet = new Set(decompRongCuo1);
+    const jiaoJi = bozhongRongCuo1.filter(n => decompSet.has(n));
+    return new Set(jiaoJi);
+  }, [decompResult, bozhongResult]);
+
+  const zq = useMemo(() => excludeWuAndJiaoJi(decompResult, wuSet, jiaoJiSet), [decompResult, wuSet, jiaoJiSet]);
+  const bz = useMemo(() => excludeWuAndJiaoJi(bozhongResult, wuSet, jiaoJiSet), [bozhongResult, wuSet, jiaoJiSet]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
