@@ -313,6 +313,9 @@ const SHOW_QIAN4QI_DUANZU_COL = true;
 // 前5期断组列开关：采用前5期智取断组和博众断组容错1验证当期
 const SHOW_QIAN5QI_DUANZU_COL = true;
 
+// 前6期断组列开关：采用前6期智取断组和博众断组容错1验证当期
+const SHOW_QIAN6QI_DUANZU_COL = true;
+
 // 断组334列开关：2026-11-04 用户要求新增
 const SHOW_DUANZU_COL = false; // 已迁移到 DECOMP_COLS 的 duanzuZQ/duanzuBZ
 
@@ -1238,6 +1241,64 @@ function FullDataTable({
     );
   };
 
+  // 前6期断组列：采用前6期智取断组和博众断组容错1验证当期开奖号
+  const renderQian6QiDuanZuCell = (issue, issueIndex) => {
+    if (!SHOW_QIAN6QI_DUANZU_COL) return null;
+
+    // 获取前6期的期号
+    if (issueIndex <= 5) {
+      return <td key="qian6qidz" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+    const prev6Issue = poolData[issueIndex - 6]?.issue;
+    if (!prev6Issue) {
+      return <td key="qian6qidz" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+
+    // 获取前6期智取断组和博众断组数据
+    const prev6ZqText = (duanZuZQTexts && duanZuZQTexts[prev6Issue]) || '';
+    const prev6BzText = (duanZuBZTexts && duanZuBZTexts[prev6Issue]) || '';
+
+    // 解析断组数据
+    const prev6ZqGroups = parseDuanZuGroups(prev6ZqText);
+    const prev6BzGroups = parseDuanZuGroups(prev6BzText);
+
+    // 计算容错1的号码池
+    let prev6ZqRongCuo1 = [];
+    let prev6BzRongCuo1 = [];
+
+    if (prev6ZqGroups.length > 0 && prev6ZqGroups[0].groups.length > 0) {
+      const prev6ZqResult = computeDuanZuRongCuo(prev6ZqGroups);
+      if (prev6ZqResult.levels && prev6ZqResult.levels.length >= 1) {
+        prev6ZqRongCuo1 = prev6ZqResult.levels[0].numbers || []; // 容错1
+      }
+    }
+
+    if (prev6BzGroups.length > 0 && prev6BzGroups[0].groups.length > 0) {
+      const prev6BzResult = computeDuanZuRongCuo(prev6BzGroups);
+      if (prev6BzResult.levels && prev6BzResult.levels.length >= 1) {
+        prev6BzRongCuo1 = prev6BzResult.levels[0].numbers || []; // 容错1
+      }
+    }
+
+    // 合并两个号码池并去重
+    const merged = Array.from(new Set([...prev6ZqRongCuo1, ...prev6BzRongCuo1])).sort();
+
+    if (merged.length === 0) {
+      return <td key="qian6qidz" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+
+    // 验证当期开奖号是否在前6期断组中
+    const item = displayData.find(d => d.issue === issue);
+    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
+    const hit = drawNum && merged.includes(drawNum);
+
+    return (
+      <td key="qian6qidz" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
+        {<ClickableCount count={merged.length} hit={hit} numbers={merged} />}
+      </td>
+    );
+  };
+
   // 祝君中奖列：交集号码 - 容错列 - 容错10列
   const renderJiJiaoRongCuoCell = (issue) => {
     if (!SHOW_JJRONGCUO_COL) return null;
@@ -1748,6 +1809,7 @@ function FullDataTable({
                 {SHOW_QIAN3QI_DUANZU_COL && <th title="采用前3期智取断组和博众断组容错1验证当期开奖号；✓=在池内，✗=不在池内">前3期断组</th>}
                 {SHOW_QIAN4QI_DUANZU_COL && <th title="采用前4期智取断组和博众断组容错1验证当期开奖号；✓=在池内，✗=不在池内">前4期断组</th>}
                 {SHOW_QIAN5QI_DUANZU_COL && <th title="采用前5期智取断组和博众断组容错1验证当期开奖号；✓=在池内，✗=不在池内">前5期断组</th>}
+                {SHOW_QIAN6QI_DUANZU_COL && <th title="采用前6期智取断组和博众断组容错1验证当期开奖号；✓=在池内，✗=不在池内">前6期断组</th>}
                 {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
@@ -1872,6 +1934,8 @@ function FullDataTable({
                   {SHOW_QIAN4QI_DUANZU_COL && renderQian4QiDuanZuCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 前5期断组：采用前5期智取断组和博众断组容错1验证当期 */}
                   {SHOW_QIAN5QI_DUANZU_COL && renderQian5QiDuanZuCell(item.issue, issueIndexMap.get(item.issue))}
+                  {/* 前6期断组：采用前6期智取断组和博众断组容错1验证当期 */}
+                  {SHOW_QIAN6QI_DUANZU_COL && renderQian6QiDuanZuCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 交集容错：交集号码 - 容错列 - 容错10列 */}
                   {SHOW_JJRONGCUO_COL && renderJiJiaoRongCuoCell(item.issue)}
                   {/* 综合：交集号码 - 容错列 - 容错10列 */}
@@ -2341,6 +2405,37 @@ function FullDataTable({
                     const merged = Array.from(new Set([...prev5ZqRongCuo1, ...prev5BzRongCuo1])).sort();
                     return (
                       <td key="qian5qidzNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
+                      </td>
+                    );
+                  })()}
+                  {/* 前6期断组 - 预留行：用倒数第6期断组数据容错1预测下期 */}
+                  {SHOW_QIAN6QI_DUANZU_COL && (() => {
+                    const prev6Issue = data.length >= 6 ? data[data.length - 6]?.issue : null;
+                    if (!prev6Issue) {
+                      return <td key="qian6qidzNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>-</td>;
+                    }
+                    const prev6ZqText = (duanZuZQTexts && duanZuZQTexts[prev6Issue]) || '';
+                    const prev6BzText = (duanZuBZTexts && duanZuBZTexts[prev6Issue]) || '';
+                    const prev6ZqGroups = parseDuanZuGroups(prev6ZqText);
+                    const prev6BzGroups = parseDuanZuGroups(prev6BzText);
+                    let prev6ZqRongCuo1 = [];
+                    let prev6BzRongCuo1 = [];
+                    if (prev6ZqGroups.length > 0 && prev6ZqGroups[0].groups.length > 0) {
+                      const prev6ZqResult = computeDuanZuRongCuo(prev6ZqGroups);
+                      if (prev6ZqResult.levels && prev6ZqResult.levels.length >= 1) {
+                        prev6ZqRongCuo1 = prev6ZqResult.levels[0].numbers || [];
+                      }
+                    }
+                    if (prev6BzGroups.length > 0 && prev6BzGroups[0].groups.length > 0) {
+                      const prev6BzResult = computeDuanZuRongCuo(prev6BzGroups);
+                      if (prev6BzResult.levels && prev6BzResult.levels.length >= 1) {
+                        prev6BzRongCuo1 = prev6BzResult.levels[0].numbers || [];
+                      }
+                    }
+                    const merged = Array.from(new Set([...prev6ZqRongCuo1, ...prev6BzRongCuo1])).sort();
+                    return (
+                      <td key="qian6qidzNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={merged.length} hit={null} numbers={merged} color="#1b5e20" />}
                       </td>
                     );
