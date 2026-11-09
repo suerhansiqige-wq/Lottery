@@ -215,6 +215,27 @@ for (const app of APPS) {
     const updated = content.substring(0, pos).trimEnd() + '\n' + entries + '\n' + content.substring(pos);
     fs.writeFileSync(filePath, updated, 'utf-8');
     console.log(`[${app.name}] 新增 ${fresh.length} 期：${fresh.map(fmt).join(' ')}`);
+
+    // ---- 4) 同步更新 lotteryDataOptimized.js（紧凑格式）----
+    const optimizedFilePath = filePath.replace('lotteryData.js', 'lotteryDataOptimized.js');
+    try {
+      const optContent = fs.readFileSync(optimizedFilePath, 'utf-8');
+      // 匹配紧凑数据段：const COMPACT_DATA = `...`;
+      const optMatch = optContent.match(/(const COMPACT_DATA = `[\s\S]*?)(`);/);
+      if (!optMatch) {
+        console.log(`[${app.name}] lotteryDataOptimized.js 格式错误，跳过`);
+        problems.push(`${app.name} 优化数据文件未匹配到 COMPACT_DATA，格式异常`);
+      } else {
+        const optEntries = fresh.map(d => `${d.issue},${d.d1},${d.d2},${d.d3}`).join('\n');
+        const optPos = optMatch.index + optMatch[1].length;
+        const optUpdated = optContent.substring(0, optPos).trimEnd() + '\n' + optEntries + '\n' + optContent.substring(optPos);
+        fs.writeFileSync(optimizedFilePath, optUpdated, 'utf-8');
+        console.log(`[${app.name}] 同步更新 lotteryDataOptimized.js（${fresh.length} 期）`);
+      }
+    } catch (err) {
+      console.log(`[${app.name}] 更新 lotteryDataOptimized.js 失败：${err.message}`);
+      problems.push(`${app.name} 优化数据文件同步异常：${err.message}`);
+    }
   } catch (err) {
     console.log(`[${app.name}] 同步失败：${err.message}`);
     problems.push(`${app.name} 同步异常：${err.message}`);
