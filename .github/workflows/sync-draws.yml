@@ -140,6 +140,7 @@ jobs:
           cp -r lottery-app/dist/. pages/3d/
           cp -r pl3-app/dist/. pages/pl3/
           cp pages-index.html pages/index.html
+          cp CNAME pages/CNAME
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
