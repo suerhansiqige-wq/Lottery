@@ -200,7 +200,37 @@ for (const app of APPS) {
       .filter(d => Number(d.issue) > Number(lastIssue))
       .sort((a, b) => Number(a.issue) - Number(b.issue));
 
-    if (fresh.length === 0) { console.log(`[${app.name}] 无新数据（最新 ${lastIssue}）`); continue; }
+    if (fresh.length === 0) {
+      console.log(`[${app.name}] 无新数据（最新 ${lastIssue}）`);
+      // 检查 optimized 文件是否落后，如果是则补同步
+      const optimizedFilePath = filePath.replace('lotteryData.js', 'lotteryDataOptimized.js');
+      try {
+        const optContent = fs.readFileSync(optimizedFilePath, 'utf-8');
+        const optMatch = optContent.match(/(const COMPACT_DATA = `[\s\S]*?)(`);/);
+        if (optMatch) {
+          const optIssues = new Set();
+          optMatch[1].split('\n').forEach(line => {
+            const mm = line.match(/^(\d{5}),/);
+            if (mm) optIssues.add(mm[1]);
+          });
+          const optLastIssue = [...optIssues].sort((a, b) => Number(a) - Number(b)).pop();
+          if (optLastIssue && Number(optLastIssue) < Number(lastIssue)) {
+            // optimized 文件落后，补同步
+            const missing = items.filter(d => Number(d.issue) > Number(optLastIssue) && Number(d.issue) <= Number(lastIssue));
+            if (missing.length > 0) {
+              const optEntries = missing.map(d => `${d.issue},${d.d1},${d.d2},${d.d3}`).join('\n');
+              const optPos = optMatch.index + optMatch[1].length;
+              const optUpdated = optContent.substring(0, optPos).trimEnd() + '\n' + optEntries + '\n' + optContent.substring(optPos);
+              fs.writeFileSync(optimizedFilePath, optUpdated, 'utf-8');
+              console.log(`[${app.name}] 补同步 optimized 文件（${missing.length} 期：${missing.map(d => d.issue).join(', ')}）`);
+            }
+          }
+        }
+      } catch (err) {
+        console.log(`[${app.name}] 检查 optimized 文件失败：${err.message}`);
+      }
+      continue;
+    }
 
     // 【写入闸门】新期号必须从 lastIssue 起连续递增，出现跳号说明源数据异常，放弃写入
     const gap = fresh.filter((d, i) => Number(d.issue) !== Number(lastIssue) + i + 1);
