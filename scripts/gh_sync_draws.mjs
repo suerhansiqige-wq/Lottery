@@ -206,10 +206,12 @@ for (const app of APPS) {
       const optimizedFilePath = filePath.replace('lotteryData.js', 'lotteryDataOptimized.js');
       try {
         const optContent = fs.readFileSync(optimizedFilePath, 'utf-8');
-        const optMatch = optContent.match(/(const COMPACT_DATA = `[\s\S]*?)(`);/);
-        if (optMatch) {
+        const compactStart = optContent.indexOf('const COMPACT_DATA = `');
+        const compactEnd = compactStart !== -1 ? optContent.indexOf('`;', compactStart + 20) : -1;
+        if (compactStart !== -1 && compactEnd !== -1) {
+          const dataSection = optContent.substring(compactStart, compactEnd);
           const optIssues = new Set();
-          optMatch[1].split('\n').forEach(line => {
+          dataSection.split('\n').forEach(line => {
             const mm = line.match(/^(\d{5}),/);
             if (mm) optIssues.add(mm[1]);
           });
@@ -219,8 +221,8 @@ for (const app of APPS) {
             const missing = items.filter(d => Number(d.issue) > Number(optLastIssue) && Number(d.issue) <= Number(lastIssue));
             if (missing.length > 0) {
               const optEntries = missing.map(d => `${d.issue},${d.d1},${d.d2},${d.d3}`).join('\n');
-              const optPos = optMatch.index + optMatch[1].length;
-              const optUpdated = optContent.substring(0, optPos).trimEnd() + '\n' + optEntries + '\n' + optContent.substring(optPos);
+              const tail = optContent.substring(compactEnd);
+              const optUpdated = optContent.substring(0, compactStart) + dataSection.trimEnd() + '\n' + optEntries + '\n' + tail;
               fs.writeFileSync(optimizedFilePath, optUpdated, 'utf-8');
               console.log(`[${app.name}] 补同步 optimized 文件（${missing.length} 期：${missing.map(d => d.issue).join(', ')}）`);
             }
@@ -250,16 +252,18 @@ for (const app of APPS) {
     const optimizedFilePath = filePath.replace('lotteryData.js', 'lotteryDataOptimized.js');
     try {
       const optContent = fs.readFileSync(optimizedFilePath, 'utf-8');
-      // 匹配紧凑数据段：const COMPACT_DATA = `...`;
-      const optMatch = optContent.match(/(const COMPACT_DATA = `[\s\S]*?)(`);/);
-      if (!optMatch) {
+      // 用字符串查找代替正则，避免 CI 环境正则不匹配
+      const compactStart = optContent.indexOf('const COMPACT_DATA = `');
+      const compactEnd = optContent.indexOf('`;', compactStart + 20);
+      if (compactStart === -1 || compactEnd === -1) {
         console.log(`[${app.name}] lotteryDataOptimized.js 格式错误，跳过`);
         problems.push(`${app.name} 优化数据文件未匹配到 COMPACT_DATA，格式异常`);
       } else {
         const optEntries = fresh.map(d => `${d.issue},${d.d1},${d.d2},${d.d3}`).join('\n');
-        const optPos = optMatch.index + optMatch[1].length;
-        const optUpdated = optContent.substring(0, optPos).trimEnd() + '\n' + optEntries + '\n' + optContent.substring(optPos);
-        fs.writeFileSync(optimizedFilePath, optUpdated, 'utf-8');
+        const dataSection = optContent.substring(compactStart, compactEnd);
+        const tail = optContent.substring(compactEnd);
+        const optUpdated = dataSection.trimEnd() + '\n' + optEntries + '\n' + tail;
+        fs.writeFileSync(optimizedFilePath, optContent.substring(0, compactStart) + optUpdated, 'utf-8');
         console.log(`[${app.name}] 同步更新 lotteryDataOptimized.js（${fresh.length} 期）`);
       }
     } catch (err) {
