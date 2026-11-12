@@ -221,8 +221,7 @@ for (const app of APPS) {
             const missing = items.filter(d => Number(d.issue) > Number(optLastIssue) && Number(d.issue) <= Number(lastIssue));
             if (missing.length > 0) {
               const optEntries = missing.map(d => `${d.issue},${d.d1},${d.d2},${d.d3}`).join('\n');
-              const tail = optContent.substring(compactEnd);
-              const optUpdated = optContent.substring(0, compactStart) + dataSection.trimEnd() + '\n' + optEntries + '\n' + tail;
+              const optUpdated = optContent.substring(0, compactStart) + dataSection.replace(/\s+$/, '') + '\n' + optEntries + optContent.substring(compactEnd);
               fs.writeFileSync(optimizedFilePath, optUpdated, 'utf-8');
               console.log(`[${app.name}] 补同步 optimized 文件（${missing.length} 期：${missing.map(d => d.issue).join(', ')}）`);
             }
@@ -261,8 +260,7 @@ for (const app of APPS) {
       } else {
         const optEntries = fresh.map(d => `${d.issue},${d.d1},${d.d2},${d.d3}`).join('\n');
         const dataSection = optContent.substring(compactStart, compactEnd);
-        const tail = optContent.substring(compactEnd);
-        const optUpdated = dataSection.trimEnd() + '\n' + optEntries + '\n' + tail;
+        const optUpdated = dataSection.replace(/\s+$/, '') + '\n' + optEntries + optContent.substring(compactEnd);
         fs.writeFileSync(optimizedFilePath, optContent.substring(0, compactStart) + optUpdated, 'utf-8');
         console.log(`[${app.name}] 同步更新 lotteryDataOptimized.js（${fresh.length} 期）`);
       }
