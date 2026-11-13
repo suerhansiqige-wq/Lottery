@@ -7,7 +7,8 @@
 //   而 push 事件触发的 pages-deploy 实测 4/4 全部成功。
 //   所以可靠链路是：本机拉数据 → push → pages-deploy 自动重新发布。
 //
-// 【它不做什么】不改动任何应用源码、算法与显示逻辑；提交范围严格限定为两个 lotteryData.js，
+// 【它不做什么】不改动任何应用源码、算法与显示逻辑；提交范围严格限定为四个数据文件
+//   （两个 lotteryData.js + 两个 lotteryDataOptimized.js，前端实际读取的是 optimized），
 //   工作树里其他未提交的改动一律不碰（rebase 用 --autostash 保护）。
 //
 // 【2026-09-12 加固】此前是「先取数提交、再变基」，而 GitHub Actions 的 bot 常在开奖后
@@ -20,7 +21,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const DATA_FILES = ['lottery-app/src/data/lotteryData.js', 'pl3-app/src/data/lotteryData.js'];
+const DATA_FILES = [
+  'lottery-app/src/data/lotteryData.js',
+  'lottery-app/src/data/lotteryDataOptimized.js',
+  'pl3-app/src/data/lotteryData.js',
+  'pl3-app/src/data/lotteryDataOptimized.js',
+];
 const SITE = 'https://suerhansiqige-wq.github.io/Lottery';
 
 const run = (cmd, args, opts = {}) => spawnSync(cmd, args, { cwd: ROOT, encoding: 'utf-8', ...opts });
@@ -58,7 +64,7 @@ const syncHealthy = sync.status === 0;
 console.log('\n----- 第 3 步：检查数据变更 -----');
 const changed = run('git', ['status', '--porcelain', '--', ...DATA_FILES]).stdout?.trim();
 if (!changed) {
-  console.log('两个 lotteryData.js 均无变更 → 没有新开奖数据需要推送。');
+  console.log('四个数据文件均无变更 → 没有新开奖数据需要推送。');
   if (!syncHealthy) {
     console.log('\n⚠ 但取数阶段报告了异常（见上方红字）。线上数据仍是仓库里已有的最新一期，未被破坏。');
     process.exit(1);

@@ -217,8 +217,8 @@ for (const app of APPS) {
           });
           const optLastIssue = [...optIssues].sort((a, b) => Number(a) - Number(b)).pop();
           if (optLastIssue && Number(optLastIssue) < Number(lastIssue)) {
-            // optimized 文件落后，补同步
-            const missing = items.filter(d => Number(d.issue) > Number(optLastIssue) && Number(d.issue) <= Number(lastIssue));
+            // optimized 文件落后，补同步（跳过已存在的期号，防止重复行）
+            const missing = items.filter(d => Number(d.issue) > Number(optLastIssue) && Number(d.issue) <= Number(lastIssue) && !optIssues.has(d.issue));
             if (missing.length > 0) {
               const optEntries = missing.map(d => `${d.issue},${d.d1},${d.d2},${d.d3}`).join('\n');
               const optUpdated = optContent.substring(0, compactStart) + dataSection.replace(/\s+$/, '') + '\n' + optEntries + optContent.substring(compactEnd);
@@ -258,11 +258,22 @@ for (const app of APPS) {
         console.log(`[${app.name}] lotteryDataOptimized.js 格式错误，跳过`);
         problems.push(`${app.name} 优化数据文件未匹配到 COMPACT_DATA，格式异常`);
       } else {
-        const optEntries = fresh.map(d => `${d.issue},${d.d1},${d.d2},${d.d3}`).join('\n');
         const dataSection = optContent.substring(compactStart, compactEnd);
-        const optUpdated = dataSection.replace(/\s+$/, '') + '\n' + optEntries + optContent.substring(compactEnd);
-        fs.writeFileSync(optimizedFilePath, optContent.substring(0, compactStart) + optUpdated, 'utf-8');
-        console.log(`[${app.name}] 同步更新 lotteryDataOptimized.js（${fresh.length} 期）`);
+        // 跳过 optimized 中已存在的期号：CI 与本机可能先后追加同一期，重复行会污染统计
+        const optExisting = new Set();
+        dataSection.split('\n').forEach(line => {
+          const mm = line.match(/^(\d{5}),/);
+          if (mm) optExisting.add(mm[1]);
+        });
+        const optFresh = fresh.filter(d => !optExisting.has(d.issue));
+        if (optFresh.length === 0) {
+          console.log(`[${app.name}] lotteryDataOptimized.js 已包含全部新期号，无需追加`);
+        } else {
+          const optEntries = optFresh.map(d => `${d.issue},${d.d1},${d.d2},${d.d3}`).join('\n');
+          const optUpdated = dataSection.replace(/\s+$/, '') + '\n' + optEntries + optContent.substring(compactEnd);
+          fs.writeFileSync(optimizedFilePath, optContent.substring(0, compactStart) + optUpdated, 'utf-8');
+          console.log(`[${app.name}] 同步更新 lotteryDataOptimized.js（${optFresh.length} 期）`);
+        }
       }
     } catch (err) {
       console.log(`[${app.name}] 更新 lotteryDataOptimized.js 失败：${err.message}`);
