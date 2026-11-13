@@ -1249,11 +1249,57 @@ function FullDataTable({
   }, [appNextIssue, decompTexts, bozhongTexts, tailRongCuo1JiaoJi]);
 
   // 通知父组件直选高倍组六号码变化
-  useMemo(() => {
+  useEffect(() => {
     if (onZhiXuanGaoBeiZuLiuChange) {
       onZhiXuanGaoBeiZuLiuChange(tailZhiXuanGaoBeiZuLiu);
     }
   }, [tailZhiXuanGaoBeiZuLiu, onZhiXuanGaoBeiZuLiuChange]);
+
+  // 预留行「交集号码」列：智取容错 ∩ 博众容错 + 无容错 + 豹子号
+  const tailJiaoJiHaoMaNumbers = useMemo(() => {
+    const decompGroups = parseDecompGroups((decompTexts && decompTexts[appNextIssue]) || '');
+    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
+    const decompZu6 = [];
+    const decompZu3 = [];
+    if (decompResult && decompResult.buckets) {
+      for (let i = 1; i <= 9; i++) {
+        if (decompResult.buckets[i]) decompZu6.push(...decompResult.buckets[i]);
+      }
+      for (let i = 2; i <= 12; i++) {
+        if (decompResult.buckets[i]) decompZu3.push(...decompResult.buckets[i]);
+      }
+    }
+    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[appNextIssue]) || '');
+    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
+    const bozhongZu6 = [];
+    const bozhongZu3 = [];
+    if (bozhongResult && bozhongResult.buckets) {
+      for (let i = 1; i <= 9; i++) {
+        if (bozhongResult.buckets[i]) bozhongZu6.push(...bozhongResult.buckets[i]);
+      }
+      for (let i = 2; i <= 12; i++) {
+        if (bozhongResult.buckets[i]) bozhongZu3.push(...bozhongResult.buckets[i]);
+      }
+    }
+    // 组六用1~9池，组三用2~12池
+    const decompZu6Set = new Set(decompZu6);
+    const bozhongZu6Set = new Set(bozhongZu6);
+    const decompZu3Set = new Set(decompZu3);
+    const bozhongZu3Set = new Set(bozhongZu3);
+    const decompAll = [...new Set([...decompZu6, ...decompZu3])];
+    const bozhongAllSet = new Set([...bozhongZu6, ...bozhongZu3]);
+    const jiaoji = decompAll.filter(n => {
+      if (!bozhongAllSet.has(n)) return false;
+      const isZu3 = n[0] === n[1] || n[1] === n[2] || n[0] === n[2];
+      return isZu3
+        ? decompZu3Set.has(n) && bozhongZu3Set.has(n)
+        : decompZu6Set.has(n) && bozhongZu6Set.has(n);
+    });
+    const decompWuRongCuo = decompResult && decompResult.buckets && decompResult.buckets[0] ? decompResult.buckets[0] : [];
+    const bozhongWuRongCuo = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[0] ? bozhongResult.buckets[0] : [];
+    const baoZi = ['000', '111', '222', '333', '444', '555', '666', '777', '888', '999'];
+    return [...new Set([...jiaoji, ...decompWuRongCuo, ...bozhongWuRongCuo, ...baoZi])].sort();
+  }, [appNextIssue, decompTexts, bozhongTexts]);
 
   const renderAddSubProCell = (issue, index) => {
     if (!SHOW_ADDSUB_PRO_COL) return null;
@@ -2410,74 +2456,11 @@ function FullDataTable({
                     </td>
                   )}
                   {/* 交集号码 - 预留行：用下一期分解数据计算交集注数 */}
-                  {SHOW_JJ_COL && (() => {
-                    console.log('[预留行-交集号码] appNextIssue:', appNextIssue);
-                    const decompText = decompTexts && decompTexts[appNextIssue] ? decompTexts[appNextIssue] : '';
-                    const bozhongText = bozhongTexts && bozhongTexts[appNextIssue] ? bozhongTexts[appNextIssue] : '';
-                    console.log('[预留行-交集号码] 智取分解数据:', decompText.substring(0, 100));
-                    console.log('[预留行-交集号码] 博众分解数据:', bozhongText.substring(0, 100));
-                    const decompGroups = parseDecompGroups(decompText);
-                    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-                    const decompZu6 = [];
-                    const decompZu3 = [];
-                    if (decompResult && decompResult.buckets) {
-                      for (let i = 1; i <= 9; i++) {
-                        if (decompResult.buckets[i]) decompZu6.push(...decompResult.buckets[i]);
-                      }
-                      for (let i = 2; i <= 12; i++) {
-                        if (decompResult.buckets[i]) decompZu3.push(...decompResult.buckets[i]);
-                      }
-                    }
-                    console.log('[预留行-交集号码] 智取组六池:', decompZu6.length, '注');
-                    console.log('[预留行-交集号码] 智取组三池:', decompZu3.length, '注');
-                    const bozhongGroups = parseDecompGroups(bozhongText);
-                    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-                    const bozhongZu6 = [];
-                    const bozhongZu3 = [];
-                    if (bozhongResult && bozhongResult.buckets) {
-                      for (let i = 1; i <= 9; i++) {
-                        if (bozhongResult.buckets[i]) bozhongZu6.push(...bozhongResult.buckets[i]);
-                      }
-                      for (let i = 2; i <= 12; i++) {
-                        if (bozhongResult.buckets[i]) bozhongZu3.push(...bozhongResult.buckets[i]);
-                      }
-                    }
-                    console.log('[预留行-交集号码] 博众组六池:', bozhongZu6.length, '注');
-                    console.log('[预留行-交集号码] 博众组三池:', bozhongZu3.length, '注');
-                    // 交集号码列 = 智取容错 ∩ 博众容错（组六用1~9池，组三用2~12池）
-                    const decompZu6Set = new Set(decompZu6);
-                    const bozhongZu6Set = new Set(bozhongZu6);
-                    const decompZu3Set = new Set(decompZu3);
-                    const bozhongZu3Set = new Set(bozhongZu3);
-                    const decompAll = [...new Set([...decompZu6, ...decompZu3])];
-                    const bozhongAll = [...new Set([...bozhongZu6, ...bozhongZu3])];
-                    const bozhongAllSet = new Set(bozhongAll);
-                    const jiaoji = decompAll.filter(n => {
-                      if (!bozhongAllSet.has(n)) return false;
-                      const isZu3 = n[0] === n[1] || n[1] === n[2] || n[0] === n[2];
-                      if (isZu3) {
-                        return decompZu3Set.has(n) && bozhongZu3Set.has(n);
-                      } else {
-                        return decompZu6Set.has(n) && bozhongZu6Set.has(n);
-                      }
-                    });
-                    console.log('[预留行-交集号码] 交集号码:', jiaoji.length, '注');
-                    const decompWuRongCuo = decompResult && decompResult.buckets && decompResult.buckets[0] ? decompResult.buckets[0] : [];
-                    const bozhongWuRongCuo = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[0] ? bozhongResult.buckets[0] : [];
-                    const baoZi = ['000', '111', '222', '333', '444', '555', '666', '777', '888', '999'];
-                    console.log('[预留行-交集号码] 智取无容错:', decompWuRongCuo.length, '注');
-                    console.log('[预留行-交集号码] 博众无容错:', bozhongWuRongCuo.length, '注');
-                    console.log('[预留行-交集号码] 豹子号:', baoZi.length, '注');
-                    const allNumbers = [...new Set([...jiaoji, ...decompWuRongCuo, ...bozhongWuRongCuo, ...baoZi])];
-                    const filtered = allNumbers.sort();
-                    console.log('[预留行-交集号码] 最终结果:', filtered.length, '注');
-                    console.log('[预留行-交集号码] 前10注:', filtered.slice(0, 10).join(' '));
-                    return (
-                      <td key="jjNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
+                  {SHOW_JJ_COL && (
+                    <td key="jjNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                      <ClickableCount count={tailJiaoJiHaoMaNumbers.length} hit={null} numbers={tailJiaoJiHaoMaNumbers} color="#1b5e20" />
+                    </td>
+                  )}
                   {/* 交集 - 预留行：继承最后一期数据计算交集注数 */}
                   {SHOW_JIAOJI_COL && (() => {
                     const decompGroups = parseDecompGroups((decompTexts && decompTexts[appNextIssue]) || '');
