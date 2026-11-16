@@ -354,6 +354,83 @@ function InterModule({ decompIssue, bozhongIssue, decompResult, bozhongResult })
   );
 }
 
+/** 投注策略：智取/博众 容错1、4、8 原样调用 + 四级交叉滤除剩余，各格独立复制 */
+function StrategyModule({ decompIssue, bozhongIssue, decompResult, bozhongResult }) {
+  const sameIssue = !!decompIssue && decompIssue === bozhongIssue;
+  const ready = !!decompResult && decompResult.valid && !!bozhongResult && bozhongResult.valid
+    && decompResult.total > 0 && bozhongResult.total > 0;
+
+  const cells = useMemo(() => {
+    if (!ready) return null;
+    const zqL = decompResult.levels;
+    const bzL = bozhongResult.levels;
+    const direct = [
+      { ...zqL[0], label: '智取容错1', theme: 'zq' },
+      { ...zqL[3], label: '智取容错4', theme: 'zq' },
+      { ...zqL[7], label: '智取容错8', theme: 'zq' },
+      { ...bzL[0], label: '博众容错1', theme: 'bz' },
+      { ...bzL[3], label: '博众容错4', theme: 'bz' },
+      { ...bzL[7], label: '博众容错8', theme: 'bz' },
+    ];
+    if (!sameIssue) return { direct, diffs: [] };
+    const stat = nums => {
+      const zuLiu = nums.filter(n => new Set(n.split('')).size === 3).length;
+      return { count: nums.length, numbers: nums, zuLiu, zuSan: nums.length - zuLiu };
+    };
+    const diff = (a, b) => {
+      const bs = new Set(b);
+      return stat(a.filter(n => !bs.has(n)).sort());
+    };
+    const diffs = [
+      { label: '智取容错2滤博众容错1', ...diff(zqL[1].numbers, bzL[0].numbers) },
+      { label: '博众容错2滤智取容错1', ...diff(bzL[1].numbers, zqL[0].numbers) },
+      { label: '智取容错3滤博众容错2', ...diff(zqL[2].numbers, bzL[1].numbers) },
+      { label: '博众容错3滤智取容错2', ...diff(bzL[2].numbers, zqL[1].numbers) },
+    ];
+    return { direct, diffs };
+  }, [ready, sameIssue, decompResult, bozhongResult]);
+
+  return (
+    <div style={{ border: '2px solid #1565c0', borderRadius: 6, background: '#e3f2fd', overflow: 'hidden' }}>
+      <div style={{
+        padding: '6px 10px', background: '#1565c0', color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap',
+      }}>
+        <span style={{ fontSize: 15, fontWeight: 800 }}>投注策略</span>
+        <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.95 }}>
+          {sameIssue ? `${decompIssue} 期` : '目标期不一致'} · 容错1/4/8 原样 + 交叉滤除剩余
+        </span>
+      </div>
+      <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {cells ? (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6 }}>
+              {cells.direct.map(cell => (
+                <LevelCell key={cell.label} cell={cell} accent={ACCENT[cell.theme].head} />
+              ))}
+            </div>
+            {cells.diffs.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                {cells.diffs.map(cell => (
+                  <LevelCell key={cell.label} cell={cell} accent="#1565c0" />
+                ))}
+              </div>
+            ) : (
+              <div style={{ fontSize: 12, color: '#999', textAlign: 'center', padding: 6 }}>
+                智取目标期 {decompIssue || '—'} 与博众目标期 {bozhongIssue || '—'} 不一致，交叉滤除暂停
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={{ fontSize: 13, color: '#999', textAlign: 'center', padding: 16 }}>
+            需智取与博众分解条件及直选高倍组六候选均已就绪后计算
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function DecompRongCuoPanel({
   decompIssue, decompResult,
   bozhongIssue, bozhongResult,
@@ -379,6 +456,13 @@ export default function DecompRongCuoPanel({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* 投注策略：置于智取/博众分解容错模块上方 */}
+      <StrategyModule
+        decompIssue={decompIssue}
+        bozhongIssue={bozhongIssue}
+        decompResult={zq}
+        bozhongResult={bz}
+      />
       {/* 智取（黄）与博众（绿）并排等高贴边 */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
         <DecompModule title="智取分解容错" issue={decompIssue} result={zq} theme="zq" />
