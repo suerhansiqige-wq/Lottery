@@ -377,13 +377,13 @@ function StrategyModule({ decompIssue, bozhongIssue, decompResult, bozhongResult
       const zuLiu = nums.filter(n => new Set(n.split('')).size === 3).length;
       return { count: nums.length, numbers: nums, zuLiu, zuSan: nums.length - zuLiu };
     };
-    const diff = (a, b) => {
-      const bs = new Set(b);
+    const diff = (a, ...excludes) => {
+      const bs = new Set(excludes.flat());
       return stat(a.filter(n => !bs.has(n)).sort());
     };
     const diffs = [
-      { label: '智取容错2滤博众容错1', ...diff(zqL[1].numbers, bzL[0].numbers) },
-      { label: '博众容错2滤智取容错1', ...diff(bzL[1].numbers, zqL[0].numbers) },
+      { label: '智取容错2滤智取容错1、博众容错1', ...diff(zqL[1].numbers, zqL[0].numbers, bzL[0].numbers) },
+      { label: '博众容错2滤博众容错1、智取容错1', ...diff(bzL[1].numbers, bzL[0].numbers, zqL[0].numbers) },
     ];
     return { direct, diffs };
   }, [ready, sameIssue, decompResult, bozhongResult]);
