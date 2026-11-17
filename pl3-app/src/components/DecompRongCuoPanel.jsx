@@ -354,25 +354,16 @@ function InterModule({ decompIssue, bozhongIssue, decompResult, bozhongResult })
   );
 }
 
-/** 投注策略：智取/博众 容错1、4、8 原样调用 + 两级交叉滤除剩余，各格独立复制 */
+/** 投注策略：容错1原样 + 智3博3交集 + 8滤3剩余 + 2滤双方1，各格独立复制 */
 function StrategyModule({ decompIssue, bozhongIssue, decompResult, bozhongResult }) {
   const sameIssue = !!decompIssue && decompIssue === bozhongIssue;
   const ready = !!decompResult && decompResult.valid && !!bozhongResult && bozhongResult.valid
     && decompResult.total > 0 && bozhongResult.total > 0;
 
   const cells = useMemo(() => {
-    if (!ready) return null;
+    if (!ready || !sameIssue) return null;
     const zqL = decompResult.levels;
     const bzL = bozhongResult.levels;
-    const direct = [
-      { ...zqL[0], label: '智取容错1', theme: 'zq' },
-      { ...zqL[3], label: '智取容错4', theme: 'zq' },
-      { ...zqL[7], label: '智取容错8', theme: 'zq' },
-      { ...bzL[0], label: '博众容错1', theme: 'bz' },
-      { ...bzL[3], label: '博众容错4', theme: 'bz' },
-      { ...bzL[7], label: '博众容错8', theme: 'bz' },
-    ];
-    if (!sameIssue) return { direct, diffs: [] };
     const stat = nums => {
       const zuLiu = nums.filter(n => new Set(n.split('')).size === 3).length;
       return { count: nums.length, numbers: nums, zuLiu, zuSan: nums.length - zuLiu };
@@ -381,11 +372,22 @@ function StrategyModule({ decompIssue, bozhongIssue, decompResult, bozhongResult
       const bs = new Set(excludes.flat());
       return stat(a.filter(n => !bs.has(n)).sort());
     };
-    const diffs = [
-      { label: '智取容错2滤智取容错1、博众容错1', ...diff(zqL[1].numbers, zqL[0].numbers, bzL[0].numbers) },
-      { label: '博众容错2滤博众容错1、智取容错1', ...diff(bzL[1].numbers, bzL[0].numbers, zqL[0].numbers) },
+    const inter = (a, b) => {
+      const bs = new Set(b);
+      return stat(a.filter(n => bs.has(n)).sort());
+    };
+    const row1 = [
+      { ...zqL[0], label: '智取容错1', accent: ACCENT.zq.head },
+      { label: '智取容错3交博众容错3', ...inter(zqL[2].numbers, bzL[2].numbers), accent: '#1565c0' },
+      { ...bzL[0], label: '博众容错1', accent: ACCENT.bz.head },
+      { label: '智取容错8滤智取容错3', ...diff(zqL[7].numbers, zqL[2].numbers), accent: ACCENT.zq.head },
+      { label: '博众容错8滤博众容错3', ...diff(bzL[7].numbers, bzL[2].numbers), accent: ACCENT.bz.head },
     ];
-    return { direct, diffs };
+    const row2 = [
+      { label: '智取容错2滤智取容错1、博众容错1', ...diff(zqL[1].numbers, zqL[0].numbers, bzL[0].numbers), accent: '#1565c0' },
+      { label: '博众容错2滤博众容错1、智取容错1', ...diff(bzL[1].numbers, bzL[0].numbers, zqL[0].numbers), accent: '#1565c0' },
+    ];
+    return { row1, row2 };
   }, [ready, sameIssue, decompResult, bozhongResult]);
 
   return (
@@ -396,32 +398,28 @@ function StrategyModule({ decompIssue, bozhongIssue, decompResult, bozhongResult
       }}>
         <span style={{ fontSize: 15, fontWeight: 800 }}>投注策略</span>
         <span style={{ fontSize: 12, fontWeight: 600, opacity: 0.95 }}>
-          {sameIssue ? `${decompIssue} 期` : '目标期不一致'} · 容错1/4/8 原样 + 交叉滤除剩余
+          {sameIssue ? `${decompIssue} 期` : '目标期不一致'} · 原样 + 交集 + 滤除剩余
         </span>
       </div>
       <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
         {cells ? (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6 }}>
-              {cells.direct.map(cell => (
-                <LevelCell key={cell.label} cell={cell} accent={ACCENT[cell.theme].head} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
+              {cells.row1.map(cell => (
+                <LevelCell key={cell.label} cell={cell} accent={cell.accent} />
               ))}
             </div>
-            {cells.diffs.length > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
-                {cells.diffs.map(cell => (
-                  <LevelCell key={cell.label} cell={cell} accent="#1565c0" />
-                ))}
-              </div>
-            ) : (
-              <div style={{ fontSize: 12, color: '#999', textAlign: 'center', padding: 6 }}>
-                智取目标期 {decompIssue || '—'} 与博众目标期 {bozhongIssue || '—'} 不一致，交叉滤除暂停
-              </div>
-            )}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
+              {cells.row2.map(cell => (
+                <LevelCell key={cell.label} cell={cell} accent={cell.accent} />
+              ))}
+            </div>
           </>
         ) : (
           <div style={{ fontSize: 13, color: '#999', textAlign: 'center', padding: 16 }}>
-            需智取与博众分解条件及直选高倍组六候选均已就绪后计算
+            {ready && !sameIssue
+              ? `智取目标期 ${decompIssue || '—'} 与博众目标期 ${bozhongIssue || '—'} 不一致，暂停计算`
+              : '需智取与博众分解条件及直选高倍组六候选均已就绪后计算'}
           </div>
         )}
       </div>
