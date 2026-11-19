@@ -298,6 +298,9 @@ const SHOW_DUANZU_SHAHAO_COL = true;
 // 综合列开关：交集号码 - 容错列 - 容错10列
 const SHOW_ZONGHE_COL = true;
 
+// 直选高倍列开关：增强93.1%∩交集号码∩交集容错∩综合，剔除容错10+容错+断组杀号
+const SHOW_ZHIXUAN_GAOBEI_COL = true;
+
 // 断组容错列开关：2026-11-04 用户要求新增（智取断组+博众断组容错2合并）
 
 // 前1期断组列开关：采用前,1期智取断组和博众断组容错1验证当期
@@ -1315,6 +1318,27 @@ function FullDataTable({
     );
   };
 
+  // 直选高倍列：增强93.1%∩交集号码∩交集容错∩综合，剔除容错10+容错+断组杀号
+  const renderZhiXuanGaoBeiCell = (issue, index) => {
+    if (!SHOW_ZHIXUAN_GAOBEI_COL) return null;
+    const filtered = computeZhiXuanGaoBeiNumbers(issue, index);
+
+    if (filtered.length === 0) {
+      return <td key="zhixuangg" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+
+    // 验证当期开奖号是否在直选高倍列中
+    const item = displayData.find(d => d.issue === issue);
+    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
+    const hit = drawNum && filtered.includes(drawNum);
+
+    return (
+      <td key="zhixuangg" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
+        {<ClickableCount count={filtered.length} hit={hit} numbers={filtered} />}
+      </td>
+    );
+  };
+
   const renderRongCuoCell = (issue) => {
     // 计算智取分解容错0~12（errorCount <= 12，含无容错）
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
@@ -1480,6 +1504,7 @@ function FullDataTable({
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
                 {SHOW_DUANZU_SHAHAO_COL && <th title="断容0-11所有号码合并去重后的总注数；✓=在池内，✗=不在池内">断组杀号</th>}
                 {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
+                {SHOW_ZHIXUAN_GAOBEI_COL && <th title="增强93.1%∩交集号码∩交集容错∩综合，剔除容错10+容错+断组杀号；✓=在池内，✗=不在池内">直选高倍</th>}
                 {/* 智取分解 / 博众分解 两列 */}
                 {DECOMP_COLS.map(c => (
                   <th key={'dcTh_' + c.kind} title={c.title}
@@ -1585,6 +1610,8 @@ function FullDataTable({
                   {SHOW_DUANZU_SHAHAO_COL && renderDuanZuShahaoCell(item.issue)}
                   {/* 综合：交集号码 - 容错列 - 容错10列 */}
                   {SHOW_ZONGHE_COL && renderZongHeCell(item.issue)}
+                  {/* 直选高倍：增强93.1%∩交集号码∩交集容错∩综合，剔除容错10+容错+断组杀号 */}
+                  {SHOW_ZHIXUAN_GAOBEI_COL && renderZhiXuanGaoBeiCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 前1期容错：采用前一期智取分解容错0~12与博众分解容错0~12的对称差集验证当期 */}
                                     {/* 前2期容错：采用前2期智取分解容错0~12与博众分解容错0~12的对称差集验证当期 */}
                                     {/* 前2期：采用前2期智取分解容错10 ∪ 博众分解容错10验证当期 */}
@@ -1733,6 +1760,15 @@ function FullDataTable({
                     const filtered = computeZongHeNumbers(nextIssue);
                     return (
                       <td key="zhNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
+                      </td>
+                    );
+                  })()}
+                  {/* 直选高倍 - 预留行：下期直选高倍注数（尚未开奖，无对错） */}
+                  {SHOW_ZHIXUAN_GAOBEI_COL && (() => {
+                    const filtered = computeZhiXuanGaoBeiNumbers(appNextIssue, poolData.length);
+                    return (
+                      <td key="zhixuanggNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
                       </td>
                     );
