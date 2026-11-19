@@ -289,7 +289,7 @@ const SHOW_RC10_COL = true;
 const SHOW_RC_COL = true;
 const SHOW_JJ_COL = true;
 
-// 交集容错列开关：交集号码 - 容错列 - 容错10列
+// 交集容错列开关：交集号码 - 容错列 - 容错10列 + 双方无容错
 const SHOW_JJRONGCUO_COL = true;
 
 // 断组容错列开关：2026-11-04 用户要求新增（智取断组+博众断组容错2合并）
@@ -821,11 +821,16 @@ function FullDataTable({
     const bozhongRc10 = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : [];
     const rc10Set = new Set([...decompRc10, ...bozhongRc10]);
 
-    // 交集容错 = 交集号码 - 容错列 - 容错10列
-    return jiaojiNumbers
-      .filter(n => !rongCuoSet.has(n))
-      .filter(n => !rc10Set.has(n))
-      .sort();
+    // 无容错号码：智取桶0、博众桶0
+    const decompWuRongCuo = decompResult && decompResult.buckets && decompResult.buckets[0] ? decompResult.buckets[0] : [];
+    const bozhongWuRongCuo = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[0] ? bozhongResult.buckets[0] : [];
+
+    // 交集容错 = 交集号码 - 容错列 - 容错10列 + 双方无容错
+    return [...new Set([
+      ...jiaojiNumbers.filter(n => !rongCuoSet.has(n)).filter(n => !rc10Set.has(n)),
+      ...decompWuRongCuo,
+      ...bozhongWuRongCuo,
+    ])].sort();
   };
 
   // 计算直选高倍列：增强93.1%∩交集号码∩交集容错∩综合，剔除容错10+容错+断组杀号
@@ -1233,7 +1238,7 @@ function FullDataTable({
 
   // 前2期列：采用前2期智取分解容错10 ∪ 博众分解容错10验证当期开奖号
 
-  // 交集容错列：交集号码 - 容错列 - 容错10列
+  // 交集容错列：交集号码 - 容错列 - 容错10列 + 双方无容错
   const renderJiJiaoRongCuoCell = (issue) => {
     if (!SHOW_JJRONGCUO_COL) return null;
 
@@ -1414,7 +1419,7 @@ function FullDataTable({
                 {SHOW_SLBC_COLS && <th>必出号</th>}
                 {SHOW_ADDSUB_PRO_COL && <th title={`隔一用二增强：横向得票≥1 + 和值出现≥12次，命中率~93%，~930注；✓=在池内，✗=不在池内`}>增强93.1%</th>}
                 {SHOW_JJ_COL && <th title="智取容错0~9 ∩ 博众容错0~9（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
-                {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
+                {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列 + 双方无容错（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
                 {SHOW_KILL150_COL && <th title="增强票×3+对位马尔可夫，杀得分最低150注；✓=奖号不在杀集(杀对)，✗=奖号被杀(误杀)；3D回测8302期86.03%/排3回测7332期84.97%">杀150注</th>}
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
@@ -1511,7 +1516,7 @@ function FullDataTable({
                   {renderAddSubProCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 交集号码：智取容错0~9 ∩ 博众容错0~9 */}
                   {SHOW_JJ_COL && renderJiJiaoCell(item.issue)}
-                  {/* 交集容错：交集号码 - 容错列 - 容错10列 */}
+                  {/* 交集容错：交集号码 - 容错列 - 容错10列 + 双方无容错 */}
                   {SHOW_JJRONGCUO_COL && renderJiJiaoRongCuoCell(item.issue)}
                   {/* 杀150注：增强票×3+对位马尔可夫 */}
                   {renderKill150Cell(item.issue)}
