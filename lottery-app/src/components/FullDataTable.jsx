@@ -2313,13 +2313,16 @@ function FullDataTable({
                     let filtered = [];
                     if (allGroupsList.length > 0) {
                       const allNumbers = new Set();
-                      for (const groups of allGroupsList) {
-                        const broken1 = generateByBrokenGroups(groups, [1]);
-                        const broken2 = generateByBrokenGroups(groups, [2]);
-                        const broken3 = generateByBrokenGroups(groups, [3]);
-                        for (const n of broken1) allNumbers.add(n);
-                        for (const n of broken2) allNumbers.add(n);
-                        for (const n of broken3) allNumbers.add(n);
+                      for (const entry of allGroupsList) {
+                        for (const g of entry.groups) {
+                          const groups = { group1: g.a, group2: g.b, group3: g.c };
+                          const broken1 = generateByBrokenGroups(groups, [1]);
+                          const broken2 = generateByBrokenGroups(groups, [2]);
+                          const broken3 = generateByBrokenGroups(groups, [3]);
+                          for (const n of broken1) allNumbers.add(n);
+                          for (const n of broken2) allNumbers.add(n);
+                          for (const n of broken3) allNumbers.add(n);
+                        }
                       }
                       filtered = Array.from(allNumbers).sort();
                     }
