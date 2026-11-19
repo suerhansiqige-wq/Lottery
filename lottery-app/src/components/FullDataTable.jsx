@@ -289,6 +289,9 @@ const SHOW_RC10_COL = true;
 const SHOW_RC_COL = true;
 const SHOW_JJ_COL = true;
 
+// 交集容错列开关：交集号码 - 容错列 - 容错10列
+const SHOW_JJRONGCUO_COL = true;
+
 // 断组容错列开关：2026-11-04 用户要求新增（智取断组+博众断组容错2合并）
 
 // 前1期断组列开关：采用前,1期智取断组和博众断组容错1验证当期
@@ -1230,6 +1233,28 @@ function FullDataTable({
 
   // 前2期列：采用前2期智取分解容错10 ∪ 博众分解容错10验证当期开奖号
 
+  // 交集容错列：交集号码 - 容错列 - 容错10列
+  const renderJiJiaoRongCuoCell = (issue) => {
+    if (!SHOW_JJRONGCUO_COL) return null;
+
+    const filtered = computeZhuJunZhongJiangNumbers(issue);
+
+    if (filtered.length === 0) {
+      return <td key="jjrongcuo" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+
+    // 验证当期开奖号是否在交集容错列中
+    const item = displayData.find(d => d.issue === issue);
+    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
+    const hit = drawNum && filtered.includes(drawNum);
+
+    return (
+      <td key="jjrongcuo" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
+        {<ClickableCount count={filtered.length} hit={hit} numbers={filtered} />}
+      </td>
+    );
+  };
+
   const renderRongCuoCell = (issue) => {
     // 计算智取分解容错0~12（errorCount <= 12，含无容错）
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
@@ -1392,6 +1417,7 @@ function FullDataTable({
                 {SHOW_JJ_COL && <th title="智取容错0~9 ∩ 博众容错0~9（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
+                {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
                 {/* 智取分解 / 博众分解 两列 */}
                 {DECOMP_COLS.map(c => (
                   <th key={'dcTh_' + c.kind} title={c.title}
@@ -1491,6 +1517,8 @@ function FullDataTable({
                   {SHOW_RC10_COL && renderRongCuo10Cell(item.issue)}
                   {/* 容错：对称差集 */}
                   {SHOW_RC_COL && renderRongCuoCell(item.issue)}
+                  {/* 交集容错：交集号码 - 容错列 - 容错10列 */}
+                  {SHOW_JJRONGCUO_COL && renderJiJiaoRongCuoCell(item.issue)}
                   {/* 前1期容错：采用前一期智取分解容错0~12与博众分解容错0~12的对称差集验证当期 */}
                                     {/* 前2期容错：采用前2期智取分解容错0~12与博众分解容错0~12的对称差集验证当期 */}
                                     {/* 前2期：采用前2期智取分解容错10 ∪ 博众分解容错10验证当期 */}
@@ -1600,6 +1628,15 @@ function FullDataTable({
                     const filtered = union.filter(n => !intersectionSet.has(n)).sort();
                     return (
                       <td key="rcNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                        {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
+                      </td>
+                    );
+                  })()}
+                  {/* 交集容错 - 预留行：下期交集容错注数（尚未开奖，无对错） */}
+                  {SHOW_JJRONGCUO_COL && (() => {
+                    const filtered = computeZhuJunZhongJiangNumbers(nextIssue);
+                    return (
+                      <td key="jjrongcuoNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
                       </td>
                     );
