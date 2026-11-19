@@ -469,9 +469,6 @@ const SHOW_RC10_COL = true;
 const SHOW_RC_COL = true;
 const SHOW_JJ_COL = true;
 
-// 交集容错列开关：交集号码 - 容错列 - 容错10列 + 双方无容错
-const SHOW_JJRONGCUO_COL = true;
-
 // 断组容错列开关：2026-11-04 用户要求新增（智取断组+博众断组容错2合并）
 
 // 前1期断组列开关：采用前一期智取断组和博众断组容错1验证当期
@@ -1418,28 +1415,6 @@ function FullDataTable({
 
   // 前2期列：采用前2期智取分解容错10 ∪ 博众分解容错10验证当期开奖号
 
-  // 交集容错列：交集号码 - 容错列 - 容错10列 + 双方无容错
-  const renderJiJiaoRongCuoCell = (issue) => {
-    if (!SHOW_JJRONGCUO_COL) return null;
-
-    const filtered = computeZhuJunZhongJiangNumbers(issue);
-
-    if (filtered.length === 0) {
-      return <td key="jjrongcuo" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    // 验证当期开奖号是否在交集容错列中
-    const item = displayData.find(d => d.issue === issue);
-    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
-    const hit = drawNum && filtered.includes(drawNum);
-
-    return (
-      <td key="jjrongcuo" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {<ClickableCount count={filtered.length} hit={hit} numbers={filtered} />}
-      </td>
-    );
-  };
-
   const renderRongCuoCell = (issue) => {
     // 计算智取分解容错0~12（errorCount <= 12，含无容错）
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
@@ -1737,7 +1712,6 @@ function FullDataTable({
                 {SHOW_SLBC_COLS && <th>必出号</th>}
                 {SHOW_ADDSUB_PRO_COL && <th title={`隔一用二增强：横向得票≥1 + 和值出现≥12次，命中率~93%，~930注；✓=在池内，✗=不在池内`}>增强93.1%</th>}
                 {SHOW_JJ_COL && <th title="智取容错0~9 ∩ 博众容错0~9（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
-                {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列 + 双方无容错（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
                 {SHOW_KILL150_COL && <th title="增强票×3+对位马尔可夫，杀得分最低150注；✓=奖号不在杀集(杀对)，✗=奖号被杀(误杀)；3D回测8302期86.03%/排3回测7332期84.97%">杀150注</th>}
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
@@ -1837,8 +1811,6 @@ function FullDataTable({
                   {renderAddSubProCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 交集号码：智取容错0~9 ∩ 博众容错0~9 */}
                   {SHOW_JJ_COL && renderJiJiaoCell(item.issue)}
-                  {/* 交集容错：交集号码 - 容错列 - 容错10列 + 双方无容错 */}
-                  {SHOW_JJRONGCUO_COL && renderJiJiaoRongCuoCell(item.issue)}
                   {/* 杀150注：增强票×3+对位马尔可夫 */}
                   {renderKill150Cell(item.issue)}
                   {/* 容错10：智取分解容错10 ∪ 博众分解容错10 */}
@@ -1911,15 +1883,6 @@ function FullDataTable({
                       <ClickableCount count={tailJiaoJiHaoMaNumbers.length} hit={null} numbers={tailJiaoJiHaoMaNumbers} color="#1b5e20" />
                     </td>
                   )}
-                  {/* 交集容错 - 预留行：下期交集容错注数（尚未开奖，无对错） */}
-                  {SHOW_JJRONGCUO_COL && (() => {
-                    const filtered = computeZhuJunZhongJiangNumbers(nextIssue);
-                    return (
-                      <td key="jjrongcuoNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
                   {/* 杀150注 - 预留行：下期杀集注数（尚未开奖，无对错） */}
                   {SHOW_KILL150_COL && (
                     <td key="kill150Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
