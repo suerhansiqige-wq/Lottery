@@ -456,10 +456,10 @@ const HJS_COLS = [
 // 渲染横加减/竖加减4个合并单元格；src 为空（首行无上期）或该组全 null 时显示 -
 // 横相减/横相加/竖相减/竖相加 四列开关：2026-11-01 用户要求隐藏。
 // 只隐藏表格展示，数据照常计算（加减号码候选池依赖横相加与横相减）；改回 true 即恢复显示
-const SHOW_HJS_COLS = false;
+const SHOW_HJS_COLS = true;
 
 // 生号/连号/必出号 三列开关：2026-11-04 用户要求隐藏
-const SHOW_SLBC_COLS = false;
+const SHOW_SLBC_COLS = true;
 
 const SHOW_ADDSUB_PRO_COL = true; // 隔一用二增强列
 
@@ -471,46 +471,46 @@ const SHOW_RC_COL = true;
 const SHOW_JJ_COL = true;
 
 // 综合列开关：2026-11-04 用户要求删除
-const SHOW_ZONGHE_COL = false;
+const SHOW_ZONGHE_COL = true;
 
 // 交集列开关：2026-11-04 用户要求删除
-const SHOW_JIAOJI_COL = false;
+const SHOW_JIAOJI_COL = true;
 
 // 断容0列开关：智取断组容错0 ∩ 博众断组容错0（重复出现的号码）
-const SHOW_DUANRONG0_COL = false;
+const SHOW_DUANRONG0_COL = true;
 
 // 断容1列开关：智取断组容错1 ∩ 博众断组容错1（重复出现的号码）
-const SHOW_DUANRONG1_COL = false;
+const SHOW_DUANRONG1_COL = true;
 
 // 断容2列开关：智取断组容错2 ∩ 博众断组容错2（重复出现的号码）
-const SHOW_DUANRONG2_COL = false;
+const SHOW_DUANRONG2_COL = true;
 
 // 断容3列开关：智取断组容错3 ∩ 博众断组容错3（重复出现的号码）
-const SHOW_DUANRONG3_COL = false;
+const SHOW_DUANRONG3_COL = true;
 
 // 断容4列开关：智取断组容错4 ∩ 博众断组容错4（重复出现的号码）
-const SHOW_DUANRONG4_COL = false;
+const SHOW_DUANRONG4_COL = true;
 
 // 断容5列开关：智取断组容错5 ∩ 博众断组容错5（重复出现的号码）
-const SHOW_DUANRONG5_COL = false;
+const SHOW_DUANRONG5_COL = true;
 
 // 断容6列开关：智取断组容错6 ∩ 博众断组容错6（重复出现的号码）
-const SHOW_DUANRONG6_COL = false;
+const SHOW_DUANRONG6_COL = true;
 
 // 断容7列开关：智取断组容错7 ∩ 博众断组容错7（重复出现的号码）
-const SHOW_DUANRONG7_COL = false;
+const SHOW_DUANRONG7_COL = true;
 
 // 断容8列开关：智取断组容错8 ∩ 博众断组容错8（重复出现的号码）
-const SHOW_DUANRONG8_COL = false;
+const SHOW_DUANRONG8_COL = true;
 
 // 断容9列开关：智取断组容错9 ∩ 博众断组容错9（重复出现的号码）
-const SHOW_DUANRONG9_COL = false;
+const SHOW_DUANRONG9_COL = true;
 
 // 断容10列开关：智取断组容错10 ∩ 博众断组容错10（重复出现的号码）
-const SHOW_DUANRONG10_COL = false;
+const SHOW_DUANRONG10_COL = true;
 
 // 断容11列开关：智取断组容错11 ∩ 博众断组容错11（重复出现的号码）
-const SHOW_DUANRONG11_COL = false;
+const SHOW_DUANRONG11_COL = true;
 
 // 断组容错列开关：2026-11-04 用户要求新增（智取断组+博众断组容错2合并）
 
@@ -527,7 +527,7 @@ const SHOW_DUANRONG11_COL = false;
 // 前6期断组列开关：采用前6期智取断组和博众断组容错1验证当期
 
 // 断组334列开关：2026-11-04 用户要求新增
-const SHOW_DUANZU_COL = false; // 已迁移到 DECOMP_COLS 的 duanzuZQ/duanzuBZ
+const SHOW_DUANZU_COL = true; // 已迁移到 DECOMP_COLS 的 duanzuZQ/duanzuBZ
 
 // 前1期列开关：2026-11-06 用户要求新增（采用前一期分解数据容错10验证当期）
 
