@@ -3,7 +3,6 @@ import { parseDecompGroups, verifyDraw, computeRongCuo } from '../utils/decompRo
 import { parseDuanZuGroups, verifyDuanZuDraw, computeDuanZuRongCuo } from '../utils/duanZuRongCuo.js'
 import { buildAddSubIndexPro, getAddSubNumbersPro } from '../utils/addSubPool.js'
 import { buildKill150Index, getKill150Numbers, killMaskToNumbers } from '../utils/kill150.js'
-import { generateByBrokenGroups } from '../utils/brokenGroup.js'
 
 // 可点击注数组件：独立管理复制状态，避免点击时整个表格重渲染
 function ClickableCount({ count, hit, numbers, color }) {
@@ -483,9 +482,6 @@ const SHOW_JJ_COL = true;
 // 前5期断组列开关：采用前5期智取断组和博众断组容错1验证当期
 
 // 前6期断组列开关：采用前6期智取断组和博众断组容错1验证当期
-
-// 断组334列开关：2026-11-04 用户要求新增
-const SHOW_DUANZU_COL = true; // 已迁移到 DECOMP_COLS 的 duanzuZQ/duanzuBZ
 
 // 前1期列开关：2026-11-06 用户要求新增（采用前一期分解数据容错10验证当期）
 
@@ -1414,61 +1410,6 @@ function FullDataTable({
 
   // 前2期列：采用前2期智取分解容错10 ∪ 博众分解容错10验证当期开奖号
 
-  // 断组334列：用户录入分组（支持多组），系统计算每组断1组注数并合并
-  const renderDuanZuCell = (issue) => {
-    if (!SHOW_DUANZU_COL) return null;
-    // 兼容旧代码：duanZuTexts 已废弃，实际使用 duanZuZQTexts / duanZuBZTexts
-    const value = '';
-    const hasData = value.trim().length > 0;
-    const allGroupsList = parseDuanZuGroups(value);
-
-    // 计算所有组的断1组注数：合并所有组的断第1/2/3组号码池
-    let filtered = [];
-    if (allGroupsList.length > 0) {
-      const allNumbers = new Set();
-      for (const entry of allGroupsList) {
-        for (const g of entry.groups) {
-          const groups = { group1: g.a, group2: g.b, group3: g.c };
-          const broken1 = generateByBrokenGroups(groups, [1]);
-          const broken2 = generateByBrokenGroups(groups, [2]);
-          const broken3 = generateByBrokenGroups(groups, [3]);
-          for (const n of broken1) allNumbers.add(n);
-          for (const n of broken2) allNumbers.add(n);
-          for (const n of broken3) allNumbers.add(n);
-        }
-      }
-      filtered = Array.from(allNumbers).sort();
-    }
-
-    // 验证当期开奖号是否在断组预测中
-    const item = displayData.find(d => d.issue === issue);
-    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
-    const hit = hasData && drawNum && filtered.length > 0 ? filtered.includes(drawNum) : null;
-
-    return (
-      <td key="duanzu" style={{ padding: 2, background: hasData ? '#fff' : '#e0e0e0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <textarea
-            value={value}
-            placeholder={"如 012/345/6789\n多组换行"}
-            onChange={e => { if (setDuanZuText) setDuanZuText(issue, e.target.value); }}
-            style={{
-              width: 110, minWidth: 110, flex: '1 1 auto', height: 40, resize: 'none', overflow: 'hidden', display: 'block',
-              fontSize: 11, lineHeight: '19px', fontFamily: 'Consolas,Menlo,monospace',
-              padding: '0 3px', boxSizing: 'border-box', borderRadius: 3,
-              border: `1px solid ${hasData ? '#90caf9' : '#bdbdbd'}`,
-              background: hasData ? '#fff' : '#eee',
-              color: '#222', cursor: 'text', whiteSpace: 'pre',
-            }}
-          />
-          {hasData && filtered.length > 0 && (
-            <ClickableCount count={filtered.length} hit={hit} numbers={filtered} />
-          )}
-        </div>
-      </td>
-    );
-  };
-
   const renderRongCuoCell = (issue) => {
     // 计算智取分解容错0~12（errorCount <= 12，含无容错）
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
@@ -1769,7 +1710,6 @@ function FullDataTable({
                 {SHOW_JJ_COL && <th title="智取容错0~9 ∩ 博众容错0~9（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
-                {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
                 {/* 参考一/参考二/胆码三列表头已彻底删除 - 用户要求 */}
                 {/* 智取分解 / 博众分解 两列（表格最右侧，与福彩3D 同位置逻辑） */}
                 {DECOMP_COLS.map(c => (
@@ -1883,8 +1823,6 @@ function FullDataTable({
                                     {/* 前4期断组：采用前4期智取断组和博众断组容错1验证当期 */}
                                     {/* 前5期断组：采用前5期智取断组和博众断组容错1验证当期 */}
                                     {/* 前6期断组：采用前6期智取断组和博众断组容错1验证当期 */}
-                  {/* 断组334：012/345/6789 断1组 */}
-                  {SHOW_DUANZU_COL && renderDuanZuCell(item.issue)}
                   {/* 参考一/参考二/胆码三列单元格已彻底删除 - 用户要求 */}
                   {/* 智取分解 / 博众分解：按期号匹配展示对应 20 组分解参数（与福彩3D 一致） */}
                   {DECOMP_COLS.map(c => renderDecompCell(c.kind, item.issue, c.title))}
@@ -1988,64 +1926,6 @@ function FullDataTable({
                     return (
                       <td key="rcNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
-                  {/* 断组334 - 预留行：录入框（与数据行一致，支持多组） */}
-                  {SHOW_DUANZU_COL && (() => {
-                    const nextDzIssue = appNextIssue || nextIssue;
-                    // 从 duanZuZQTexts 和 duanZuBZTexts 读取下一期数据
-                    const zqValue = (duanZuZQTexts && duanZuZQTexts[nextDzIssue]) || '';
-                    const bzValue = (duanZuBZTexts && duanZuBZTexts[nextDzIssue]) || '';
-                    const value = zqValue || bzValue; // 优先智取，其次博众
-                    const hasData = value.trim().length > 0;
-                    const allGroupsList = parseDuanZuGroups(value);
-                    let filtered = [];
-                    if (allGroupsList.length > 0) {
-                      const allNumbers = new Set();
-                      for (const entry of allGroupsList) {
-                        for (const g of entry.groups) {
-                          const groups = { group1: g.a, group2: g.b, group3: g.c };
-                          const broken1 = generateByBrokenGroups(groups, [1]);
-                          const broken2 = generateByBrokenGroups(groups, [2]);
-                          const broken3 = generateByBrokenGroups(groups, [3]);
-                          for (const n of broken1) allNumbers.add(n);
-                          for (const n of broken2) allNumbers.add(n);
-                          for (const n of broken3) allNumbers.add(n);
-                        }
-                      }
-                      filtered = Array.from(allNumbers).sort();
-                    }
-                    return (
-                      <td key="duanzuNext" style={{ padding: 2, background: hasData ? '#f0f8ff' : '#e8f0f5' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <textarea
-                            value={value}
-                            placeholder={"如 012/345/6789\n多组换行"}
-                            onChange={e => { if (setDuanZuText) setDuanZuText(nextDzIssue, e.target.value); }}
-                            style={{
-                              width: 110, minWidth: 110, flex: '1 1 auto', height: 40, resize: 'none', overflow: 'hidden', display: 'block',
-                              fontSize: 11, lineHeight: '19px', fontFamily: 'Consolas,Menlo,monospace',
-                              padding: '0 3px', boxSizing: 'border-box', borderRadius: 3,
-                              border: `1px solid ${hasData ? '#90caf9' : '#bdbdbd'}`,
-                              background: hasData ? '#fff' : '#eee',
-                              color: '#222', cursor: 'text', whiteSpace: 'pre',
-                            }}
-                          />
-                          {hasData && filtered.length > 0 && (
-                            <>
-                              <span style={{
-                                fontSize: 13, padding: '2px 6px', borderRadius: 3, border: '1px solid #e0e0e0',
-                                background: '#fff', whiteSpace: 'nowrap', minWidth: 60, textAlign: 'left',
-                                color: '#1b5e20', fontWeight: 600,
-                              }} title={`${nextDzIssue} 期断组预测号码（${filtered.length}注，${allGroupsList.length}组，待开奖）`}>
-                                {filtered.length}注
-                                <span style={{ marginLeft: 4, color: '#78909c', fontWeight: 700, fontSize: 12 }}>待开奖</span>
-                              </span>
-                              <ClickableCount count={0} hit={null} numbers={filtered} />
-                            </>
-                          )}
-                        </div>
                       </td>
                     );
                   })()}
