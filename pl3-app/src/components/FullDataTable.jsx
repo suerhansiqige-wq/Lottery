@@ -470,12 +470,6 @@ const SHOW_RC10_COL = true;
 const SHOW_RC_COL = true;
 const SHOW_JJ_COL = true;
 
-// 综合列开关：2026-11-04 用户要求删除
-const SHOW_ZONGHE_COL = true;
-
-// 交集列开关：2026-11-04 用户要求删除
-const SHOW_JIAOJI_COL = true;
-
 // 断组容错列开关：2026-11-04 用户要求新增（智取断组+博众断组容错2合并）
 
 // 前1期断组列开关：采用前一期智取断组和博众断组容错1验证当期
@@ -1132,9 +1126,6 @@ function FullDataTable({
       .sort();
   };
 
-  // 下期综合列候选池
-  const tailZongHeNumbers = useMemo(() => computeZongHeNumbers(appNextIssue), [appNextIssue, decompTexts, bozhongTexts]);
-
   // 下期直选高倍列候选池
   const tailZhiXuanGaoBeiNumbers = useMemo(() => computeZhiXuanGaoBeiNumbers(appNextIssue, poolData.length), [appNextIssue, poolData, decompTexts, bozhongTexts, duanZuZQTexts, duanZuBZTexts]);
 
@@ -1401,25 +1392,6 @@ function FullDataTable({
     );
   };
 
-  const renderZongHeCell = (issue) => {
-    const filtered = computeZongHeNumbers(issue);
-
-    if (filtered.length === 0) {
-      return <td key="zh" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    // 验证当期开奖号是否在综合列中
-    const item = displayData.find(d => d.issue === issue);
-    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
-    const hit = drawNum && filtered.includes(drawNum);
-
-    return (
-      <td key="zh" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {<ClickableCount count={filtered.length} hit={hit} numbers={filtered} />}
-      </td>
-    );
-  };
-
   // 断组容错列：智取断组容错1 ∪ 博众断组容错1
 
   // 前1期断组列：采用前一期智取断组和博众断组容错1验证当期开奖号
@@ -1493,45 +1465,6 @@ function FullDataTable({
             <ClickableCount count={filtered.length} hit={hit} numbers={filtered} />
           )}
         </div>
-      </td>
-    );
-  };
-
-  // 交集列：加减号码候选池 ∩ 综合列候选池
-  const renderJiaoJiCell = (issue, index) => {
-    if (!SHOW_JIAOJI_COL) return null;
-
-    // 交集号码 = 智取容错0~9 ∩ 博众容错0~9
-    const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
-    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-    const decompRc0_9 = [];
-    if (decompResult && decompResult.buckets) {
-      for (let i = 0; i <= 9; i++) {
-        if (decompResult.buckets[i]) decompRc0_9.push(...decompResult.buckets[i]);
-      }
-    }
-    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
-    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-    const bozhongRc0_9 = [];
-    if (bozhongResult && bozhongResult.buckets) {
-      for (let i = 0; i <= 9; i++) {
-        if (bozhongResult.buckets[i]) bozhongRc0_9.push(...bozhongResult.buckets[i]);
-      }
-    }
-    const bozhongSet = new Set(bozhongRc0_9);
-    const filtered = decompRc0_9.filter(n => bozhongSet.has(n));
-
-    if (filtered.length === 0) {
-      return <td key="jiaoji" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    const item = displayData.find(d => d.issue === issue);
-    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
-    const hit = drawNum && filtered.includes(drawNum);
-
-    return (
-      <td key="jiaoji" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {<ClickableCount count={filtered.length} hit={hit} numbers={filtered} />}
       </td>
     );
   };
@@ -1834,10 +1767,8 @@ function FullDataTable({
                 {SHOW_ADDSUB_PRO_COL && <th title={`隔一用二增强：横向得票≥1 + 和值出现≥12次，命中率~93%，~930注；✓=在池内，✗=不在池内`}>增强93.1%</th>}
                 {SHOW_KILL150_COL && <th title="增强票×3+对位马尔可夫，杀得分最低150注；✓=奖号不在杀集(杀对)，✗=奖号被杀(误杀)；3D回测8302期86.03%/排3回测7332期84.97%">杀150注</th>}
                 {SHOW_JJ_COL && <th title="智取容错0~9 ∩ 博众容错0~9（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
-                {SHOW_JIAOJI_COL && <th title="加减号码候选池 ∩ 综合列候选池；✓=在池内，✗=不在池内">交集</th>}
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
-                {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_DUANZU_COL && <th title="断组334模式（012/345/6789）断1组预测；✓=在池内，✗=不在池内">断组</th>}
                 {/* 参考一/参考二/胆码三列表头已彻底删除 - 用户要求 */}
                 {/* 智取分解 / 博众分解 两列（表格最右侧，与福彩3D 同位置逻辑） */}
@@ -1937,8 +1868,6 @@ function FullDataTable({
                   {renderKill150Cell(item.issue)}
                   {/* 交集号码：智取容错0~9 ∩ 博众容错0~9 */}
                   {SHOW_JJ_COL && renderJiJiaoCell(item.issue)}
-                  {/* 交集：加减号码候选池 ∩ 综合列候选池 */}
-                  {SHOW_JIAOJI_COL && renderJiaoJiCell(item.issue, issueIndexMap.get(item.issue))}
                   {/* 容错10：智取分解容错10 ∪ 博众分解容错10 */}
                   {SHOW_RC10_COL && renderRongCuo10Cell(item.issue)}
                   {/* 容错：对称差集 */}
@@ -1954,8 +1883,6 @@ function FullDataTable({
                                     {/* 前4期断组：采用前4期智取断组和博众断组容错1验证当期 */}
                                     {/* 前5期断组：采用前5期智取断组和博众断组容错1验证当期 */}
                                     {/* 前6期断组：采用前6期智取断组和博众断组容错1验证当期 */}
-                  {/* 综合：交集号码 - 容错列 - 容错10列 */}
-                  {SHOW_ZONGHE_COL && renderZongHeCell(item.issue)}
                   {/* 断组334：012/345/6789 断1组 */}
                   {SHOW_DUANZU_COL && renderDuanZuCell(item.issue)}
                   {/* 参考一/参考二/胆码三列单元格已彻底删除 - 用户要求 */}
@@ -2019,32 +1946,6 @@ function FullDataTable({
                       <ClickableCount count={tailJiaoJiHaoMaNumbers.length} hit={null} numbers={tailJiaoJiHaoMaNumbers} color="#1b5e20" />
                     </td>
                   )}
-                  {/* 交集 - 预留行：继承最后一期数据计算交集注数 */}
-                  {SHOW_JIAOJI_COL && (() => {
-                    const decompGroups = parseDecompGroups((decompTexts && decompTexts[appNextIssue]) || '');
-                    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-                    const decompRc0_9 = [];
-                    if (decompResult && decompResult.buckets) {
-                      for (let i = 0; i <= 9; i++) {
-                        if (decompResult.buckets[i]) decompRc0_9.push(...decompResult.buckets[i]);
-                      }
-                    }
-                    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[appNextIssue]) || '');
-                    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-                    const bozhongRc0_9 = [];
-                    if (bozhongResult && bozhongResult.buckets) {
-                      for (let i = 0; i <= 9; i++) {
-                        if (bozhongResult.buckets[i]) bozhongRc0_9.push(...bozhongResult.buckets[i]);
-                      }
-                    }
-                    const bozhongSet = new Set(bozhongRc0_9);
-                    const filtered = decompRc0_9.filter(n => bozhongSet.has(n));
-                    return (
-                      <td key="jiaojiNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
                   {/* 容错10 - 预留行：用下一期分解数据计算容错10注数 */}
                   {SHOW_RC10_COL && (() => {
                     const decompGroups = parseDecompGroups((decompTexts && decompTexts[appNextIssue]) || '');
@@ -2086,15 +1987,6 @@ function FullDataTable({
                     const filtered = union.filter(n => !intersectionSet.has(n)).sort();
                     return (
                       <td key="rcNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                        {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
-                      </td>
-                    );
-                  })()}
-                  {/* 综合 - 预留行：下期综合注数（尚未开奖，无对错） */}
-                  {SHOW_ZONGHE_COL && (() => {
-                    const filtered = computeZongHeNumbers(nextIssue);
-                    return (
-                      <td key="zhNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                         {<ClickableCount count={filtered.length} hit={null} numbers={filtered} color="#1b5e20" />}
                       </td>
                     );
