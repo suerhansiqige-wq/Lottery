@@ -462,7 +462,7 @@ const SHOW_SLBC_COLS = false;
 
 const SHOW_ADDSUB_PRO_COL = true; // 隔一用二增强列
 
-const SHOW_KILL150_COL = true; // 杀150注列：增强票×3+对位马尔可夫
+const SHOW_KILL150_COL = true; // 杀150注列：百奇×十和尾离5（固定150注）
 
 // 容错00 / 容错 / 前1期 / 交集号码 列开关
 const SHOW_RC10_COL = true;
@@ -836,7 +836,7 @@ function FullDataTable({
   }, [poolData]);
   // 下期预留行：用最后一期往前200期建池，尚无开奖号故只出注数与复制，不出对错
   const tailAddSubNumbersPro = useMemo(() => getAddSubNumbersPro(poolData, poolData.length), [poolData]);
-  // 杀150注：增强票×3+对位马尔可夫，杀得分最低150注
+  // 杀150注：百奇×十和尾离5，固定150注
   const kill150Index = useMemo(() => buildKill150Index(poolData), [poolData]);
   const tailKill150Numbers = useMemo(() => getKill150Numbers(poolData, poolData.length), [poolData]);
 
@@ -1279,7 +1279,7 @@ function FullDataTable({
     );
   };
 
-  // 杀150注：增强票×3+对位马尔可夫，✓=奖号不在杀集（杀对），✗=误杀
+  // 杀150注：百奇×十和尾离5，✓=奖号不在杀集（杀对），✗=误杀
   const renderKill150Cell = (issue) => {
     if (!SHOW_KILL150_COL) return null;
     const rec = kill150Index.get(issue);
@@ -1817,7 +1817,7 @@ function FullDataTable({
                 {SHOW_ADDSUB_PRO_COL && <th title={`隔一用二增强：横向得票≥1 + 和值出现≥12次，命中率~93%，~930注；✓=在池内，✗=不在池内`}>增强93.1%</th>}
                 {SHOW_JJ_COL && <th title="智取容错0~9 ∩ 博众容错0~9（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
                 {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列 + 双方无容错（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
-                {SHOW_KILL150_COL && <th title="增强票×3+对位马尔可夫，杀得分最低150注；✓=奖号不在杀集(杀对)，✗=奖号被杀(误杀)；3D回测8302期86.03%/排3回测7332期84.97%">杀150注</th>}
+                {SHOW_KILL150_COL && <th title="百奇×十和尾离5：百位奇数×十位∈{上期和尾,和尾+5,和尾+7}×个位全部，固定150注；✓=奖号不在杀集(杀对)，✗=奖号被杀(误杀)；3D回测8304期86.36%/排3回测7334期85.07%">杀150注</th>}
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
                 {SHOW_DUANZU_SHAHAO_COL && <th title="断容0-11所有号码合并去重后的总注数；✓=在池内，✗=不在池内">断组杀号</th>}
@@ -1921,7 +1921,7 @@ function FullDataTable({
                   {SHOW_JJ_COL && renderJiJiaoCell(item.issue)}
                   {/* 交集容错：交集号码 - 容错列 - 容错10列 + 双方无容错 */}
                   {SHOW_JJRONGCUO_COL && renderJiJiaoRongCuoCell(item.issue)}
-                  {/* 杀150注：增强票×3+对位马尔可夫 */}
+                  {/* 杀150注：百奇×十和尾离5 */}
                   {renderKill150Cell(item.issue)}
                   {/* 容错10：智取分解容错10 ∪ 博众分解容错10 */}
                   {SHOW_RC10_COL && renderRongCuo10Cell(item.issue)}
