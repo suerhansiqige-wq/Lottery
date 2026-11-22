@@ -283,6 +283,7 @@ const SHOW_SLBC_COLS = false;
 const SHOW_ADDSUB_PRO_COL = true; // 隔一用二增强列
 
 const SHOW_KILL150_COL = true; // 杀150注列：百奇×十和尾离5（固定150注）
+const SHOW_KAIJIANG_SHAHAO_COL = true; // 开奖号杀号列：上期奖号+和值各位+跨度数字池，组选转直选（不含豹子）
 
 // 容错00 / 容错 / 前1期 / 交集号码 列开关
 const SHOW_RC10_COL = true;
@@ -663,6 +664,36 @@ function FullDataTable({
   // 杀150注：百奇×十和尾离5，固定150注
   const kill150Index = useMemo(() => buildKill150Index(poolData), [poolData]);
   const tailKill150Numbers = useMemo(() => getKill150Numbers(poolData, poolData.length), [poolData]);
+
+  // 开奖号杀号：上期开奖号三位+和值各位+跨度组成数字池，池内组六组三展开直选（不含豹子）作本期杀号
+  const computeKjShaHaoNumbers = (data, i) => {
+    if (i < 1 || i > data.length) return [];
+    const prev = data[i - 1];
+    const sum = prev.d1 + prev.d2 + prev.d3;
+    const digits = [prev.d1, prev.d2, prev.d3];
+    if (sum >= 10) digits.push((sum / 10) | 0);
+    digits.push(sum % 10);
+    const sorted = [prev.d1, prev.d2, prev.d3].sort((a, b) => a - b);
+    digits.push(sorted[2] - sorted[0]);
+    const pool = [...new Set(digits)];
+    const out = [];
+    for (const a of pool) for (const b of pool) for (const c of pool) {
+      if (a === b && b === c) continue;
+      out.push(`${a}${b}${c}`);
+    }
+    return out.sort();
+  };
+  const kjShaHaoIndex = useMemo(() => {
+    const map = new Map();
+    for (let i = 1; i < poolData.length; i++) {
+      const numbers = computeKjShaHaoNumbers(poolData, i);
+      const item = poolData[i];
+      const drawNum = `${item.d1}${item.d2}${item.d3}`;
+      map.set(item.issue, { size: numbers.length, hit: !numbers.includes(drawNum), numbers });
+    }
+    return map;
+  }, [poolData]);
+  const tailKjShaHaoNumbers = useMemo(() => computeKjShaHaoNumbers(poolData, poolData.length), [poolData]);
 
   // 计算任意期号的综合列候选池：交集号码 - 容错列（对称差集） - 容错10列
   const computeZongHeNumbers = (issue) => {
@@ -1112,6 +1143,20 @@ function FullDataTable({
     );
   };
 
+  // 开奖号杀号：上期奖号+和值各位+跨度数字池组选转直选，✓=奖号不在杀集（杀对），✗=误杀
+  const renderKjShaHaoCell = (issue) => {
+    if (!SHOW_KAIJIANG_SHAHAO_COL) return null;
+    const rec = kjShaHaoIndex.get(issue);
+    if (!rec || rec.size === 0) {
+      return <td key="kjshahao" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
+    }
+    return (
+      <td key="kjshahao" style={{ padding: '2px 4px', background: rec.hit ? '#e8f5e9' : '#ffebee' }}>
+        <ClickableCount count={rec.size} hit={rec.hit} numbers={rec.numbers} />
+      </td>
+    );
+  };
+
   // 容错00列：智取分解容错10 ∪ 博众分解容错10（包含组三）
   const renderRongCuo10Cell = (issue) => {
     // 计算智取分解容错10
@@ -1500,6 +1545,7 @@ function FullDataTable({
                 {SHOW_JJ_COL && <th title="智取容错0~9 ∩ 博众容错0~9（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
                 {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列 + 双方无容错（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
                 {SHOW_KILL150_COL && <th title="百奇×十和尾离5：百位奇数×十位∈{上期和尾,和尾+5,和尾+7}×个位全部，固定150注；✓=奖号不在杀集(杀对)，✗=奖号被杀(误杀)；3D回测8304期86.36%/排3回测7334期85.07%">杀150注</th>}
+                {SHOW_KAIJIANG_SHAHAO_COL && <th title="上期开奖号三位+和值各位+跨度组成数字池，池内组六组三展开直选（不含豹子）作本期杀号；✓=奖号不在杀集(杀对)，✗=奖号被杀(误杀)">开奖号杀号</th>}
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
                 {SHOW_DUANZU_SHAHAO_COL && <th title="断容0-11所有号码合并去重后的总注数；✓=在池内，✗=不在池内">断组杀号</th>}
@@ -1602,6 +1648,8 @@ function FullDataTable({
                   {SHOW_JJRONGCUO_COL && renderJiJiaoRongCuoCell(item.issue)}
                   {/* 杀150注：百奇×十和尾离5 */}
                   {renderKill150Cell(item.issue)}
+                  {/* 开奖号杀号：上期奖号+和值各位+跨度数字池组选转直选 */}
+                  {renderKjShaHaoCell(item.issue)}
                   {/* 容错10：智取分解容错10 ∪ 博众分解容错10 */}
                   {SHOW_RC10_COL && renderRongCuo10Cell(item.issue)}
                   {/* 容错：对称差集 */}
@@ -1687,6 +1735,12 @@ function FullDataTable({
                   {SHOW_KILL150_COL && (
                     <td key="kill150Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                       <ClickableCount count={tailKill150Numbers.length} hit={null} numbers={tailKill150Numbers} color="#1b5e20" />
+                    </td>
+                  )}
+                  {/* 开奖号杀号 - 预留行：下期杀集注数（尚未开奖，无对错） */}
+                  {SHOW_KAIJIANG_SHAHAO_COL && (
+                    <td key="kjshahaoNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
+                      <ClickableCount count={tailKjShaHaoNumbers.length} hit={null} numbers={tailKjShaHaoNumbers} color="#1b5e20" />
                     </td>
                   )}
                   {/* 容错10 - 预留行：下期容错10注数（尚未开奖，无对错） */}
