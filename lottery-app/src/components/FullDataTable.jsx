@@ -3,7 +3,6 @@ import { parseDecompGroups, verifyDraw, computeRongCuo } from '../utils/decompRo
 import { verifyDuanZuDraw, computeDuanZuRongCuo, parseDuanZuGroups } from '../utils/duanZuRongCuo.js'
 import { buildAddSubIndexPro, getAddSubNumbersPro } from '../utils/addSubPool.js'
 import { buildKill150Index, getKill150Numbers, killMaskToNumbers } from '../utils/kill150.js'
-import { buildKill63All } from '../utils/kill63.js'
 
 // 可点击注数组件：独立管理复制状态，避免点击时整个表格重渲染
 function ClickableCount({ count, hit, numbers, color }) {
@@ -285,7 +284,6 @@ const SHOW_ADDSUB_PRO_COL = true; // 隔一用二增强列
 
 const SHOW_KILL150_COL = true; // 杀150注列：三套150轮转（现冠军/增强并开奖/遗漏补，错2转/中1回）
 const SHOW_KAIJIANG_SHAHAO_COL = true; // 开奖号杀号列：上期奖号+和值各位+跨度数字池，组选转直选（不含豹子）
-const SHOW_KILL63_COL = true; // 二阶差杀号列：二阶差杀百十↔增强补集减胆码（错1切/中1回退）
 
 // 容错00 / 容错 / 前1期 / 交集号码 列开关
 const SHOW_RC10_COL = true;
@@ -666,8 +664,6 @@ function FullDataTable({
   // 杀150注：三套150轮转（现冠军/增强补集并开奖号杀号/遗漏并集补集），错2转/中1回
   const kill150Index = useMemo(() => buildKill150Index(poolData), [poolData]);
   const tailKill150Numbers = useMemo(() => getKill150Numbers(poolData, poolData.length), [poolData]);
-  // 二阶差杀号：二阶差杀百十↔增强补集减胆码，错1切/中1回退（一次预计算各期杀集+下期预留行）
-  const kill63 = useMemo(() => buildKill63All(poolData), [poolData]);
 
   // 开奖号杀号：上期开奖号三位+和值各位+跨度组成数字池，池内组六组三展开直选（不含豹子）作本期杀号
   const computeKjShaHaoNumbers = (data, i) => {
@@ -1147,20 +1143,6 @@ function FullDataTable({
     );
   };
 
-  // 二阶差杀号：二阶差杀百十↔增强补集减胆码，✓=奖号不在杀集（杀对），✗=误杀
-  const renderKill63Cell = (issue) => {
-    if (!SHOW_KILL63_COL) return null;
-    const rec = kill63.index.get(issue);
-    if (!rec) {
-      return <td key="kill63" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-    return (
-      <td key="kill63" style={{ padding: '2px 4px', background: rec.hit ? '#e8f5e9' : '#ffebee' }}>
-        <ClickableCount count={rec.size} hit={rec.hit} numbers={killMaskToNumbers(rec.kill)} />
-      </td>
-    );
-  };
-
   // 开奖号杀号：上期奖号+和值各位+跨度数字池组选转直选，✓=奖号不在杀集（杀对），✗=误杀
   const renderKjShaHaoCell = (issue) => {
     if (!SHOW_KAIJIANG_SHAHAO_COL) return null;
@@ -1560,7 +1542,6 @@ function FullDataTable({
                 {SHOW_SLBC_COLS && <th>连号</th>}
                 {SHOW_SLBC_COLS && <th>必出号</th>}
                 {SHOW_ADDSUB_PRO_COL && <th title={`隔一用二增强：横向得票≥1 + 和值出现≥12次，命中率~93%，~930注；✓=在池内，✗=不在池内`}>增强93.1%</th>}
-                {SHOW_KILL63_COL && <th title="二阶差杀百十↔增强补集减胆码：百位十位都在上期二阶差里即杀；错1期切到增强补集减胆码，中1期切回；✓=奖号不在杀集(杀对)，✗=奖号被杀(误杀)；回测8306期93.96%连错2">二阶差杀号</th>}
                 {SHOW_JJ_COL && <th title="智取容错0~9 ∩ 博众容错0~9（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
                 {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列 + 双方无容错（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
                 {SHOW_KILL150_COL && <th title="三套150轮转：现冠军(奇离5↔偶离5)/增强补集并开奖号杀号/遗漏并集补集，均冷序删补至固定150注；连错2期转下一套，中1期回第一套；✓=奖号不在杀集(杀对)，✗=奖号被杀(误杀)；回测8306期86.56%连错3">杀150注</th>}
@@ -1661,8 +1642,6 @@ function FullDataTable({
                   )}
                   {/* 隔一用二增强：横向得票≥1 + 和值出现≥12次 */}
                   {renderAddSubProCell(item.issue, issueIndexMap.get(item.issue))}
-                  {/* 二阶差杀号：二阶差杀百十↔增强补集减胆码 */}
-                  {renderKill63Cell(item.issue)}
                   {/* 交集号码：智取容错0~9 ∩ 博众容错0~9 */}
                   {SHOW_JJ_COL && renderJiJiaoCell(item.issue)}
                   {/* 交集容错：交集号码 - 容错列 - 容错10列 + 双方无容错 */}
@@ -1735,12 +1714,6 @@ function FullDataTable({
                   {SHOW_ADDSUB_PRO_COL && (
                     <td key="addSubProNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                       {<ClickableCount count={tailAddSubNumbersPro.length} hit={null} numbers={tailAddSubNumbersPro} color="#1b5e20" />}
-                    </td>
-                  )}
-                  {/* 二阶差杀号 - 预留行：下期杀集注数（尚未开奖，无对错） */}
-                  {SHOW_KILL63_COL && (
-                    <td key="kill63Next" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                      <ClickableCount count={kill63.tail.length} hit={null} numbers={kill63.tail} color="#1b5e20" />
                     </td>
                   )}
                   {/* 交集号码 - 预留行：下期交集注数（尚未开奖，无对错） */}
