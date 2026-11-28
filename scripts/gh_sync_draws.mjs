@@ -15,6 +15,10 @@
 //   改补两条民间彩票网兜底：500彩票网走势图(datachart.500.com) + 彩吧(www.55125.cn)。
 //   现每彩种 4 源：乐彩网 / 博众网 / 500彩票网 / 彩吧，全部非官方。
 //   两个应用共8条取数线并行发起（Promise.allSettled），单源20秒超时，互不拖累。
+// 【2026-11-28 时刻表】云端以 --scheduled 运行时按时刻表轮流抓取：
+//   福彩3D 北京 21:19 起每 2 分钟（奇数分），排列三 21:28 起每 2 分钟（偶数分），
+//   两彩种逐分轮流、互不同时，直到北京 00:10 收工。
+//   本机手动运行不带 --scheduled，两彩种都抓，不受时刻表限制。
 // 各源实测返回的期号与号码逐位一致（26318：福彩3D=226、排列三=504）。
 // 备源的意义：任一源改版 / 限流 / 封禁 / 被境外 IP 拦截时，同步不会中断；
 //   两源同时可用时做交叉校验，只要有一处不一致就放弃写入并让 workflow 变红——
@@ -90,6 +94,7 @@ const APPS = [
   {
     name: '福彩3D',
     file: 'lottery-app/src/data/lotteryData.js',
+    startOffset: 19, // 北京 21:19 起，每 2 分钟（奇数分）
     sources: [
       { label: '乐彩网', parser: 'lecai', url: 'https://data.17500.cn/3d_desc.txt' },
       { label: '博众网', parser: 'bzsoft', encoding: 'gbk', url: 'https://www.bzsoft.com.cn/chart/tb_fbt.asp?qs=30&cz=1' },
@@ -100,6 +105,7 @@ const APPS = [
   {
     name: '排列三',
     file: 'pl3-app/src/data/lotteryData.js',
+    startOffset: 28, // 北京 21:28 起，每 2 分钟（偶数分）
     sources: [
       { label: '乐彩网', parser: 'lecai', url: 'https://data.17500.cn/pl32_desc.txt' },
       { label: '博众网', parser: 'bzsoft', encoding: 'gbk', url: 'https://www.bzsoft.com.cn/chart/tb_fbt.asp?qs=30&cz=2' },
@@ -108,6 +114,24 @@ const APPS = [
     ],
   },
 ];
+
+// ---------------- 时刻表闸门（仅云端 --scheduled 模式生效） ----------------
+// 以“北京 21:00 之后过了多少分钟”计：福彩3D 从第 19 分钟起每逢奇数分钟抓取，
+// 排列三从第 28 分钟起每逢偶数分钟抓取，第 190 分钟（北京 00:10）后收工。
+const SCHEDULED = process.argv.includes('--scheduled');
+const bjNow = new Date(Date.now() + 8 * 3600e3);
+const minsSince21 = ((bjNow.getUTCHours() * 60 + bjNow.getUTCMinutes()) - 21 * 60 + 1440) % 1440;
+const isDue = (app) => minsSince21 >= app.startOffset && minsSince21 <= 190 && (minsSince21 - app.startOffset) % 2 === 0;
+const dueApps = SCHEDULED ? APPS.filter(isDue) : APPS;
+if (SCHEDULED) {
+  const hh = String(bjNow.getUTCHours()).padStart(2, '0');
+  const mm = String(bjNow.getUTCMinutes()).padStart(2, '0');
+  APPS.forEach(a => console.log(`[时刻表] 北京 ${hh}:${mm} ${a.name} ${isDue(a) ? '轮到抓取' : '未到抓取时刻，跳过'}`));
+  if (dueApps.length === 0) {
+    console.log('[时刻表] 本轮没有彩种轮到抓取，直接结束');
+    process.exit(0);
+  }
+}
 
 // 【健康信号】GitHub Actions 的步骤级日志对未登录用户不可读（页面 404 / API 403），
 // 只看运行颜色无法区分“数据源不可达”与“确实没有新数据”。因此把异常直接反映到退出码：
@@ -136,10 +160,10 @@ const fetchSource = async (src) => {
   return { items, ms: Date.now() - t0 };
 };
 
-// ---- 多线同时取数：两个应用全部数据源并行发起，单源20秒超时，任一源卡死不拖累其他源 ----
-const jobs = APPS.flatMap(app => app.sources.map(src => ({ app, src })));
+// ---- 多线同时取数：本轮轮到的彩种全部数据源并行发起，单源20秒超时，任一源卡死不拖累其他源 ----
+const jobs = dueApps.flatMap(app => app.sources.map(src => ({ app, src })));
 const settled = await Promise.allSettled(jobs.map(j => fetchSource(j.src)));
-const fetched = new Map(APPS.map(a => [a.name, []]));
+const fetched = new Map(dueApps.map(a => [a.name, []]));
 settled.forEach((r, i) => {
   const { app, src } = jobs[i];
   if (r.status === 'fulfilled') {
@@ -152,7 +176,7 @@ settled.forEach((r, i) => {
   }
 });
 
-for (const app of APPS) {
+for (const app of dueApps) {
   const filePath = path.join(ROOT, app.file);
 
   // ---- 1) 取数结果：成功的都留下（第一个作为写入依据，其余用于交叉校验）----
