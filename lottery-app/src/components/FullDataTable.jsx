@@ -280,7 +280,7 @@ const SHOW_HJS_COLS = false;
 // 生号/连号/必出号 三列开关：2026-11-04 用户要求隐藏
 const SHOW_SLBC_COLS = false;
 
-const SHOW_ADDSUB_PRO_COL = true; // 隔一用二增强列
+const SHOW_ADDSUB_PRO_COL = false; // 隔一用二增强列（增强93.1%，隐藏）
 
 const SHOW_KILL150_COL = true; // 杀150注列：二阶差百十补至150主套，错1期插上期数字池百十补60、中2期回
 const SHOW_KAIJIANG_SHAHAO_COL = true; // 开奖号杀号列：上期奖号+和值各位+跨度数字池，组选转直选（不含豹子）
@@ -291,7 +291,7 @@ const SHOW_RC_COL = true;
 const SHOW_JJ_COL = true;
 
 // 交集容错列开关：交集号码 - 容错列 - 容错10列 + 双方无容错
-const SHOW_JJRONGCUO_COL = true;
+const SHOW_JJRONGCUO_COL = false; // 交集容错列（隐藏）
 
 // 断组杀号列开关：断容0-11所有号码合并去重后的总注数
 const SHOW_DUANZU_SHAHAO_COL = true;
