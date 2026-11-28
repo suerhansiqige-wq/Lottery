@@ -295,7 +295,7 @@ const SHOW_JJRONGCUO_COL = false; // 交集容错列（隐藏）
 // 断组杀号列开关：断容0-11所有号码合并去重后的总注数
 const SHOW_DUANZU_SHAHAO_COL = true;
 
-// 综合列开关：交集号码 - 容错列 - 容错10列
+// 综合列开关：1000注 - 杀150注列 - 开奖号杀号列 - 容错10列 - 容错列
 const SHOW_ZONGHE_COL = true;
 
 // 直选高倍列开关：增强93.1%∩交集号码∩交集容错∩综合，剔除容错10+容错+断组杀号
@@ -694,37 +694,41 @@ function FullDataTable({
   }, [poolData]);
   const tailKjShaHaoNumbers = useMemo(() => computeKjShaHaoNumbers(poolData, poolData.length), [poolData]);
 
-  // 计算任意期号的综合列候选池：交集号码 - 容错列（对称差集） - 容错10列
+  // 计算任意期号的综合列候选池：1000注 - 杀150注列 - 开奖号杀号列 - 容错10列 - 容错列
   const computeZongHeNumbers = (issue) => {
     if (!issue) return [];
+    const killRec = kill150Index.get(issue);
+    const killNums = killRec ? killMaskToNumbers(killRec.kill) : (issue === appNextIssue ? tailKill150Numbers : []);
+    const kjRec = kjShaHaoIndex.get(issue);
+    const kjNums = kjRec ? kjRec.numbers : (issue === appNextIssue ? tailKjShaHaoNumbers : []);
     const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
     const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-    const decompRc9 = [];
-    if (decompResult && decompResult.buckets) {
-      for (let i = 1; i <= 9; i++) {
-        if (decompResult.buckets[i]) decompRc9.push(...decompResult.buckets[i]);
-      }
-    }
     const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
     const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-    const bozhongRc9 = [];
-    if (bozhongResult && bozhongResult.buckets) {
-      for (let i = 1; i <= 9; i++) {
-        if (bozhongResult.buckets[i]) bozhongRc9.push(...bozhongResult.buckets[i]);
-      }
+    // 容错10列 = 双方桶10并集
+    const rc10Set = new Set([
+      ...(decompResult && decompResult.buckets && decompResult.buckets[10] ? decompResult.buckets[10] : []),
+      ...(bozhongResult && bozhongResult.buckets && bozhongResult.buckets[10] ? bozhongResult.buckets[10] : []),
+    ]);
+    // 容错列 = 双方桶0~12并集的对称差集
+    const decompAll = [];
+    const bozhongAll = [];
+    if (decompResult && decompResult.buckets) {
+      for (let i = 0; i <= 12; i++) if (decompResult.buckets[i]) decompAll.push(...decompResult.buckets[i]);
     }
-    // 交集号码 = 智取容错1~9 ∩ 博众容错1~9
-    const bozhongSet = new Set(bozhongRc9);
-    const intersection = decompRc9.filter(n => bozhongSet.has(n));
-    // 容错列 = 对称差集 = (A ∪ B) - (A ∩ B)
-    const intersectionSet = new Set(intersection);
-    const union = [...new Set([...decompRc9, ...bozhongRc9])];
-    const symmetricDiff = union.filter(n => !intersectionSet.has(n));
-    const symmetricDiffSet = new Set(symmetricDiff);
-    // 综合列 = 交集号码 - 容错列
-    return intersection
-      .filter(n => !symmetricDiffSet.has(n))
-      .sort();
+    if (bozhongResult && bozhongResult.buckets) {
+      for (let i = 0; i <= 12; i++) if (bozhongResult.buckets[i]) bozhongAll.push(...bozhongResult.buckets[i]);
+    }
+    const bozhongAllSet = new Set(bozhongAll);
+    const interSet = new Set(decompAll.filter(n => bozhongAllSet.has(n)));
+    const rcSet = new Set([...decompAll, ...bozhongAll].filter(n => !interSet.has(n)));
+    const drop = new Set([...killNums, ...kjNums, ...rc10Set, ...rcSet]);
+    const out = [];
+    for (let n = 0; n < 1000; n++) {
+      const t = String(n).padStart(3, '0');
+      if (!drop.has(t)) out.push(t);
+    }
+    return out;
   };
 
   // 解析用户输入的断组分组（支持多组，每行一组）
@@ -1214,7 +1218,7 @@ function FullDataTable({
     );
   };
 
-  // 综合列：交集号码 - 容错列 - 容错10列
+  // 综合列：1000注 - 杀150注列 - 开奖号杀号列 - 容错10列 - 容错列
   const renderZongHeCell = (issue) => {
     const filtered = computeZongHeNumbers(issue);
 
@@ -1419,7 +1423,7 @@ function FullDataTable({
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}
                 {SHOW_DUANZU_SHAHAO_COL && <th title="断容0-11所有号码合并去重后的总注数；✓=在池内，✗=不在池内">断组杀号</th>}
-                {SHOW_ZONGHE_COL && <th title="交集号码 - 容错列 - 容错10列（综合）；✓=在池内，✗=不在池内">综合</th>}
+                {SHOW_ZONGHE_COL && <th title="1000注滤除杀150注列+开奖号杀号列+容错10列+容错列（综合）；✓=在池内，✗=不在池内">综合</th>}
                 {SHOW_ZHIXUAN_GAOBEI_COL && <th title="增强93.1%∩交集号码∩交集容错∩综合，剔除容错10+容错+断组杀号；✓=在池内，✗=不在池内">直选高倍</th>}
                 {/* 智取分解 / 博众分解 两列 */}
                 {DECOMP_COLS.map(c => (
@@ -1524,7 +1528,7 @@ function FullDataTable({
                   {SHOW_RC_COL && renderRongCuoCell(item.issue)}
                   {/* 断组杀号：断容0-11所有号码合并去重后的总注数 */}
                   {SHOW_DUANZU_SHAHAO_COL && renderDuanZuShahaoCell(item.issue)}
-                  {/* 综合：交集号码 - 容错列 - 容错10列 */}
+                  {/* 综合：1000注 - 杀150注列 - 开奖号杀号列 - 容错10列 - 容错列 */}
                   {SHOW_ZONGHE_COL && renderZongHeCell(item.issue)}
                   {/* 直选高倍：增强93.1%∩交集号码∩交集容错∩综合，剔除容错10+容错+断组杀号 */}
                   {SHOW_ZHIXUAN_GAOBEI_COL && renderZhiXuanGaoBeiCell(item.issue, issueIndexMap.get(item.issue))}
