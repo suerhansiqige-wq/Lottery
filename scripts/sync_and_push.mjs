@@ -65,6 +65,19 @@ console.log('\n----- 第 3 步：检查数据变更 -----');
 const changed = run('git', ['status', '--porcelain', '--', ...DATA_FILES]).stdout?.trim();
 if (!changed) {
   console.log('四个数据文件均无变更 → 没有新开奖数据需要推送。');
+  // 补推遗留提交：此前某次 push 失败（如 SSL 握手失败）后，数据提交会滞留本地，
+  //   而后续运行因「无新变更」直接退出，永远不补推，线上停在旧数据（2026-11-28 排列三 26318 事故）。
+  const ahead = run('git', ['rev-list', '--count', `origin/${branch}..HEAD`]).stdout?.trim();
+  if (ahead && ahead !== '0') {
+    console.log(`检测到 ${ahead} 个本地提交尚未推送（此前推送失败遗留），现在补推。`);
+    const retry = run('git', ['push', 'origin', `HEAD:${branch}`]);
+    const retryOut = `${retry.stdout || ''}${retry.stderr || ''}`;
+    if (retry.status !== 0) die(`补推失败：\n${retryOut}\n提交已在本地保留，下次运行继续重试。`);
+    const head = run('git', ['rev-parse', '--short', 'HEAD']).stdout?.trim();
+    console.log(`✓ 补推成功（${head}）。push 已自动触发 pages-deploy 重新构建发布。`);
+    console.log(`  约 1~2 分钟后线上即为最新数据：\n    ${SITE}/3d/\n    ${SITE}/pl3/`);
+    process.exit(syncHealthy ? 0 : 1);
+  }
   if (!syncHealthy) {
     console.log('\n⚠ 但取数阶段报告了异常（见上方红字）。线上数据仍是仓库里已有的最新一期，未被破坏。');
     process.exit(1);
