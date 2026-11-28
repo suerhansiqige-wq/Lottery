@@ -462,7 +462,7 @@ const SHOW_SLBC_COLS = false;
 
 const SHOW_ADDSUB_PRO_COL = true; // 隔一用二增强列
 
-const SHOW_KILL150_COL = true; // 杀150注列：三套150轮转主套，错1期插上期原号1注、中2期回
+const SHOW_KILL150_COL = true; // 杀150注列：三套150轮转主套，错1期插遗漏并集补补60、中2期回
 const SHOW_KAIJIANG_SHAHAO_COL = true; // 开奖号杀号列：上期奖号+和值各位+跨度数字池，组选转直选（不含豹子）
 
 // 容错00 / 容错 / 前1期 / 交集号码 列开关
@@ -837,7 +837,7 @@ function FullDataTable({
   }, [poolData]);
   // 下期预留行：用最后一期往前200期建池，尚无开奖号故只出注数与复制，不出对错
   const tailAddSubNumbersPro = useMemo(() => getAddSubNumbersPro(poolData, poolData.length), [poolData]);
-  // 杀150注：三套150轮转主套（错2转/中1回），错1期插上期原号1注、中2期回
+  // 杀150注：三套150轮转主套（错2转/中1回），错1期插遗漏并集补补60、中2期回
   const kill150Index = useMemo(() => buildKill150Index(poolData), [poolData]);
   const tailKill150Numbers = useMemo(() => getKill150Numbers(poolData, poolData.length), [poolData]);
 
@@ -1310,7 +1310,7 @@ function FullDataTable({
     );
   };
 
-  // 杀150注：主套150注/插期1注，✓=奖号不在杀集（杀对），✗=误杀
+  // 杀150注：主套150注/插期60注，✓=奖号不在杀集（杀对），✗=误杀
   const renderKill150Cell = (issue) => {
     if (!SHOW_KILL150_COL) return null;
     const rec = kill150Index.get(issue);
@@ -1862,7 +1862,7 @@ function FullDataTable({
                 {SHOW_ADDSUB_PRO_COL && <th title={`隔一用二增强：横向得票≥1 + 和值出现≥12次，命中率~93%，~930注；✓=在池内，✗=不在池内`}>增强93.1%</th>}
                 {SHOW_JJ_COL && <th title="智取容错0~9 ∩ 博众容错0~9（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
                 {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列 + 双方无容错（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
-                {SHOW_KILL150_COL && <th title="主套=三套150轮转：现冠军(聚类K3热百5十3)/增强补集并开奖号杀号/遗漏并集补集，均冷序删补至固定150注，连错2期转下一套，中1期回第一套；主套错1期插上期原号1注，中2期回主套；✓=奖号不在杀集(杀对)，✗=奖号被杀(误杀)；回测7341期89.58%连错1双错0均119.0注">杀150注</th>}
+                {SHOW_KILL150_COL && <th title="主套=三套150轮转：现冠军(聚类K3热百5十3)/增强补集并开奖号杀号/遗漏并集补集，均冷序删补至固定150注，连错2期转下一套，中1期回第一套；主套错1期插遗漏并集补集补至60注，中2期回主套；✓=奖号不在杀集(杀对)，✗=奖号被杀(误杀)；回测7341期88.50%连错3双错43均129.9注">杀150注</th>}
                 {SHOW_KAIJIANG_SHAHAO_COL && <th title="上期开奖号三位+和值各位+跨度组成数字池，池内组六组三展开直选（不含豹子）作本期杀号；✓=奖号不在杀集(杀对)，✗=奖号被杀(误杀)">开奖号杀号</th>}
                 {SHOW_RC10_COL && <th title="智取分解容错10 ∪ 博众分解容错10（包含组三）；✓=在池内，✗=不在池内">容错10</th>}
                 {SHOW_RC_COL && <th title="(智取∪博众)−(智取∩博众)=对称差集；✓=在池内，✗=不在池内">容错</th>}

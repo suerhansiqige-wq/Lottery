@@ -1,7 +1,8 @@
-// 杀150注：主套=二阶差百十按近100期冷序补至150注；主套错1期插上期原号1注，中2期回主套
-// 福彩3D回测8311期88.64%（连错1，双错0，均116.2注，范围1~150）；✓=奖号不在杀集（杀对），✗=奖号被杀（误杀）
+// 杀150注：主套=二阶差百十按近100期冷序补至150注；主套错1期插上期数字池百十补至60注，中2期回主套
+// 福彩3D回测8311期87.50%（连错3，双错50，均128.1注，范围60~150）；✓=奖号不在杀集（杀对），✗=奖号被杀（误杀）
 
 export const KILL_COUNT = 150;
+const INSERT_COUNT = 60;
 const START = 451; // 热身期数，与回测一致
 const MISS_SWITCH = 1;
 const HIT_RETURN = 2;
@@ -9,7 +10,6 @@ const HIT_RETURN = 2;
 const numKey = (d) => d.d1 * 100 + d.d2 * 10 + d.d3;
 const toStr = (n) => String(n).padStart(3, '0');
 const maskSize = (m) => { let s = 0; for (let n = 0; n < 1000; n++) s += m[n]; return s; };
-const oneMask = (n) => { const m = new Uint8Array(1000); m[n] = 1; return m; };
 
 export function killMaskToNumbers(mask) {
   const out = [];
@@ -21,6 +21,17 @@ export function killMaskToNumbers(mask) {
 function sdBTMask(prev) {
   const a = Math.abs(prev.d1 - prev.d2), b = Math.abs(prev.d2 - prev.d3), c = Math.abs(prev.d3 - prev.d1);
   const s = new Set([Math.abs(a - b), Math.abs(b - c), Math.abs(c - a)]);
+  const m = new Uint8Array(1000);
+  for (let n = 0; n < 1000; n++) {
+    const d1 = (n / 100) | 0, d2 = ((n / 10) | 0) % 10;
+    if (s.has(d1) && s.has(d2)) m[n] = 1;
+  }
+  return m;
+}
+
+// 插期：上期奖号三位数字池，百位与十位均在池内（个位自由）
+function poolBTMask(prev) {
+  const s = new Set([prev.d1, prev.d2, prev.d3]);
   const m = new Uint8Array(1000);
   for (let n = 0; n < 1000; n++) {
     const d1 = (n / 100) | 0, d2 = ((n / 10) | 0) % 10;
@@ -55,7 +66,7 @@ function buildAll(data) {
     for (let n = 0; n < 1000; n++) score[n] = cnt[0][(n / 100) | 0] + cnt[1][((n / 10) | 0) % 10] + cnt[2][n % 10];
     const ord = Array.from({ length: 1000 }, (_, n) => n);
     ord.sort((a, b) => score[a] - score[b] || a - b);
-    const mask = useB ? oneMask(numKey(data[i - 1])) : toN(sdBTMask(data[i - 1]), ord, KILL_COUNT);
+    const mask = useB ? toN(poolBTMask(data[i - 1]), ord, INSERT_COUNT) : toN(sdBTMask(data[i - 1]), ord, KILL_COUNT);
     if (i === N) return { index, tail: killMaskToNumbers(mask) };
     const missed = mask[numKey(data[i])] === 1;
     index.set(data[i].issue, { size: maskSize(mask), hit: !missed, kill: mask });

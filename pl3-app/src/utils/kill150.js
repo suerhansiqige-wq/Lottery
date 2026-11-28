@@ -1,10 +1,11 @@
 // 杀150注：主套=三套150轮转（现冠军聚类K3热百5十3 / 增强补集并开奖号杀号 / 遗漏并集补集，错2转/中1回）
-// 主套错1期插上期原号1注，中2期回主套；排列三回测7341期89.58%（连错1，双错0，均119.0注，范围1~150）
+// 主套错1期插遗漏并集补集补至60注，中2期回主套；排列三回测7341期88.50%（连错3，双错43，均129.9注，范围60~150）
 // ✓=奖号不在杀集（杀对），✗=奖号被杀（误杀）
 
 import { getAddSubNumbersPro } from './addSubPool.js';
 
 export const KILL_COUNT = 150;
+const INSERT_COUNT = 60;
 const START = 451; // 热身期数，与回测一致
 const CYCLE_MISS = 2;
 const CYCLE_HIT = 1;
@@ -16,7 +17,6 @@ const toStr = (n) => String(n).padStart(3, '0');
 const maskSize = (m) => { let s = 0; for (let n = 0; n < 1000; n++) s += m[n]; return s; };
 const comp = (m) => { const c = new Uint8Array(1000); for (let n = 0; n < 1000; n++) c[n] = m[n] ? 0 : 1; return c; };
 const maskFromNums = (nums) => { const m = new Uint8Array(1000); for (const t of nums) m[+t] = 1; return m; };
-const oneMask = (n) => { const m = new Uint8Array(1000); m[n] = 1; return m; };
 
 export function killMaskToNumbers(mask) {
   const out = [];
@@ -143,10 +143,11 @@ function toN(m, ord, target) {
   return out;
 }
 
-// 主套：三套150轮转逐期杀集（i=START..N），轮转状态独立于插期层
+// 主套：三套150轮转逐期杀集（i=START..N），轮转状态独立于插期层；同时产插期杀集（遗漏并集补集补至60注）
 function baseSeries(data) {
   const N = data.length;
   const base = new Array(N + 1);
+  const ins = new Array(N + 1);
   const champ = championSeries(data);
   const omComp = omissionUnion(data).map(comp);
   // 近100期各位数字频次增量维护（与回测buildOrders同序：先删过期、再排序、后加当期）
@@ -174,6 +175,7 @@ function baseSeries(data) {
     ord.sort((a, b) => score[a] - score[b] || a - b);
     const ms = threeMasks(i, ord);
     base[i] = ms[idx];
+    ins[i] = toN(omComp[i], ord, INSERT_COUNT);
     if (i === N) break;
     const missed = base[i][numKey(data[i])] === 1;
     if (missed) { e++; c = 0; } else { c++; e = 0; }
@@ -181,18 +183,18 @@ function baseSeries(data) {
     else if (idx !== 0 && c >= CYCLE_HIT) { idx = 0; e = 0; c = 0; }
     const it = data[i]; cnt[0][it.d1]++; cnt[1][it.d2]++; cnt[2][it.d3]++;
   }
-  return base;
+  return { base, ins };
 }
 
-// 插期层：主套错1期切到上期原号1注，插期连中2期回主套
+// 插期层：主套错1期切到插期60注杀集，插期连中2期回主套
 function buildAll(data) {
   const N = data.length;
   const index = new Map();
   if (N <= START) return { index, tail: [] };
-  const base = baseSeries(data);
+  const { base, ins } = baseSeries(data);
   let useB = false, e = 0, c = 0;
   for (let i = START; i <= N; i++) {
-    const mask = useB ? oneMask(numKey(data[i - 1])) : base[i];
+    const mask = useB ? ins[i] : base[i];
     if (i === N) return { index, tail: killMaskToNumbers(mask) };
     const missed = mask[numKey(data[i])] === 1;
     index.set(data[i].issue, { size: maskSize(mask), hit: !missed, kill: mask });
