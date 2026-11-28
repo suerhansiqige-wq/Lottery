@@ -465,10 +465,9 @@ const SHOW_ADDSUB_PRO_COL = false; // 隔一用二增强列（增强93.1%，隐�
 const SHOW_KILL150_COL = true; // 杀150注列：三套150轮转主套，错1期插遗漏并集补补60、中2期回
 const SHOW_KAIJIANG_SHAHAO_COL = true; // 开奖号杀号列：上期奖号+和值各位+跨度数字池，组选转直选（不含豹子）
 
-// 容错00 / 容错 / 前1期 / 交集号码 列开关
+// 容错00 / 容错 / 前1期 列开关
 const SHOW_RC10_COL = true;
 const SHOW_RC_COL = true;
-const SHOW_JJ_COL = true;
 
 // 交集容错列开关：交集号码 - 容错列 - 容错10列 + 双方无容错
 const SHOW_JJRONGCUO_COL = false; // 交集容错列（隐藏）
@@ -1251,52 +1250,6 @@ function FullDataTable({
     }
   }, [tailZhiXuanGaoBeiZuLiu, onZhiXuanGaoBeiZuLiuChange]);
 
-  // 预留行「交集号码」列：智取容错 ∩ 博众容错 + 无容错 + 豹子号
-  const tailJiaoJiHaoMaNumbers = useMemo(() => {
-    const decompGroups = parseDecompGroups((decompTexts && decompTexts[appNextIssue]) || '');
-    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-    const decompZu6 = [];
-    const decompZu3 = [];
-    if (decompResult && decompResult.buckets) {
-      for (let i = 1; i <= 9; i++) {
-        if (decompResult.buckets[i]) decompZu6.push(...decompResult.buckets[i]);
-      }
-      for (let i = 2; i <= 12; i++) {
-        if (decompResult.buckets[i]) decompZu3.push(...decompResult.buckets[i]);
-      }
-    }
-    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[appNextIssue]) || '');
-    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-    const bozhongZu6 = [];
-    const bozhongZu3 = [];
-    if (bozhongResult && bozhongResult.buckets) {
-      for (let i = 1; i <= 9; i++) {
-        if (bozhongResult.buckets[i]) bozhongZu6.push(...bozhongResult.buckets[i]);
-      }
-      for (let i = 2; i <= 12; i++) {
-        if (bozhongResult.buckets[i]) bozhongZu3.push(...bozhongResult.buckets[i]);
-      }
-    }
-    // 组六用1~9池，组三用2~12池
-    const decompZu6Set = new Set(decompZu6);
-    const bozhongZu6Set = new Set(bozhongZu6);
-    const decompZu3Set = new Set(decompZu3);
-    const bozhongZu3Set = new Set(bozhongZu3);
-    const decompAll = [...new Set([...decompZu6, ...decompZu3])];
-    const bozhongAllSet = new Set([...bozhongZu6, ...bozhongZu3]);
-    const jiaoji = decompAll.filter(n => {
-      if (!bozhongAllSet.has(n)) return false;
-      const isZu3 = n[0] === n[1] || n[1] === n[2] || n[0] === n[2];
-      return isZu3
-        ? decompZu3Set.has(n) && bozhongZu3Set.has(n)
-        : decompZu6Set.has(n) && bozhongZu6Set.has(n);
-    });
-    const decompWuRongCuo = decompResult && decompResult.buckets && decompResult.buckets[0] ? decompResult.buckets[0] : [];
-    const bozhongWuRongCuo = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[0] ? bozhongResult.buckets[0] : [];
-    const baoZi = ['000', '111', '222', '333', '444', '555', '666', '777', '888', '999'];
-    return [...new Set([...jiaoji, ...decompWuRongCuo, ...bozhongWuRongCuo, ...baoZi])].sort();
-  }, [appNextIssue, decompTexts, bozhongTexts]);
-
   const renderAddSubProCell = (issue, index) => {
     if (!SHOW_ADDSUB_PRO_COL) return null;
     const rec = addSubIndexPro.get(issue);
@@ -1365,87 +1318,6 @@ function FullDataTable({
     return (
       <td key="rc10" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
         {<ClickableCount count={merged.length} hit={hit} numbers={merged} />}
-      </td>
-    );
-  };
-
-  const renderJiJiaoCell = (issue) => {
-    // 计算智取分解容错（组六1~9，组三2~12）
-    const decompGroups = parseDecompGroups((decompTexts && decompTexts[issue]) || '');
-    const decompResult = decompGroups.length > 0 ? computeRongCuo(decompGroups, null) : null;
-    const decompZu6 = []; // 组六池 1~9
-    const decompZu3 = []; // 组三池 2~12
-    if (decompResult && decompResult.buckets) {
-      for (let i = 1; i <= 9; i++) {
-        if (decompResult.buckets[i]) decompZu6.push(...decompResult.buckets[i]);
-      }
-      for (let i = 2; i <= 12; i++) {
-        if (decompResult.buckets[i]) decompZu3.push(...decompResult.buckets[i]);
-      }
-    }
-
-    // 计算博众分解容错（组六1~9，组三2~12）
-    const bozhongGroups = parseDecompGroups((bozhongTexts && bozhongTexts[issue]) || '');
-    const bozhongResult = bozhongGroups.length > 0 ? computeRongCuo(bozhongGroups, null) : null;
-    const bozhongZu6 = []; // 组六池 1~9
-    const bozhongZu3 = []; // 组三池 2~12
-    if (bozhongResult && bozhongResult.buckets) {
-      for (let i = 1; i <= 9; i++) {
-        if (bozhongResult.buckets[i]) bozhongZu6.push(...bozhongResult.buckets[i]);
-      }
-      for (let i = 2; i <= 12; i++) {
-        if (bozhongResult.buckets[i]) bozhongZu3.push(...bozhongResult.buckets[i]);
-      }
-    }
-
-    // 交集号码列 = 智取容错 ∩ 博众容错（组六均1~9，组三均2~12）
-    const decompZu6Set = new Set(decompZu6);
-    const bozhongZu6Set = new Set(bozhongZu6);
-    const decompZu3Set = new Set(decompZu3);
-    const bozhongZu3Set = new Set(bozhongZu3);
-
-    // 合并两个池子用于交集计算
-    const decompAll = [...new Set([...decompZu6, ...decompZu3])];
-    const bozhongAll = [...new Set([...bozhongZu6, ...bozhongZu3])];
-    const bozhongAllSet = new Set(bozhongAll);
-
-    // 取交集后，根据号码类型过滤
-    const jiaoji = decompAll.filter(n => {
-      if (!bozhongAllSet.has(n)) return false;
-      // 判断是组三还是组六
-      const isZu3 = n[0] === n[1] || n[1] === n[2] || n[0] === n[2];
-      if (isZu3) {
-        // 组三：需要在两个组三池中都存在
-        return decompZu3Set.has(n) && bozhongZu3Set.has(n);
-      } else {
-        // 组六：需要在两个组六池中都存在
-        return decompZu6Set.has(n) && bozhongZu6Set.has(n);
-      }
-    });
-
-    // 智取分解无容错号码（buckets[0]）
-    const decompWuRongCuo = decompResult && decompResult.buckets && decompResult.buckets[0] ? decompResult.buckets[0] : [];
-    // 博众分解无容错号码（buckets[0]）
-    const bozhongWuRongCuo = bozhongResult && bozhongResult.buckets && bozhongResult.buckets[0] ? bozhongResult.buckets[0] : [];
-    // 所有豹子号码
-    const baoZi = ['000', '111', '222', '333', '444', '555', '666', '777', '888', '999'];
-
-    // 合并所有号码并去重
-    const allNumbers = [...new Set([...jiaoji, ...decompWuRongCuo, ...bozhongWuRongCuo, ...baoZi])];
-    const filtered = allNumbers.sort();
-
-    if (filtered.length === 0) {
-      return <td key="jj" style={{ color: '#999', background: '#f5f5f5' }}>-</td>;
-    }
-
-    // 验证当期开奖号是否在交集中
-    const item = displayData.find(d => d.issue === issue);
-    const drawNum = item ? `${item.d1}${item.d2}${item.d3}` : null;
-    const hit = drawNum && filtered.includes(drawNum);
-
-    return (
-      <td key="jj" style={{ padding: '2px 4px', background: hit ? '#e8f5e9' : (hit === false ? '#ffebee' : '#f5f5f5') }}>
-        {<ClickableCount count={filtered.length} hit={hit} numbers={filtered} />}
       </td>
     );
   };
@@ -1860,7 +1732,6 @@ function FullDataTable({
                 {SHOW_SLBC_COLS && <th>连号</th>}
                 {SHOW_SLBC_COLS && <th>必出号</th>}
                 {SHOW_ADDSUB_PRO_COL && <th title={`隔一用二增强：横向得票≥1 + 和值出现≥12次，命中率~93%，~930注；✓=在池内，✗=不在池内`}>增强93.1%</th>}
-                {SHOW_JJ_COL && <th title="智取容错0~9 ∩ 博众容错0~9（交集号码）；✓=在池内，✗=不在池内">交集号码</th>}
                 {SHOW_JJRONGCUO_COL && <th title="交集号码 - 容错列 - 容错10列 + 双方无容错（交集容错）；✓=在池内，✗=不在池内">交集容错</th>}
                 {SHOW_KILL150_COL && <th title="主套=三套150轮转：现冠军(聚类K3热百5十3)/增强补集并开奖号杀号/遗漏并集补集，均冷序删补至固定150注，连错2期转下一套，中1期回第一套；主套错1期插遗漏并集补集补至60注，中2期回主套；✓=奖号不在杀集(杀对)，✗=奖号被杀(误杀)；回测7341期88.50%连错3双错43均129.9注">杀150注</th>}
                 {SHOW_KAIJIANG_SHAHAO_COL && <th title="上期开奖号三位+和值各位+跨度组成数字池，池内组六组三展开直选（不含豹子）作本期杀号；✓=奖号不在杀集(杀对)，✗=奖号被杀(误杀)">开奖号杀号</th>}
@@ -1963,8 +1834,6 @@ function FullDataTable({
                   )}
                   {/* 隔一用二增强：横向得票≥1 + 和值出现≥12次 */}
                   {renderAddSubProCell(item.issue, issueIndexMap.get(item.issue))}
-                  {/* 交集号码：智取容错0~9 ∩ 博众容错0~9 */}
-                  {SHOW_JJ_COL && renderJiJiaoCell(item.issue)}
                   {/* 交集容错：交集号码 - 容错列 - 容错10列 + 双方无容错 */}
                   {SHOW_JJRONGCUO_COL && renderJiJiaoRongCuoCell(item.issue)}
                   {/* 杀150注：主套+插期 */}
@@ -2039,12 +1908,6 @@ function FullDataTable({
                   {SHOW_ADDSUB_PRO_COL && (
                     <td key="addSubProNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
                       {<ClickableCount count={tailAddSubNumbersPro.length} hit={null} numbers={tailAddSubNumbersPro} color="#1b5e20" />}
-                    </td>
-                  )}
-                  {/* 交集号码 - 预留行：用下一期分解数据计算交集注数 */}
-                  {SHOW_JJ_COL && (
-                    <td key="jjNext" style={{ padding: '2px 4px', background: '#f0f8ff' }}>
-                      <ClickableCount count={tailJiaoJiHaoMaNumbers.length} hit={null} numbers={tailJiaoJiHaoMaNumbers} color="#1b5e20" />
                     </td>
                   )}
                   {/* 交集容错 - 预留行：下期交集容错注数（尚未开奖，无对错） */}
