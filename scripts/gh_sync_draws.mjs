@@ -11,6 +11,8 @@
 // 【多源改造 2026-09-09】取数层由“只调用乐彩网”改为“主源 + 官方备源”双通道：
 //   福彩3D：乐彩网 txt（主） / 中国福彩官方 www.cwl.gov.cn JSON（备）
 //   排列三：乐彩网 txt（主） / 中国体彩官方 webapi.sporttery.cn JSON（备，gameNo=35 即排列3）
+// 【2026-11-28 多线并行】新增第三源博众网走势图（qshx.com 友链，GBK），每彩种3源；
+//   两个应用共6条取数线并行发起（Promise.allSettled），单源20秒超时，互不拖累。
 // 三个源实测返回的期号与号码逐位一致（26242：福彩3D=555、排列三=244）。
 // 备源的意义：任一源改版 / 限流 / 封禁 / 被境外 IP 拦截时，同步不会中断；
 //   两源同时可用时做交叉校验，只要有一处不一致就放弃写入并让 workflow 变红——
@@ -73,6 +75,13 @@ const PARSERS = {
       return { issue: toFive(String(x.lotteryDrawNum || '')), d1: Number(p[0]), d2: Number(p[1]), d3: Number(p[2]) };
     }));
   },
+
+  // 博众网走势图（用户提供的 qshx.com 首页友情链接，GBK 编码）：
+  //   行格式 <td>期号</td><td><font>三位奖号</font></td>，cz=1 福彩3D / cz=2 排列三，qs=30 取30期，升序
+  bzsoft(text) {
+    const re = /<td[^>]*>\s*(\d{5})\s*<\/td>\s*<td[^>]*>\s*(?:<b>)?<font[^>]*>(\d{3})<\/font>(?:<\/b>)?\s*<\/td>/g;
+    return clean([...text.matchAll(re)].map(m => ({ issue: m[1], d1: Number(m[2][0]), d2: Number(m[2][1]), d3: Number(m[2][2]) })));
+  },
 };
 
 const APPS = [
@@ -87,6 +96,7 @@ const APPS = [
         url: 'https://www.cwl.gov.cn/cwl_admin/front/cwlkj/search/kjxx/findDrawNotice?name=3d&issueCount=30',
         headers: { Referer: 'https://www.cwl.gov.cn/ygkj/wqkjgg/' },
       },
+      { label: '博众网', parser: 'bzsoft', encoding: 'gbk', url: 'https://www.bzsoft.com.cn/chart/tb_fbt.asp?qs=30&cz=1' },
     ],
   },
   {
@@ -100,6 +110,7 @@ const APPS = [
         url: 'https://webapi.sporttery.cn/gateway/lottery/getHistoryPageListV1.qry?gameNo=35&provinceId=0&pageSize=30&isVerify=1&pageNo=1',
         headers: { Referer: 'https://static.sporttery.cn/' },
       },
+      { label: '博众网', parser: 'bzsoft', encoding: 'gbk', url: 'https://www.bzsoft.com.cn/chart/tb_fbt.asp?qs=30&cz=2' },
     ],
   },
 ];
@@ -114,9 +125,9 @@ const degraded = [];
 
 const fetchSource = async (src) => {
   const t0 = Date.now();
-  const res = await fetch(src.url, { headers: { ...BASE_HEADERS, ...(src.headers || {}) } });
+  const res = await fetch(src.url, { headers: { ...BASE_HEADERS, ...(src.headers || {}) }, signal: AbortSignal.timeout(20000) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const text = await res.text();
+  const text = src.encoding === 'gbk' ? new TextDecoder('gbk').decode(await res.arrayBuffer()) : await res.text();
   const items = PARSERS[src.parser](text);
   // 解析不出任何有效行，说明数据源改版、被拦截或返回了非开奖内容
   // （例如 HTML 错误页，或乐彩对带 Origin 请求返回的 169 字节防盗链跳转页）
@@ -125,21 +136,27 @@ const fetchSource = async (src) => {
   return { items, ms: Date.now() - t0 };
 };
 
+// ---- 多线同时取数：两个应用全部数据源并行发起，单源20秒超时，任一源卡死不拖累其他源 ----
+const jobs = APPS.flatMap(app => app.sources.map(src => ({ app, src })));
+const settled = await Promise.allSettled(jobs.map(j => fetchSource(j.src)));
+const fetched = new Map(APPS.map(a => [a.name, []]));
+settled.forEach((r, i) => {
+  const { app, src } = jobs[i];
+  if (r.status === 'fulfilled') {
+    console.log(`[${app.name}] ${src.label} 可用（${r.value.ms}ms，${r.value.items.length} 期，最新 ${fmt(latest(r.value.items))}）`);
+    fetched.get(app.name).push({ src, items: r.value.items });
+  } else {
+    const msg = r.reason?.message || String(r.reason);
+    console.log(`[${app.name}] ${src.label} 不可用：${msg}`);
+    fetched.get(app.name).push({ src, error: msg });
+  }
+});
+
 for (const app of APPS) {
   const filePath = path.join(ROOT, app.file);
 
-  // ---- 1) 取数：按顺序尝试全部数据源，成功的都留下（第一个作为写入依据，其余用于交叉校验）----
-  const results = [];
-  for (const src of app.sources) {
-    try {
-      const r = await fetchSource(src);
-      results.push({ src, items: r.items });
-      console.log(`[${app.name}] ${src.label} 可用（${r.ms}ms，${r.items.length} 期，最新 ${fmt(latest(r.items))}）`);
-    } catch (err) {
-      results.push({ src, error: err.message });
-      console.log(`[${app.name}] ${src.label} 不可用：${err.message}`);
-    }
-  }
+  // ---- 1) 取数结果：成功的都留下（第一个作为写入依据，其余用于交叉校验）----
+  const results = fetched.get(app.name);
 
   const ok = results.filter(r => r.items);
   if (ok.length === 0) {
