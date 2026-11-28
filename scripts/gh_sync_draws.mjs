@@ -8,12 +8,14 @@
 //   - 去重/写入：与 vite.config.js saveDrawsPlugin 相同（正则定位数组结尾 "];"，升序追加条目）
 // 只追加、不改写任何历史行，不触碰任何算法逻辑。
 //
-// 【多源改造 2026-09-09】取数层由“只调用乐彩网”改为“主源 + 官方备源”双通道：
-//   福彩3D：乐彩网 txt（主） / 中国福彩官方 www.cwl.gov.cn JSON（备）
-//   排列三：乐彩网 txt（主） / 中国体彩官方 webapi.sporttery.cn JSON（备，gameNo=35 即排列3）
-// 【2026-11-28 多线并行】新增第三源博众网走势图（qshx.com 友链，GBK），每彩种3源；
-//   两个应用共6条取数线并行发起（Promise.allSettled），单源20秒超时，互不拖累。
-// 三个源实测返回的期号与号码逐位一致（26242：福彩3D=555、排列三=244）。
+// 【多源改造 2026-09-09】取数层由“只调用乐彩网”改为多源兜底。
+// 【2026-11-28 多线并行】新增博众网走势图（qshx.com 友链，GBK）。
+// 【2026-11-28 去官方源】按用户要求移除中国福彩官方(cwl.gov.cn)与中国体彩官方(sporttery.cn)
+//   （两者对 GitHub 境外 runner 实测 403/567 拦截，云端从来用不上），
+//   改补两条民间彩票网兜底：500彩票网走势图(datachart.500.com) + 彩吧(www.55125.cn)。
+//   现每彩种 4 源：乐彩网 / 博众网 / 500彩票网 / 彩吧，全部非官方。
+//   两个应用共8条取数线并行发起（Promise.allSettled），单源20秒超时，互不拖累。
+// 各源实测返回的期号与号码逐位一致（26318：福彩3D=226、排列三=504）。
 // 备源的意义：任一源改版 / 限流 / 封禁 / 被境外 IP 拦截时，同步不会中断；
 //   两源同时可用时做交叉校验，只要有一处不一致就放弃写入并让 workflow 变红——
 //   宁可当次不同步，也绝不写入可疑数据。
@@ -53,27 +55,11 @@ const PARSERS = {
     }));
   },
 
-  // 中国福彩官方 JSON：{ state:0, message:'查询成功', result:[{ code:'2026242', red:'5,5,5', date:'2026-09-09(三)' }] }
-  // code 是 7 位期号，red 是逗号分隔的三个号码
-  cwl(text) {
-    const j = JSON.parse(text);
-    if (j.state !== 0) throw new Error(`接口返回 state=${j.state} message=${j.message}`);
-    return clean((j.result || []).slice(0, 30).map(x => {
-      const p = String(x.red || '').split(',');
-      return { issue: toFive(String(x.code || '')), d1: Number(p[0]), d2: Number(p[1]), d3: Number(p[2]) };
-    }));
-  },
-
-  // 中国体彩官方 JSON（gameNo=35 = 排列3）：
-  //   { success:true, value:{ list:[{ lotteryDrawNum:'26242', lotteryDrawResult:'2 4 4', lotteryDrawTime:'2026-09-09' }] } }
-  // lotteryDrawResult 为空格分隔；该接口必须带 Referer，否则被 WAF 拦成 HTTP 567
-  sporttery(text) {
-    const j = JSON.parse(text);
-    if (j.success !== true) throw new Error(`接口返回 errorCode=${j.errorCode} errorMessage=${j.errorMessage}`);
-    return clean((((j.value || {}).list) || []).slice(0, 30).map(x => {
-      const p = String(x.lotteryDrawResult || '').trim().split(/\s+/);
-      return { issue: toFive(String(x.lotteryDrawNum || '')), d1: Number(p[0]), d2: Number(p[1]), d3: Number(p[2]) };
-    }));
+  // 500彩票网走势图（UTF-8）：行格式 期号td + 三个 chartBall01 td
+  //   福彩3D期号为7位(2026318)需转5位，排列三为5位；expect=30 取30期
+  chart500(text) {
+    const re = /<td align="center">(\d{5,7})<\/td>\s*<td class="chartBall01"[^>]*>(\d)<\/td>\s*<td class="chartBall01"[^>]*>(\d)<\/td>\s*<td class="chartBall01"[^>]*>(\d)<\/td>/g;
+    return clean([...text.matchAll(re)].map(m => ({ issue: toFive(m[1]), d1: Number(m[2]), d2: Number(m[3]), d3: Number(m[4]) })));
   },
 
   // 博众网走势图（用户提供的 qshx.com 首页友情链接，GBK 编码）：
@@ -84,19 +70,31 @@ const PARSERS = {
   },
 };
 
+// 彩吧(55125.cn)两段式取数：列表页第一个期号链接即最新一期 → 单期页取前三个 ball 数字。
+// 只返回最新 1 期，作为交叉校验与兜底足够；path='3d' 福彩3D / 'p3' 排列三
+const caibaFetcher = (path) => async () => {
+  const get = async (url) => {
+    const res = await fetch(url, { headers: BASE_HEADERS, signal: AbortSignal.timeout(20000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.text();
+  };
+  const list = await get(`https://www.55125.cn/kaijiang/${path}/`);
+  const m = list.match(new RegExp(`/kaijiang/${path}/(\\d{7})\\.htm`));
+  if (!m) throw new Error('列表页解析不出期号链接（可能改版或被拦截）');
+  const page = await get(`https://www.55125.cn/kaijiang/${path}/${m[1]}.htm`);
+  const balls = [...page.matchAll(/class="ball[^"]*">(\d)</g)].slice(0, 3).map(x => Number(x[1]));
+  return clean([{ issue: toFive(m[1]), d1: balls[0], d2: balls[1], d3: balls[2] }]);
+};
+
 const APPS = [
   {
     name: '福彩3D',
     file: 'lottery-app/src/data/lotteryData.js',
     sources: [
       { label: '乐彩网', parser: 'lecai', url: 'https://data.17500.cn/3d_desc.txt' },
-      {
-        label: '中国福彩官方',
-        parser: 'cwl',
-        url: 'https://www.cwl.gov.cn/cwl_admin/front/cwlkj/search/kjxx/findDrawNotice?name=3d&issueCount=30',
-        headers: { Referer: 'https://www.cwl.gov.cn/ygkj/wqkjgg/' },
-      },
       { label: '博众网', parser: 'bzsoft', encoding: 'gbk', url: 'https://www.bzsoft.com.cn/chart/tb_fbt.asp?qs=30&cz=1' },
+      { label: '500彩票网', parser: 'chart500', url: 'https://datachart.500.com/sd/zoushi/newinc/jbzs.php?expect=30' },
+      { label: '彩吧', fetcher: caibaFetcher('3d'), url: 'https://www.55125.cn/kaijiang/3d/' },
     ],
   },
   {
@@ -104,13 +102,9 @@ const APPS = [
     file: 'pl3-app/src/data/lotteryData.js',
     sources: [
       { label: '乐彩网', parser: 'lecai', url: 'https://data.17500.cn/pl32_desc.txt' },
-      {
-        label: '中国体彩官方',
-        parser: 'sporttery',
-        url: 'https://webapi.sporttery.cn/gateway/lottery/getHistoryPageListV1.qry?gameNo=35&provinceId=0&pageSize=30&isVerify=1&pageNo=1',
-        headers: { Referer: 'https://static.sporttery.cn/' },
-      },
       { label: '博众网', parser: 'bzsoft', encoding: 'gbk', url: 'https://www.bzsoft.com.cn/chart/tb_fbt.asp?qs=30&cz=2' },
+      { label: '500彩票网', parser: 'chart500', url: 'https://datachart.500.com/pls/zoushi/newinc/jbzs.php?expect=30' },
+      { label: '彩吧', fetcher: caibaFetcher('p3'), url: 'https://www.55125.cn/kaijiang/p3/' },
     ],
   },
 ];
@@ -125,10 +119,16 @@ const degraded = [];
 
 const fetchSource = async (src) => {
   const t0 = Date.now();
-  const res = await fetch(src.url, { headers: { ...BASE_HEADERS, ...(src.headers || {}) }, signal: AbortSignal.timeout(20000) });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const text = src.encoding === 'gbk' ? new TextDecoder('gbk').decode(await res.arrayBuffer()) : await res.text();
-  const items = PARSERS[src.parser](text);
+  let items;
+  if (src.fetcher) {
+    // 自定义取数（如彩吧的两段式：列表页定期号 → 单期页取号码）
+    items = await src.fetcher();
+  } else {
+    const res = await fetch(src.url, { headers: { ...BASE_HEADERS, ...(src.headers || {}) }, signal: AbortSignal.timeout(20000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = src.encoding === 'gbk' ? new TextDecoder('gbk').decode(await res.arrayBuffer()) : await res.text();
+    items = PARSERS[src.parser](text);
+  }
   // 解析不出任何有效行，说明数据源改版、被拦截或返回了非开奖内容
   // （例如 HTML 错误页，或乐彩对带 Origin 请求返回的 169 字节防盗链跳转页）
   // 这种情况若不报错就会伪装成“无新数据”，是最危险的假绿灯
